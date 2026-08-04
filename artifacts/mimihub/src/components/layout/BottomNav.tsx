@@ -17,9 +17,15 @@ export function BottomNav() {
       <div className="flex items-center justify-between max-w-md mx-auto">
         {navItems.map((item) => {
           // Precise matching for home, startsWith for others
-          const isActive = item.href === '/' 
+          const isActive = item.href === '/'
             ? location === '/'
-            : location.startsWith(item.href.split('?')[0]);
+            : item.href.includes('?tab=orders')
+              // Orders tab: active only when on /account with tab=orders
+              ? location === '/account' && new URLSearchParams(window.location.search).get('tab') === 'orders'
+              // Account tab: active on /account but NOT when tab=orders is set
+              : item.href === '/account'
+                ? location === '/account' && new URLSearchParams(window.location.search).get('tab') !== 'orders'
+                : location.startsWith(item.href.split('?')[0]);
 
           const Icon = item.icon;
 
