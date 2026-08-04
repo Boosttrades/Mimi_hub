@@ -46,6 +46,14 @@ router.post("/orders", async (req, res): Promise<void> => {
     return;
   }
 
+  // Attach userId from HttpOnly cookie if present (preferred over body for security)
+  let userId: number | null = null;
+  const rawCookieId = req.cookies?.["mimi_user_id"];
+  if (rawCookieId) {
+    const parsed = parseInt(rawCookieId, 10);
+    if (!isNaN(parsed)) userId = parsed;
+  }
+
   const orderRef = await generateOrderRef();
   const subtotal = (items as { totalPrice: number }[]).reduce((sum, item) => sum + item.totalPrice, 0);
   const timeline = [{ status: "Awaiting Payment", timestamp: new Date().toISOString(), note: null }];
@@ -60,6 +68,7 @@ router.post("/orders", async (req, res): Promise<void> => {
     orderStatus: "Awaiting Payment",
     flutterwaveRef: flutterwaveRef ?? null,
     timeline,
+    ...(userId !== null ? { userId } : {}),
   }).returning();
 
   res.status(201).json(order);
