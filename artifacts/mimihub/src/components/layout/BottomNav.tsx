@@ -33,10 +33,10 @@ export function BottomNav() {
             <Link key={item.href} href={item.href}>
               <div
                 className="flex items-center justify-center rounded-full bg-primary transition-all duration-200 cursor-pointer"
-                style={{ width: 42, height: 42, opacity: 0.8, boxShadow: '0 4px 14px rgba(201,168,76,0.45)' }}
+                style={{ width: 44, height: 44, opacity: 0.8, boxShadow: '0 4px 14px rgba(201,168,76,0.45)' }}
                 data-testid={`nav-${item.label.toLowerCase()}`}
               >
-                <Icon className={cn("h-5 w-5", isActive ? "fill-current text-[#f5ecd8]" : "text-white")} />
+                <Icon className={cn("h-[22px] w-[22px]", isActive ? "fill-current text-[#f5ecd8]" : "text-white")} />
               </div>
             </Link>
           );

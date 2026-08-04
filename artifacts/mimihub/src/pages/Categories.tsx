@@ -14,7 +14,7 @@ export function Categories() {
     <Layout>
       <div className="container mx-auto px-4 py-8">
         <div className="text-center mb-10">
-          <h1 className="font-serif text-4xl text-foreground mb-4">All Categories</h1>
+          <h1 className="font-serif text-3xl text-foreground mb-4">All Categories</h1>
           <div className="w-16 h-0.5 bg-primary mx-auto" />
         </div>
 
@@ -31,7 +31,7 @@ export function Categories() {
                   <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors duration-300" />
                 </div>
                 <div className="p-4 text-center bg-card flex-1 flex flex-col justify-center">
-                  <h3 className="font-serif text-lg font-medium text-foreground group-hover:text-primary transition-colors">
+                  <h3 className="font-serif text-base font-medium text-foreground group-hover:text-primary transition-colors">
                     {category.name}
                   </h3>
                   {category.description && (

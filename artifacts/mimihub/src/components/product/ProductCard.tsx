@@ -59,7 +59,7 @@ export function ProductCard({ product }: ProductCardProps) {
 
       <Link href={`/product/${product.id}`}>
         <div className="p-3 sm:p-4 flex flex-col flex-1 cursor-pointer">
-          <h3 className="font-medium text-sm sm:text-base text-foreground line-clamp-2 leading-tight mb-2 group-hover:text-primary transition-colors">
+          <h3 className="font-medium text-xs sm:text-sm text-foreground line-clamp-2 leading-tight mb-2 group-hover:text-primary transition-colors">
             {product.name}
           </h3>
           <div className="mt-auto flex items-end gap-2 flex-wrap">

@@ -54,8 +54,8 @@ export function Home() {
               />
               <div className="absolute inset-0 bg-black/30 flex items-center justify-center text-center px-4">
                 <div className="max-w-2xl text-white">
-                  <p className="text-sm md:text-lg tracking-[0.2em] uppercase mb-4 opacity-90">{banner.subtitle}</p>
-                  <h1 className="text-4xl md:text-6xl font-serif mb-6 leading-tight">{banner.title}</h1>
+                  <p className="text-xs md:text-base tracking-[0.2em] uppercase mb-4 opacity-90">{banner.subtitle}</p>
+                  <h1 className="text-3xl md:text-5xl font-serif mb-6 leading-tight">{banner.title}</h1>
                   {banner.buttonText && banner.buttonLink && (
                     <Link href={banner.buttonLink}>
                       <Button className="bg-white text-foreground hover:bg-white/90 hover:text-primary rounded-none px-8 py-6 text-sm tracking-widest uppercase transition-all">
@@ -96,9 +96,9 @@ export function Home() {
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent flex flex-col justify-end p-6 md:p-8">
-                    <h3 className="text-white font-serif text-2xl md:text-3xl mb-2">{collection.title}</h3>
-                    <p className="text-white/90 text-sm mb-4 line-clamp-2">{collection.description}</p>
-                    <span className="inline-flex items-center text-white text-sm font-semibold tracking-wider uppercase group-hover:text-primary transition-colors">
+                    <h3 className="text-white font-serif text-xl md:text-2xl mb-2">{collection.title}</h3>
+                    <p className="text-white/90 text-xs mb-4 line-clamp-2">{collection.description}</p>
+                    <span className="inline-flex items-center text-white text-xs font-semibold tracking-wider uppercase group-hover:text-primary transition-colors">
                       Shop Now <ChevronRight className="w-4 h-4 ml-1" />
                     </span>
                   </div>
@@ -112,7 +112,7 @@ export function Home() {
       {/* Categories Grid */}
       <section className="py-8 px-4 container mx-auto">
         <div className="flex items-center justify-between mb-8">
-          <h2 className="font-serif text-3xl text-foreground">Shop by Category</h2>
+          <h2 className="font-serif text-2xl text-foreground">Shop by Category</h2>
           <Link href="/categories">
             <span className="text-primary hover:text-primary/80 font-medium cursor-pointer inline-flex items-center">
               View All <ChevronRight className="w-4 h-4 ml-1" />
@@ -135,7 +135,7 @@ export function Home() {
                       />
                     </div>
                   </div>
-                  <h3 className="font-serif text-lg text-foreground group-hover:text-primary transition-colors">
+                  <h3 className="font-serif text-base text-foreground group-hover:text-primary transition-colors">
                     {category.name}
                   </h3>
                 </div>
@@ -148,7 +148,7 @@ export function Home() {
       {/* Featured Products */}
       <section className="py-12 px-4 container mx-auto bg-secondary/30">
         <div className="text-center mb-10">
-          <h2 className="font-serif text-3xl md:text-4xl text-foreground mb-4">MimiiHub Favorites</h2>
+          <h2 className="font-serif text-2xl md:text-3xl text-foreground mb-4">MimiiHub Favorites</h2>
           <div className="w-16 h-0.5 bg-primary mx-auto" />
         </div>
         
@@ -168,7 +168,7 @@ export function Home() {
       {/* New Arrivals */}
       <section className="py-12 px-4 container mx-auto">
         <div className="text-center mb-10">
-          <h2 className="font-serif text-3xl md:text-4xl text-foreground mb-4">New Arrivals</h2>
+          <h2 className="font-serif text-2xl md:text-3xl text-foreground mb-4">New Arrivals</h2>
           <div className="w-16 h-0.5 bg-primary mx-auto" />
         </div>
         
@@ -200,8 +200,8 @@ export function Home() {
                 return (
                   <div key={item.id} className="flex flex-col items-center">
                     <Icon className="w-8 h-8 text-primary mb-3" strokeWidth={1.5} />
-                    <h4 className="font-serif font-semibold text-lg mb-1">{item.title}</h4>
-                    <p className="text-sm text-muted-foreground">{item.subtitle}</p>
+                    <h4 className="font-serif font-semibold text-base mb-1">{item.title}</h4>
+                    <p className="text-xs text-muted-foreground">{item.subtitle}</p>
                   </div>
                 );
               })}

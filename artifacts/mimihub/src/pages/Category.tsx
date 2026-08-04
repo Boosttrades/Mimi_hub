@@ -52,16 +52,16 @@ export function Category() {
         <img src={image} alt={title} className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-black/40 flex items-center justify-center p-4">
           <div className="text-center text-white max-w-2xl">
-            <h1 className="font-serif text-4xl md:text-5xl mb-4">{title}</h1>
-            <p className="text-white/90 text-sm md:text-base">{description}</p>
+            <h1 className="font-serif text-3xl md:text-4xl mb-4">{title}</h1>
+            <p className="text-white/90 text-xs md:text-sm">{description}</p>
           </div>
         </div>
       </div>
 
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-          <h2 className="font-serif text-2xl text-foreground">
-            All {title} <span className="text-muted-foreground text-lg ml-2">({products?.length || 0})</span>
+          <h2 className="font-serif text-xl text-foreground">
+            All {title} <span className="text-muted-foreground text-base ml-2">({products?.length || 0})</span>
           </h2>
           
           {/* Subcategory Pills */}
@@ -71,7 +71,7 @@ export function Category() {
                 <a
                   key={sub.id}
                   href={`/category/${category.slug}/${sub.slug}`}
-                  className="px-4 py-1.5 bg-secondary text-secondary-foreground rounded-full text-sm font-medium whitespace-nowrap hover:bg-primary hover:text-primary-foreground transition-colors"
+                  className="px-4 py-1.5 bg-secondary text-secondary-foreground rounded-full text-xs font-medium whitespace-nowrap hover:bg-primary hover:text-primary-foreground transition-colors"
                 >
                   {sub.name}
                 </a>
