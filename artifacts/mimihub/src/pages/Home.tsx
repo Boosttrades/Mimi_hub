@@ -89,7 +89,7 @@ export function Home() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             {featuredCollections.map((collection) => (
               <Link key={collection.id} href={collection.link}>
-                <div className="relative h-[300px] md:h-[400px] rounded-2xl overflow-hidden group cursor-pointer">
+                <div className="relative h-[200px] md:h-[260px] rounded-2xl overflow-hidden group cursor-pointer">
                   <img
                     src={collection.image || 'https://placehold.co/800x600/D4B483/FAF6F0?text=Collection'}
                     alt={collection.title}
