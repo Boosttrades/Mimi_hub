@@ -30,7 +30,8 @@ export function Search() {
 
   const { data: products, isLoading } = useListProducts(
     { search: debouncedQuery, visible: true },
-    { query: { enabled: !!debouncedQuery } }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    { query: { enabled: !!debouncedQuery } as any }
   );
 
   return (

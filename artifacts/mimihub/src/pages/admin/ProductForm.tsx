@@ -22,9 +22,8 @@ export function AdminProductForm() {
   const queryClient = useQueryClient();
 
   const { data: categories } = useListCategories();
-  const { data: product, isLoading: loadingProduct } = useGetProduct(productId, { 
-    query: { enabled: isEditing } 
-  });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: product, isLoading: loadingProduct } = useGetProduct(productId, { query: { enabled: isEditing } as any });
 
   const createMutation = useCreateProduct();
   const updateMutation = useUpdateProduct();
@@ -105,7 +104,7 @@ export function AdminProductForm() {
       slug: formData.slug,
       description: formData.description,
       price: Number(formData.price),
-      discountPct: Number(formData.discountPct) || null,
+      discountPct: Number(formData.discountPct) || undefined,
       coverImage: formData.coverImage || (imagesArray.length > 0 ? imagesArray[0] : ''),
       images: imagesArray,
       categoryId: isNaN(cId) ? undefined : cId,

@@ -12,9 +12,8 @@ export function OrderTracking() {
   const [, params] = useRoute('/orders/:ref');
   const orderRef = params?.ref || '';
 
-  const { data: order, isLoading, isError } = useGetOrderByRef(orderRef, {
-    query: { enabled: !!orderRef }
-  });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: order, isLoading, isError } = useGetOrderByRef(orderRef, { query: { enabled: !!orderRef } as any });
 
   if (isLoading) return <LoadingPage />;
   

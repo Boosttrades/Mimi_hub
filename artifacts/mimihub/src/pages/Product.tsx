@@ -16,8 +16,10 @@ export function Product() {
   const [, params] = useRoute('/product/:id');
   const id = parseInt(params?.id || '0', 10);
 
-  const { data: product, isLoading, isError } = useGetProduct(id, { query: { enabled: !!id } });
-  const { data: relatedProducts } = useGetRelatedProducts(id, { query: { enabled: !!id } });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: product, isLoading, isError } = useGetProduct(id, { query: { enabled: !!id } as any });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: relatedProducts } = useGetRelatedProducts(id, { query: { enabled: !!id } as any });
 
   const { addToCart } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();

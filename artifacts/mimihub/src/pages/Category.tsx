@@ -27,15 +27,9 @@ export function Category() {
   }, [category, subSlug]);
 
   const { data: products, isLoading: loadingProducts } = useListProducts(
-    { 
-      categoryId: category?.id, 
-      subcategoryId: subcategory?.id 
-    },
-    { 
-      query: { 
-        enabled: !!category?.id 
-      } 
-    }
+    { categoryId: category?.id, subcategoryId: subcategory?.id },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    { query: { enabled: !!category?.id } as any }
   );
 
   if (loadingCats) return <LoadingPage />;
