@@ -31,14 +31,12 @@ export function BottomNav() {
 
           return (
             <Link key={item.href} href={item.href}>
-              <div 
-                className={cn(
-                  "flex items-center justify-center w-12 h-12 rounded-full transition-all duration-200 cursor-pointer",
-                  isActive ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-primary/10 hover:text-primary"
-                )}
+              <div
+                className="flex items-center justify-center rounded-full bg-primary shadow-md transition-all duration-200 cursor-pointer"
+                style={{ width: 38, height: 38 }}
                 data-testid={`nav-${item.label.toLowerCase()}`}
               >
-                <Icon className={cn("h-6 w-6", isActive && "fill-current")} />
+                <Icon className={cn("h-5 w-5", isActive ? "text-[#f5ecd8]" : "text-white")} />
               </div>
             </Link>
           );
