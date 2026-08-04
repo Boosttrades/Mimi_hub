@@ -13,8 +13,8 @@ export function BottomNav() {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-primary/10 px-6 py-3 pb-safe md:hidden">
-      <div className="flex items-center justify-between max-w-md mx-auto">
+    <div className="fixed bottom-0 left-0 right-0 z-50 px-6 pb-6 pt-2 md:hidden pointer-events-none">
+      <div className="flex items-center justify-between max-w-md mx-auto pointer-events-auto">
         {navItems.map((item) => {
           // Precise matching for home, startsWith for others
           const isActive = item.href === '/'
@@ -32,8 +32,8 @@ export function BottomNav() {
           return (
             <Link key={item.href} href={item.href}>
               <div
-                className="flex items-center justify-center rounded-full bg-primary shadow-md transition-all duration-200 cursor-pointer"
-                style={{ width: 38, height: 38 }}
+                className="flex items-center justify-center rounded-full bg-primary transition-all duration-200 cursor-pointer"
+                style={{ width: 38, height: 38, boxShadow: '0 4px 14px rgba(201,168,76,0.45)' }}
                 data-testid={`nav-${item.label.toLowerCase()}`}
               >
                 <Icon className={cn("h-5 w-5", isActive ? "text-[#f5ecd8]" : "text-white")} />
