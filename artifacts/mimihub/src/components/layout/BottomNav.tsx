@@ -8,7 +8,7 @@ export function BottomNav() {
   const navItems = [
     { href: '/', icon: Home, label: 'Home' },
     { href: '/categories', icon: LayoutGrid, label: 'Categories' },
-    { href: '/account?tab=orders', icon: Package, label: 'Orders' },
+    { href: '/account/orders', icon: Package, label: 'Orders' },
     { href: '/account', icon: User, label: 'Account' },
   ];
 
@@ -18,11 +18,9 @@ export function BottomNav() {
         {navItems.map((item) => {
           const isActive = item.href === '/'
             ? location === '/'
-            : item.href.includes('?tab=orders')
-              ? location === '/account' && new URLSearchParams(window.location.search).get('tab') === 'orders'
-              : item.href === '/account'
-                ? location === '/account' && new URLSearchParams(window.location.search).get('tab') !== 'orders'
-                : location.startsWith(item.href.split('?')[0]);
+            : item.href === '/account'
+              ? location === '/account'
+              : location === item.href;
 
           const Icon = item.icon;
 

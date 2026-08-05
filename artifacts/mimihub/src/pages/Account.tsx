@@ -223,7 +223,7 @@ function ProfileView() {
       {/* Orders + Cart quick links */}
       <div className="grid grid-cols-2 gap-3">
         <button
-          onClick={() => setLocation('/account?tab=orders')}
+          onClick={() => setLocation('/account/orders')}
           className="bg-card border border-border rounded-2xl p-4 text-left hover:border-primary/50 transition-colors group"
         >
           <Package className="w-5 h-5 text-primary mb-3" />
@@ -244,7 +244,7 @@ function ProfileView() {
 
       {/* Wishlist link */}
       <button
-        onClick={() => setLocation('/account?tab=wishlist')}
+        onClick={() => setLocation('/account/wishlist')}
         className="w-full bg-card border border-border rounded-2xl p-4 hover:border-primary/50 transition-colors"
       >
         <div className="flex items-center justify-between">
@@ -454,23 +454,42 @@ function WishlistView() {
   );
 }
 
-// ─── main ──────────────────────────────────────────────────────────────────────
+// ─── page exports ──────────────────────────────────────────────────────────────
 
 export function Account() {
-  const tab = new URLSearchParams(window.location.search).get('tab');
-
-  const titles: Record<string, string> = { orders: 'My Orders', wishlist: 'My Wishlist' };
-  const title = tab ? (titles[tab] ?? 'My Account') : 'My Profile';
-
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8 md:py-12">
         <h1 className="font-serif text-2xl md:text-3xl text-foreground mb-8 text-center md:text-left">
-          {title}
+          My Profile
         </h1>
-        {tab === 'orders'   && <OrdersView />}
-        {tab === 'wishlist' && <WishlistView />}
-        {!tab               && <ProfileView />}
+        <ProfileView />
+      </div>
+    </Layout>
+  );
+}
+
+export function AccountOrders() {
+  return (
+    <Layout>
+      <div className="container mx-auto px-4 py-8 md:py-12">
+        <h1 className="font-serif text-2xl md:text-3xl text-foreground mb-8 text-center md:text-left">
+          My Orders
+        </h1>
+        <OrdersView />
+      </div>
+    </Layout>
+  );
+}
+
+export function AccountWishlist() {
+  return (
+    <Layout>
+      <div className="container mx-auto px-4 py-8 md:py-12">
+        <h1 className="font-serif text-2xl md:text-3xl text-foreground mb-8 text-center md:text-left">
+          My Wishlist
+        </h1>
+        <WishlistView />
       </div>
     </Layout>
   );

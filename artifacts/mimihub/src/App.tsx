@@ -14,7 +14,7 @@ import { Product } from '@/pages/Product';
 import { Cart } from '@/pages/Cart';
 import { Checkout } from '@/pages/Checkout';
 import { OrderTracking } from '@/pages/Orders';
-import { Account } from '@/pages/Account';
+import { Account, AccountOrders, AccountWishlist } from '@/pages/Account';
 import { Search } from '@/pages/Search';
 
 import { Dashboard } from '@/pages/admin/Dashboard';
@@ -40,6 +40,8 @@ function Router() {
       <Route path="/checkout" component={Checkout} />
       <Route path="/orders/:ref" component={OrderTracking} />
       <Route path="/account" component={Account} />
+      <Route path="/account/orders" component={AccountOrders} />
+      <Route path="/account/wishlist" component={AccountWishlist} />
       <Route path="/search" component={Search} />
 
       {/* Admin Routes */}
