@@ -1,9 +1,9 @@
-import { Link, useLocation } from 'wouter';
+import { useLocation } from 'wouter';
 import { Home, LayoutGrid, Package, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export function BottomNav() {
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
 
   const navItems = [
     { href: '/', icon: Home, label: 'Home' },
@@ -27,7 +27,12 @@ export function BottomNav() {
           const Icon = item.icon;
 
           return (
-            <Link key={item.href} href={item.href}>
+            <div
+              key={item.href}
+              onClick={() => navigate(item.href)}
+              role="button"
+              aria-label={item.label}
+            >
               <div
                 className="flex items-center justify-center rounded-full transition-all duration-200 cursor-pointer"
                 style={{
@@ -49,7 +54,7 @@ export function BottomNav() {
                   )}
                 />
               </div>
-            </Link>
+            </div>
           );
         })}
       </div>
