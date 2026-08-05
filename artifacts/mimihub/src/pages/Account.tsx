@@ -15,6 +15,8 @@ import {
 } from 'lucide-react';
 import { formatNaira } from '@/lib/utils';
 
+const BASE = import.meta.env.BASE_URL.replace(/\/$/, '');
+
 // ─── theme ────────────────────────────────────────────────────────────────────
 
 type Theme = 'light' | 'dark' | 'system';
@@ -109,7 +111,7 @@ function UsernameModal({ onSuccess, onClose }: { onSuccess: (u: MimiUser) => voi
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('/api/users', {
+      const res = await fetch(`${BASE}/api/users`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: trimmed }),
@@ -120,7 +122,7 @@ function UsernameModal({ onSuccess, onClose }: { onSuccess: (u: MimiUser) => voi
         setError(data.error ?? 'Something went wrong.');
         return;
       }
-      const meRes = await fetch('/api/me', { credentials: 'include' });
+      const meRes = await fetch(`${BASE}/api/me`, { credentials: 'include' });
       if (!meRes.ok) { setError('Session could not be confirmed.'); return; }
       onSuccess(await meRes.json());
     } catch {
@@ -168,7 +170,7 @@ function ProfileView() {
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
-    fetch('/api/me', { credentials: 'include' })
+    fetch(`${BASE}/api/me`, { credentials: 'include' })
       .then(r => r.ok ? r.json() : null)
       .then((u: MimiUser | null) => { setUser(u); setSessionChecked(true); })
       .catch(() => setSessionChecked(true));
@@ -296,7 +298,7 @@ function OrdersView() {
   const [orderRef, setOrderRef] = useState('');
 
   useEffect(() => {
-    fetch('/api/me', { credentials: 'include' })
+    fetch(`${BASE}/api/me`, { credentials: 'include' })
       .then(r => r.ok ? r.json() : null)
       .then((u: MimiUser | null) => { setUser(u); setSessionChecked(true); })
       .catch(() => setSessionChecked(true));
@@ -306,7 +308,7 @@ function OrdersView() {
     setOrdersLoading(true);
     setOrdersError('');
     try {
-      const res = await fetch(`/api/users/${u.id}/orders`, { credentials: 'include' });
+      const res = await fetch(`${BASE}/api/users/${u.id}/orders`, { credentials: 'include' });
       if (!res.ok) throw new Error();
       setOrders(await res.json());
     } catch {
@@ -434,7 +436,8 @@ function OrdersView() {
 
 function WishlistView() {
   const { items: wishlistIds } = useWishlist();
-  const { data: allProducts, isLoading } = useListProducts({ visible: true });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: allProducts, isLoading } = useListProducts({ visible: true } as any);
   const wishlistProducts = allProducts?.filter(p => wishlistIds.includes(p.id)) ?? [];
 
   if (isLoading) return <LoadingSpinner size="lg" />;
