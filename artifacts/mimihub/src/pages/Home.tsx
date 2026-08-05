@@ -110,18 +110,54 @@ export function Home() {
       )}
 
       {/* Categories Grid */}
-      <section className="py-8 px-4 container mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <h2 className="font-serif text-2xl text-foreground">Shop by Category</h2>
-          <Link href="/categories">
-            <span className="text-primary hover:text-primary/80 font-medium cursor-pointer inline-flex items-center">
-              View All <ChevronRight className="w-4 h-4 ml-1" />
-            </span>
-          </Link>
+      <section className="py-12 px-4 container mx-auto">
+        <div className="text-center mb-10">
+          <h2 className="font-serif text-2xl md:text-3xl text-foreground mb-4">Shop by Category</h2>
+          <div className="w-16 h-0.5 bg-primary mx-auto" />
         </div>
         {loadingCategories ? (
           <LoadingSpinner />
+        ) : categories && categories.length <= 3 ? (
+          /* Large banner cards for 1–3 categories */
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+            {categories.map((category) => (
+              <Link key={category.id} href={`/category/${category.slug}`}>
+                <div className="relative h-[220px] md:h-[300px] rounded-2xl overflow-hidden group cursor-pointer">
+                  <img
+                    src={category.image || 'https://placehold.co/800x600/D4B483/FAF6F0?text=Category'}
+                    alt={category.name}
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/20 to-transparent flex flex-col justify-end p-6 md:p-8">
+                    <h3 className="text-white font-serif text-2xl md:text-3xl mb-2">{category.name}</h3>
+                    {category.description && (
+                      <p className="text-white/80 text-xs mb-4 line-clamp-2">{category.description}</p>
+                    )}
+                    {/* Subcategory pills */}
+                    {(category as any).subcategories?.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {(category as any).subcategories.slice(0, 4).map((sub: any) => (
+                          <span key={sub.id} className="text-[10px] bg-white/20 text-white rounded-full px-3 py-1 backdrop-blur-sm">
+                            {sub.name}
+                          </span>
+                        ))}
+                        {(category as any).subcategories.length > 4 && (
+                          <span className="text-[10px] bg-white/20 text-white rounded-full px-3 py-1 backdrop-blur-sm">
+                            +{(category as any).subcategories.length - 4} more
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    <span className="inline-flex items-center text-white text-xs font-semibold tracking-wider uppercase group-hover:text-primary transition-colors">
+                      Shop Now <ChevronRight className="w-4 h-4 ml-1" />
+                    </span>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
         ) : (
+          /* Circle grid for 4+ categories */
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {categories?.slice(0, 4).map((category) => (
               <Link key={category.id} href={`/category/${category.slug}`}>
