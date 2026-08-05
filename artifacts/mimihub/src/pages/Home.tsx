@@ -83,32 +83,6 @@ export function Home() {
         </section>
       )}
 
-      {/* Featured Collections */}
-      {featuredCollections.length > 0 && (
-        <section className="py-12 px-4 container mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-            {featuredCollections.map((collection) => (
-              <Link key={collection.id} href={collection.link}>
-                <div className="relative h-[200px] md:h-[260px] rounded-2xl overflow-hidden group cursor-pointer">
-                  <img
-                    src={collection.image || 'https://placehold.co/800x600/D4B483/FAF6F0?text=Collection'}
-                    alt={collection.title}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent flex flex-col justify-end p-6 md:p-8">
-                    <h3 className="text-white font-serif text-xl md:text-2xl mb-2">{collection.title}</h3>
-                    <p className="text-white/90 text-xs mb-4 line-clamp-2">{collection.description}</p>
-                    <span className="inline-flex items-center text-white text-xs font-semibold tracking-wider uppercase group-hover:text-primary transition-colors">
-                      Shop Now <ChevronRight className="w-4 h-4 ml-1" />
-                    </span>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
-
       {/* Categories Grid */}
       <section className="py-12 px-4 container mx-auto">
         <div className="text-center mb-10">
