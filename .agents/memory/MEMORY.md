@@ -1,0 +1,1 @@
+- [Imported artifact preview registration](imported-artifact-preview.md) — imported artifact metadata may exist without a registered workflow or artifact preview.

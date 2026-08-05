@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'wouter';
 import { Layout } from '@/components/layout/Layout';
 import { ProductCard } from '@/components/product/ProductCard';
+import { CategoryCard } from '@/components/product/CategoryCard';
 import { LoadingPage, LoadingSpinner } from '@/components/ui/loading-spinner';
 import { ErrorState } from '@/components/ui/error-state';
 import { Button } from '@/components/ui/button';
@@ -10,7 +11,7 @@ import {
   useListCategories, 
   useListProducts 
 } from '@workspace/api-client-react';
-import { ChevronRight, ShieldCheck, Truck, Clock, CreditCard } from 'lucide-react';
+import { ShieldCheck, Truck, Clock, CreditCard } from 'lucide-react';
 
 export function Home() {
   const { data: settings, isLoading: loadingSettings, isError: errorSettings } = useGetHomepageSettings();
@@ -91,67 +92,14 @@ export function Home() {
         </div>
         {loadingCategories ? (
           <LoadingSpinner />
-        ) : categories && categories.length <= 3 ? (
-          /* Large banner cards for 1–3 categories */
+        ) : categories && categories.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-            {categories.map((category) => (
-              <Link key={category.id} href={`/category/${category.slug}`}>
-                <div className="relative h-[220px] md:h-[300px] rounded-2xl overflow-hidden group cursor-pointer">
-                  <img
-                    src={category.image || 'https://placehold.co/800x600/D4B483/FAF6F0?text=Category'}
-                    alt={category.name}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/20 to-transparent flex flex-col justify-end p-6 md:p-8">
-                    <h3 className="text-white font-serif text-2xl md:text-3xl mb-2">{category.name}</h3>
-                    {category.description && (
-                      <p className="text-white/80 text-xs mb-4 line-clamp-2">{category.description}</p>
-                    )}
-                    {/* Subcategory pills */}
-                    {(category as any).subcategories?.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        {(category as any).subcategories.slice(0, 4).map((sub: any) => (
-                          <span key={sub.id} className="text-[10px] bg-white/20 text-white rounded-full px-3 py-1 backdrop-blur-sm">
-                            {sub.name}
-                          </span>
-                        ))}
-                        {(category as any).subcategories.length > 4 && (
-                          <span className="text-[10px] bg-white/20 text-white rounded-full px-3 py-1 backdrop-blur-sm">
-                            +{(category as any).subcategories.length - 4} more
-                          </span>
-                        )}
-                      </div>
-                    )}
-                    <span className="inline-flex items-center text-white text-xs font-semibold tracking-wider uppercase group-hover:text-primary transition-colors">
-                      Shop Now <ChevronRight className="w-4 h-4 ml-1" />
-                    </span>
-                  </div>
-                </div>
-              </Link>
+            {categories.slice(0, 4).map((category) => (
+              <CategoryCard key={category.id} category={category} />
             ))}
           </div>
         ) : (
-          /* Circle grid for 4+ categories */
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {categories?.slice(0, 4).map((category) => (
-              <Link key={category.id} href={`/category/${category.slug}`}>
-                <div className="group cursor-pointer flex flex-col items-center text-center">
-                  <div className="w-full aspect-square rounded-full overflow-hidden mb-4 bg-secondary border border-border/50 group-hover:border-primary transition-colors p-2">
-                    <div className="w-full h-full rounded-full overflow-hidden">
-                      <img
-                        src={category.image || 'https://placehold.co/400x400/D4B483/FAF6F0?text=Cat'}
-                        alt={category.name}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                      />
-                    </div>
-                  </div>
-                  <h3 className="font-serif text-base text-foreground group-hover:text-primary transition-colors">
-                    {category.name}
-                  </h3>
-                </div>
-              </Link>
-            ))}
-          </div>
+          <p className="text-center text-muted-foreground">Categories coming soon.</p>
         )}
       </section>
 

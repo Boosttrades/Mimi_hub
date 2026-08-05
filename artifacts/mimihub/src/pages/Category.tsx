@@ -1,5 +1,6 @@
 import { useRoute } from 'wouter';
 import { Layout } from '@/components/layout/Layout';
+import { BackButton } from '@/components/layout/BackButton';
 import { ProductCard } from '@/components/product/ProductCard';
 import { LoadingPage, LoadingSpinner } from '@/components/ui/loading-spinner';
 import { ErrorState } from '@/components/ui/error-state';
@@ -51,6 +52,10 @@ export function Category() {
       <div className="relative h-[30vh] min-h-[250px] w-full bg-secondary overflow-hidden">
         <img src={image} alt={title} className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-black/40 flex items-center justify-center p-4">
+          <BackButton
+            fallback="/categories"
+            className="absolute left-4 top-4 border-white/50 bg-black/20 text-white hover:bg-white hover:text-foreground"
+          />
           <div className="text-center text-white max-w-2xl">
             <h1 className="font-serif text-3xl md:text-4xl mb-4">{title}</h1>
             <p className="text-white/90 text-xs md:text-sm">{description}</p>
