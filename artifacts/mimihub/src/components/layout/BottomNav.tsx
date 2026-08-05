@@ -16,13 +16,10 @@ export function BottomNav() {
     <div className="fixed bottom-0 left-0 right-0 z-50 px-6 pb-6 pt-2 md:hidden pointer-events-none">
       <div className="flex items-center justify-between max-w-md mx-auto pointer-events-auto">
         {navItems.map((item) => {
-          // Precise matching for home, startsWith for others
           const isActive = item.href === '/'
             ? location === '/'
             : item.href.includes('?tab=orders')
-              // Orders tab: active only when on /account with tab=orders
               ? location === '/account' && new URLSearchParams(window.location.search).get('tab') === 'orders'
-              // Account tab: active on /account but NOT when tab=orders is set
               : item.href === '/account'
                 ? location === '/account' && new URLSearchParams(window.location.search).get('tab') !== 'orders'
                 : location.startsWith(item.href.split('?')[0]);
@@ -32,11 +29,25 @@ export function BottomNav() {
           return (
             <Link key={item.href} href={item.href}>
               <div
-                className="flex items-center justify-center rounded-full bg-primary transition-all duration-200 cursor-pointer"
-                style={{ width: 44, height: 44, opacity: 0.8, boxShadow: '0 4px 14px rgba(201,168,76,0.45)' }}
+                className="flex items-center justify-center rounded-full transition-all duration-200 cursor-pointer"
+                style={{
+                  width: 44,
+                  height: 44,
+                  background: isActive
+                    ? 'linear-gradient(145deg, hsl(43deg 88% 58%), hsl(43deg 76% 40%))'
+                    : 'white',
+                  boxShadow: isActive
+                    ? '0 4px 16px rgba(175, 135, 35, 0.55)'
+                    : '0 2px 10px rgba(0, 0, 0, 0.13)',
+                }}
                 data-testid={`nav-${item.label.toLowerCase()}`}
               >
-                <Icon className={cn("h-[22px] w-[22px]", isActive ? "fill-current text-[#f5ecd8]" : "text-white")} />
+                <Icon
+                  className={cn(
+                    "h-[22px] w-[22px]",
+                    isActive ? "fill-current text-[#f5ecd8]" : "text-primary"
+                  )}
+                />
               </div>
             </Link>
           );

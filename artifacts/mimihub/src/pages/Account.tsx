@@ -2,14 +2,57 @@ import { useState, useEffect, useCallback } from 'react';
 import { useLocation } from 'wouter';
 import { Layout } from '@/components/layout/Layout';
 import { useWishlist } from '@/contexts/WishlistContext';
+import { useCart } from '@/contexts/CartContext';
 import { ProductCard } from '@/components/product/ProductCard';
 import { useListProducts } from '@workspace/api-client-react';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Heart, PackageSearch, Package, X } from 'lucide-react';
+import {
+  Search, Heart, PackageSearch, Package, X,
+  User, ShoppingBag, Sun, Moon, Monitor, ChevronRight,
+} from 'lucide-react';
 import { formatNaira } from '@/lib/utils';
+
+// ─── theme ────────────────────────────────────────────────────────────────────
+
+type Theme = 'light' | 'dark' | 'system';
+
+function applyTheme(t: Theme) {
+  const root = document.documentElement;
+  if (t === 'dark') {
+    root.classList.add('dark');
+  } else if (t === 'light') {
+    root.classList.remove('dark');
+  } else {
+    root.classList.toggle('dark', window.matchMedia('(prefers-color-scheme: dark)').matches);
+  }
+}
+
+function useTheme() {
+  const [theme, setThemeState] = useState<Theme>(() => {
+    return (localStorage.getItem('mimihub_theme') as Theme) || 'system';
+  });
+
+  const setTheme = (t: Theme) => {
+    setThemeState(t);
+    localStorage.setItem('mimihub_theme', t);
+    applyTheme(t);
+  };
+
+  useEffect(() => {
+    applyTheme(theme);
+    if (theme !== 'system') return;
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const handler = (e: MediaQueryListEvent) =>
+      document.documentElement.classList.toggle('dark', e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, [theme]);
+
+  return { theme, setTheme };
+}
 
 // ─── types ────────────────────────────────────────────────────────────────────
 
@@ -28,7 +71,6 @@ interface OrderItem {
 interface UserOrder {
   id: number;
   orderRef: string;
-  fullName: string;
   orderStatus: string;
   paymentStatus: string;
   subtotal: number;
@@ -49,20 +91,13 @@ const STATUS_COLORS: Record<string, string> = {
 function StatusBadge({ status }: { status: string }) {
   const cls = STATUS_COLORS[status] ?? 'bg-muted text-muted-foreground';
   return (
-    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${cls}`}>
-      {status}
-    </span>
+    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${cls}`}>{status}</span>
   );
 }
 
 // ─── username modal ────────────────────────────────────────────────────────────
 
-interface UsernameModalProps {
-  onSuccess: (user: MimiUser) => void;
-  onClose: () => void;
-}
-
-function UsernameModal({ onSuccess, onClose }: UsernameModalProps) {
+function UsernameModal({ onSuccess, onClose }: { onSuccess: (u: MimiUser) => void; onClose: () => void }) {
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -71,36 +106,25 @@ function UsernameModal({ onSuccess, onClose }: UsernameModalProps) {
     e.preventDefault();
     const trimmed = username.trim();
     if (!trimmed) return;
-
     setLoading(true);
     setError('');
-
     try {
-      // POST /api/users — server sets HttpOnly cookie
       const res = await fetch('/api/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: trimmed }),
         credentials: 'include',
       });
-
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data.error ?? 'Something went wrong. Please try again.');
+        setError(data.error ?? 'Something went wrong.');
         return;
       }
-
-      // GET /api/me to confirm session and get user id
       const meRes = await fetch('/api/me', { credentials: 'include' });
-      if (!meRes.ok) {
-        setError('Session could not be confirmed. Please try again.');
-        return;
-      }
-
-      const user: MimiUser = await meRes.json();
-      onSuccess(user);
+      if (!meRes.ok) { setError('Session could not be confirmed.'); return; }
+      onSuccess(await meRes.json());
     } catch {
-      setError('Network error. Please check your connection.');
+      setError('Network error. Check your connection.');
     } finally {
       setLoading(false);
     }
@@ -109,32 +133,18 @@ function UsernameModal({ onSuccess, onClose }: UsernameModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
       <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-sm p-6 relative">
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"
-          aria-label="Close"
-        >
+        <button onClick={onClose} className="absolute top-4 right-4 text-muted-foreground hover:text-foreground" aria-label="Close">
           <X className="w-5 h-5" />
         </button>
-
         <div className="h-14 w-14 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto mb-4">
-          <PackageSearch className="w-7 h-7" />
+          <User className="w-7 h-7" />
         </div>
-
-        <h2 className="font-serif text-xl text-foreground text-center mb-1">View Your Orders</h2>
+        <h2 className="font-serif text-xl text-foreground text-center mb-1">Set a Username</h2>
         <p className="text-muted-foreground text-sm text-center mb-6">
-          Enter a username to see your order history. We will remember you on this device.
+          We will remember you on this device to track your orders.
         </p>
-
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-          <Input
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            placeholder="Choose a username"
-            autoFocus
-            required
-            disabled={loading}
-          />
+          <Input value={username} onChange={e => setUsername(e.target.value)} placeholder="Choose a username" autoFocus required disabled={loading} />
           {error && <p className="text-sm text-red-600">{error}</p>}
           <Button type="submit" className="w-full rounded-full" disabled={loading || !username.trim()}>
             {loading ? 'Saving...' : 'Continue'}
@@ -145,42 +155,215 @@ function UsernameModal({ onSuccess, onClose }: UsernameModalProps) {
   );
 }
 
-// ─── orders list ──────────────────────────────────────────────────────────────
+// ─── profile view ──────────────────────────────────────────────────────────────
 
-interface OrdersListProps {
-  user: MimiUser;
-  onTrackRef: (ref: string) => void;
+function ProfileView() {
+  const [, setLocation] = useLocation();
+  const { totalItems } = useCart();
+  const { items: wishlistIds } = useWishlist();
+  const { theme, setTheme } = useTheme();
+
+  const [user, setUser] = useState<MimiUser | null>(null);
+  const [sessionChecked, setSessionChecked] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/me', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then((u: MimiUser | null) => { setUser(u); setSessionChecked(true); })
+      .catch(() => setSessionChecked(true));
+  }, []);
+
+  const THEME_OPTIONS: { value: Theme; label: string; Icon: React.ElementType }[] = [
+    { value: 'light',  label: 'Light',  Icon: Sun },
+    { value: 'dark',   label: 'Dark',   Icon: Moon },
+    { value: 'system', label: 'System', Icon: Monitor },
+  ];
+
+  if (!sessionChecked) return <LoadingSpinner size="lg" />;
+
+  return (
+    <div className="max-w-md mx-auto space-y-4">
+      {showModal && (
+        <UsernameModal
+          onSuccess={u => { setUser(u); setShowModal(false); }}
+          onClose={() => setShowModal(false)}
+        />
+      )}
+
+      {/* Username card */}
+      <div className="bg-card border border-border rounded-2xl p-5">
+        <div className="flex items-center gap-4">
+          <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+            <User className="w-6 h-6 text-primary" />
+          </div>
+          <div className="flex-1 min-w-0">
+            {user ? (
+              <>
+                <p className="font-serif text-lg text-foreground truncate">{user.username}</p>
+                <p className="text-xs text-muted-foreground">
+                  Member since {new Date(user.createdAt).toLocaleDateString('en-NG', { month: 'long', year: 'numeric' })}
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-sm font-medium text-foreground">No username set</p>
+                <button
+                  onClick={() => setShowModal(true)}
+                  className="text-xs text-primary font-medium underline underline-offset-2 mt-0.5"
+                >
+                  Set a username to track orders
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Orders + Cart quick links */}
+      <div className="grid grid-cols-2 gap-3">
+        <button
+          onClick={() => setLocation('/account?tab=orders')}
+          className="bg-card border border-border rounded-2xl p-4 text-left hover:border-primary/50 transition-colors group"
+        >
+          <Package className="w-5 h-5 text-primary mb-3" />
+          <p className="text-xs text-muted-foreground">Orders</p>
+          <p className="font-serif text-base text-foreground group-hover:text-primary transition-colors">View all</p>
+        </button>
+        <button
+          onClick={() => setLocation('/cart')}
+          className="bg-card border border-border rounded-2xl p-4 text-left hover:border-primary/50 transition-colors group"
+        >
+          <ShoppingBag className="w-5 h-5 text-primary mb-3" />
+          <p className="text-xs text-muted-foreground">Cart</p>
+          <p className="font-serif text-base text-foreground group-hover:text-primary transition-colors">
+            {totalItems} item{totalItems !== 1 ? 's' : ''}
+          </p>
+        </button>
+      </div>
+
+      {/* Wishlist link */}
+      <button
+        onClick={() => setLocation('/account?tab=wishlist')}
+        className="w-full bg-card border border-border rounded-2xl p-4 hover:border-primary/50 transition-colors"
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Heart className="w-5 h-5 text-primary" />
+            <span className="text-sm text-foreground">Wishlist</span>
+            {wishlistIds.length > 0 && (
+              <span className="text-xs text-muted-foreground">({wishlistIds.length})</span>
+            )}
+          </div>
+          <ChevronRight className="w-4 h-4 text-muted-foreground" />
+        </div>
+      </button>
+
+      {/* Theme toggle */}
+      <div className="bg-card border border-border rounded-2xl p-5">
+        <p className="text-xs text-muted-foreground uppercase tracking-wider mb-3">Appearance</p>
+        <div className="grid grid-cols-3 gap-2">
+          {THEME_OPTIONS.map(({ value, label, Icon }) => (
+            <button
+              key={value}
+              onClick={() => setTheme(value)}
+              className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl text-xs font-medium transition-all ${
+                theme === value
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-secondary text-secondary-foreground hover:bg-secondary/70'
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }
 
-function OrdersList({ user, onTrackRef }: OrdersListProps) {
+// ─── orders view ──────────────────────────────────────────────────────────────
+
+function OrdersView() {
+  const [, setLocation] = useLocation();
+  const [user, setUser] = useState<MimiUser | null>(null);
+  const [sessionChecked, setSessionChecked] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const [orders, setOrders] = useState<UserOrder[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [ordersError, setOrdersError] = useState('');
   const [orderRef, setOrderRef] = useState('');
 
-  const fetchOrders = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const res = await fetch(`/api/users/${user.id}/orders`, { credentials: 'include' });
-      if (!res.ok) throw new Error('Failed to load orders');
-      const data: UserOrder[] = await res.json();
-      setOrders(data);
-    } catch {
-      setError('Could not load your orders. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  }, [user.id]);
+  useEffect(() => {
+    fetch('/api/me', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then((u: MimiUser | null) => { setUser(u); setSessionChecked(true); })
+      .catch(() => setSessionChecked(true));
+  }, []);
 
-  useEffect(() => { fetchOrders(); }, [fetchOrders]);
+  const fetchOrders = useCallback(async (u: MimiUser) => {
+    setOrdersLoading(true);
+    setOrdersError('');
+    try {
+      const res = await fetch(`/api/users/${u.id}/orders`, { credentials: 'include' });
+      if (!res.ok) throw new Error();
+      setOrders(await res.json());
+    } catch {
+      setOrdersError('Could not load orders. Please try again.');
+    } finally {
+      setOrdersLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { if (user) fetchOrders(user); }, [user, fetchOrders]);
 
   const handleTrack = (e: React.FormEvent) => {
     e.preventDefault();
-    if (orderRef.trim()) onTrackRef(orderRef.trim());
+    if (orderRef.trim()) setLocation(`/orders/${orderRef.trim()}`);
   };
 
-  if (loading) return <LoadingSpinner size="lg" />;
+  if (!sessionChecked) return <LoadingSpinner size="lg" />;
+
+  if (!user) {
+    return (
+      <>
+        {showModal && (
+          <UsernameModal
+            onSuccess={u => { setUser(u); setShowModal(false); }}
+            onClose={() => setShowModal(false)}
+          />
+        )}
+        <div className="max-w-md mx-auto py-12 px-4 bg-card border border-border rounded-2xl text-center">
+          <div className="h-16 w-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto mb-6">
+            <PackageSearch className="w-8 h-8" />
+          </div>
+          <h2 className="font-serif text-2xl text-foreground mb-2">Track an Order</h2>
+          <p className="text-muted-foreground mb-6 text-sm">
+            Enter your order reference, or set a username to see your full history.
+          </p>
+          <form onSubmit={handleTrack} className="flex flex-col gap-4 mb-4">
+            <Input
+              value={orderRef}
+              onChange={e => setOrderRef(e.target.value)}
+              placeholder="Order Reference (e.g. MH-000001)"
+              className="text-center font-mono"
+              required
+            />
+            <Button type="submit" className="w-full rounded-full gap-2">
+              <Search className="w-4 h-4" /> Track Order
+            </Button>
+          </form>
+          <button
+            onClick={() => setShowModal(true)}
+            className="text-xs text-primary font-medium underline underline-offset-2"
+          >
+            Sign in with a username to see all orders
+          </button>
+        </div>
+      </>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -190,7 +373,7 @@ function OrdersList({ user, onTrackRef }: OrdersListProps) {
         <form onSubmit={handleTrack} className="flex gap-2">
           <Input
             value={orderRef}
-            onChange={(e) => setOrderRef(e.target.value)}
+            onChange={e => setOrderRef(e.target.value)}
             placeholder="e.g. MH-000001"
             className="font-mono text-sm"
           />
@@ -200,9 +383,11 @@ function OrdersList({ user, onTrackRef }: OrdersListProps) {
         </form>
       </div>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {ordersError && <p className="text-sm text-red-600">{ordersError}</p>}
 
-      {orders.length === 0 ? (
+      {ordersLoading ? (
+        <LoadingSpinner size="lg" />
+      ) : orders.length === 0 ? (
         <EmptyState
           icon={<Package className="w-12 h-12" />}
           title="No orders yet"
@@ -211,12 +396,13 @@ function OrdersList({ user, onTrackRef }: OrdersListProps) {
       ) : (
         <div className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            {orders.length} order{orders.length !== 1 ? 's' : ''} for <span className="font-medium text-foreground">{user.username}</span>
+            {orders.length} order{orders.length !== 1 ? 's' : ''} for{' '}
+            <span className="font-medium text-foreground">{user.username}</span>
           </p>
-          {orders.map((order) => (
+          {orders.map(order => (
             <button
               key={order.id}
-              onClick={() => onTrackRef(order.orderRef)}
+              onClick={() => setLocation(`/orders/${order.orderRef}`)}
               className="w-full text-left bg-card border border-border rounded-xl p-4 hover:border-primary/50 transition-colors"
             >
               <div className="flex items-start justify-between gap-4">
@@ -227,15 +413,13 @@ function OrdersList({ user, onTrackRef }: OrdersListProps) {
                       day: 'numeric', month: 'short', year: 'numeric',
                     })}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-1 truncate">
+                  <p className="text-xs text-muted-foreground mt-1">
                     {order.items?.length ?? 0} item{(order.items?.length ?? 0) !== 1 ? 's' : ''}
                   </p>
                 </div>
                 <div className="flex flex-col items-end gap-1.5 shrink-0">
                   <StatusBadge status={order.orderStatus} />
-                  <span className="text-sm font-semibold text-foreground">
-                    {formatNaira(order.subtotal)}
-                  </span>
+                  <span className="text-sm font-semibold text-foreground">{formatNaira(order.subtotal)}</span>
                 </div>
               </div>
             </button>
@@ -246,135 +430,47 @@ function OrdersList({ user, onTrackRef }: OrdersListProps) {
   );
 }
 
-// ─── main page ────────────────────────────────────────────────────────────────
+// ─── wishlist view ─────────────────────────────────────────────────────────────
 
-export function Account() {
-  const [, setLocation] = useLocation();
-  const searchParams = new URLSearchParams(window.location.search);
-  const initialTab = searchParams.get('tab') === 'orders' ? 'orders' : 'wishlist';
-  const [activeTab, setActiveTab] = useState<'wishlist' | 'orders'>(initialTab);
-
+function WishlistView() {
   const { items: wishlistIds } = useWishlist();
   const { data: allProducts, isLoading } = useListProducts({ visible: true });
   const wishlistProducts = allProducts?.filter(p => wishlistIds.includes(p.id)) ?? [];
 
-  // session state
-  const [user, setUser] = useState<MimiUser | null>(null);
-  const [sessionChecked, setSessionChecked] = useState(false);
-  const [showModal, setShowModal] = useState(false);
+  if (isLoading) return <LoadingSpinner size="lg" />;
 
-  // Check for existing session on mount
-  useEffect(() => {
-    fetch('/api/me', { credentials: 'include' })
-      .then(r => r.ok ? r.json() : null)
-      .then((u: MimiUser | null) => { setUser(u); setSessionChecked(true); })
-      .catch(() => setSessionChecked(true));
-  }, []);
+  return wishlistProducts.length > 0 ? (
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+      {wishlistProducts.map(product => (
+        <ProductCard key={product.id} product={product} />
+      ))}
+    </div>
+  ) : (
+    <EmptyState
+      icon={<Heart className="w-12 h-12" />}
+      title="Your wishlist is empty"
+      description="Save items you love by clicking the heart icon on any product."
+    />
+  );
+}
 
-  const handleOrdersTabClick = () => {
-    setActiveTab('orders');
-    if (!user) setShowModal(true);
-  };
+// ─── main ──────────────────────────────────────────────────────────────────────
 
-  const handleModalSuccess = (u: MimiUser) => {
-    setUser(u);
-    setShowModal(false);
-  };
+export function Account() {
+  const tab = new URLSearchParams(window.location.search).get('tab');
 
-  const handleTrackRef = (ref: string) => {
-    setLocation(`/orders/${ref}`);
-  };
+  const titles: Record<string, string> = { orders: 'My Orders', wishlist: 'My Wishlist' };
+  const title = tab ? (titles[tab] ?? 'My Account') : 'My Profile';
 
   return (
     <Layout>
-      {showModal && (
-        <UsernameModal
-          onSuccess={handleModalSuccess}
-          onClose={() => { setShowModal(false); setActiveTab('wishlist'); }}
-        />
-      )}
-
       <div className="container mx-auto px-4 py-8 md:py-12">
-        <h1 className="font-serif text-3xl md:text-4xl text-foreground mb-8 text-center md:text-left">My Account</h1>
-
-        <div className="relative mb-8">
-          <div
-            className="absolute left-4 md:left-8 top-0 z-20 flex items-center gap-6"
-            style={{ transform: 'translateY(-30%)' }}
-          >
-            <button
-              aria-pressed={activeTab === 'wishlist'}
-              onClick={() => setActiveTab('wishlist')}
-              className={`rounded-full flex items-center justify-center shadow-lg transition-transform focus:outline-none`
-                + ` ${activeTab === 'wishlist' ? 'bg-amber-400' : 'bg-white'}`}
-              style={{ width: 48, height: 48, transform: 'scale(0.8)' }}
-            >
-              <Heart className={`${activeTab === 'wishlist' ? 'text-[#f5ecd8]' : 'text-white'} w-5 h-5`} />
-            </button>
-
-            <button
-              aria-pressed={activeTab === 'orders'}
-              onClick={handleOrdersTabClick}
-              className={`rounded-full flex items-center justify-center shadow-lg transition-transform focus:outline-none`
-                + ` ${activeTab === 'orders' ? 'bg-amber-400' : 'bg-white'}`}
-              style={{ width: 48, height: 48, transform: 'scale(0.8)' }}
-            >
-              <PackageSearch className={`${activeTab === 'orders' ? 'text-[#f5ecd8]' : 'text-white'} w-5 h-5`} />
-            </button>
-          </div>
-
-          <div className="pt-8">
-            {activeTab === 'wishlist' && (
-              <div>
-                {isLoading ? (
-                  <LoadingSpinner size="lg" />
-                ) : wishlistProducts.length > 0 ? (
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-                    {wishlistProducts.map(product => (
-                      <ProductCard key={product.id} product={product} />
-                    ))}
-                  </div>
-                ) : (
-                  <EmptyState
-                    icon={<Heart className="w-12 h-12" />}
-                    title="Your wishlist is empty"
-                    description="Save items you love by clicking the heart icon on any product."
-                  />
-                )}
-              </div>
-            )}
-
-            {activeTab === 'orders' && (
-              <div>
-                {!sessionChecked ? (
-                  <LoadingSpinner size="lg" />
-                ) : user ? (
-                  <OrdersList user={user} onTrackRef={handleTrackRef} />
-                ) : (
-                  /* No session yet — show fallback track-by-ref until modal completes */
-                  <div className="max-w-md mx-auto py-12 px-4 bg-card border border-border rounded-2xl text-center">
-                    <div className="h-16 w-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto mb-6">
-                      <PackageSearch className="w-8 h-8" />
-                    </div>
-                    <h2 className="font-serif text-2xl text-foreground mb-2">Track an Order</h2>
-                    <p className="text-muted-foreground mb-8 text-sm">
-                      Enter your order reference number (e.g. MH-123456) to check its status.
-                    </p>
-                    <form
-                      onSubmit={(e) => { e.preventDefault(); handleTrackRef((e.currentTarget.elements.namedItem('ref') as HTMLInputElement).value.trim()); }}
-                      className="flex flex-col gap-4"
-                    >
-                      <Input name="ref" placeholder="Order Reference Number" className="text-center font-mono" required />
-                      <Button type="submit" className="w-full rounded-full gap-2">
-                        <Search className="w-4 h-4" /> Track Order
-                      </Button>
-                    </form>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
+        <h1 className="font-serif text-2xl md:text-3xl text-foreground mb-8 text-center md:text-left">
+          {title}
+        </h1>
+        {tab === 'orders'   && <OrdersView />}
+        {tab === 'wishlist' && <WishlistView />}
+        {!tab               && <ProfileView />}
       </div>
     </Layout>
   );
