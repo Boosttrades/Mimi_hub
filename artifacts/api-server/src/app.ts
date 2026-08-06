@@ -43,12 +43,15 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const staticPath = path.resolve(__dirname, '..', '..', 'mimihub', 'dist', 'public');
 
 app.use(express.static(staticPath));
-// SPA fallback to index.html for any non-API GET requests
-app.get('*', (req, res) => {
+// SPA fallback to index.html for any non-API GET requests.
+// Express 5 no longer accepts the bare "*" route pattern, so use a
+// catch-all middleware instead.
+app.use((req, res, next) => {
+  if (req.method !== 'GET' && req.method !== 'HEAD') return next();
   // If the request path starts with /api, let the API router handle it (shouldn't reach here),
   // otherwise serve index.html so the client-side router can handle the route.
   if (req.path.startsWith('/api')) return res.status(404).send('Not Found');
-  res.sendFile(path.join(staticPath, 'index.html'));
+  return res.sendFile(path.join(staticPath, 'index.html'));
 });
 
 export default app;
