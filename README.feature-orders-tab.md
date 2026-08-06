@@ -1,6 +1,29 @@
+# MANDATORY: Replit Deployment Instructions (2026-08-06)
+
+**Last updated: 2026-08-06**
+
+NOTE: These deployment steps are mandatory. Any developer or automation (CI/CD, AI) that builds or publishes the Mimi_hub site **must** follow these steps exactly when deploying to Replit. They are intentionally redundant with the repository README to ensure the instructions travel with the feature notes.
+
+Required environment variables (Replit Secrets)
+
+- BASE_PATH = /
+- PORT = 3000
+
+Run / Deploy command (Replit Run command)
+
+pnpm -w run build && pnpm -w --filter @workspace/api-server run start
+
+This will build the frontend (artifacts/mimihub -> dist/public) and start the API server which serves the static frontend and mounts the API at /api. The API and frontend must share the same origin so client-side requests to /api/* succeed.
+
+Why this is necessary
+
+- The frontend expects to fetch categories from the same-origin /api endpoints (useListCategories). Serving the built frontend and the API from the same server avoids base-URL mismatches and CORS issues that cause the UI to show empty states like "Categories coming soon."
+
+---
+
 # Mimi_hub — continuation notes for the Orders-tab work
 
-This file explains precisely what has been changed so far on the feature/orders-tab branch and what the *next developer or AI* should do to finish the feature. Write in plain English — follow the steps in order.
+This file explains precisely what has been changed so far on the feature/orders-tab branch and what the *next developer or AI* should do to finish the feature. Write in plain English — follow the[...]
 
 Branch
 - feature/orders-tab
@@ -49,7 +72,7 @@ What remains to finish (priority order)
        3. After POST /api/users completes, call GET /api/me to obtain the user id and username.
        4. Call GET /api/users/:id/orders to fetch that user's orders and render them in the Orders tab.
        5. Keep the single-order track-by-ref input (navigation to /orders/:ref) below or beside the orders list.
-   - Use the existing UI primitives (Input, Button, LoadingSpinner, EmptyState) — see current Account.tsx.
+     - Use the existing UI primitives (Input, Button, LoadingSpinner, EmptyState) — see current Account.tsx.
 
 4. Tests & checks
    - Run typecheck and lint (project uses pnpm and tsc):
