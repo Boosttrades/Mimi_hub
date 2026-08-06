@@ -6,7 +6,6 @@ import { Route, Switch, Router as WouterRouter } from 'wouter';
 
 import { CartProvider } from '@/contexts/CartContext';
 import { WishlistProvider } from '@/contexts/WishlistContext';
-import { ThemeProvider } from '@/contexts/ThemeContext';
 
 import { Home } from '@/pages/Home';
 import { Categories } from '@/pages/Categories';
@@ -63,18 +62,16 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <CartProvider>
-          <WishlistProvider>
-            <TooltipProvider>
-              <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
-                <Router />
-              </WouterRouter>
-              <Toaster />
-            </TooltipProvider>
-          </WishlistProvider>
-        </CartProvider>
-      </ThemeProvider>
+      <CartProvider>
+        <WishlistProvider>
+          <TooltipProvider>
+            <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
+              <Router />
+            </WouterRouter>
+            <Toaster />
+          </TooltipProvider>
+        </WishlistProvider>
+      </CartProvider>
     </QueryClientProvider>
   );
 }

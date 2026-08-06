@@ -9,7 +9,6 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useTheme, type Theme } from '@/contexts/ThemeContext';
 import {
   Search, Heart, PackageSearch, Package, X,
   User, ShoppingBag, Sun, Moon, Monitor, ChevronRight,
@@ -17,6 +16,45 @@ import {
 import { formatNaira } from '@/lib/utils';
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, '');
+
+// ─── theme ────────────────────────────────────────────────────────────────────
+
+type Theme = 'light' | 'dark' | 'system';
+
+function applyTheme(t: Theme) {
+  const root = document.documentElement;
+  if (t === 'dark') {
+    root.classList.add('dark');
+  } else if (t === 'light') {
+    root.classList.remove('dark');
+  } else {
+    root.classList.toggle('dark', window.matchMedia('(prefers-color-scheme: dark)').matches);
+  }
+}
+
+function useTheme() {
+  const [theme, setThemeState] = useState<Theme>(() => {
+    return (localStorage.getItem('mimihub_theme') as Theme) || 'system';
+  });
+
+  const setTheme = (t: Theme) => {
+    setThemeState(t);
+    localStorage.setItem('mimihub_theme', t);
+    applyTheme(t);
+  };
+
+  useEffect(() => {
+    applyTheme(theme);
+    if (theme !== 'system') return;
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const handler = (e: MediaQueryListEvent) =>
+      document.documentElement.classList.toggle('dark', e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, [theme]);
+
+  return { theme, setTheme };
+}
 
 // ─── types ────────────────────────────────────────────────────────────────────
 
