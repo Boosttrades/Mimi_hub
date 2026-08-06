@@ -14,8 +14,8 @@ export function Categories() {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
-        <div className="mb-6">
-          <BackButton />
+        <div className="fixed left-4 top-20 z-40">
+          <BackButton className="bg-background/95 shadow-md backdrop-blur" />
         </div>
         <div className="text-center mb-10">
           <h1 className="font-serif text-3xl text-foreground mb-4">All Categories</h1>

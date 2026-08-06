@@ -3,13 +3,19 @@ import { Menu, Search, ShoppingBag, Crown } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { useState } from 'react';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from '@/components/ui/sheet';
+import { useScrollVisibility } from '@/hooks/useScrollVisibility';
 
 export function Header() {
   const { totalItems } = useCart();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const isVisible = useScrollVisibility();
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-primary/20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+    <header
+      className={`sticky top-0 z-50 w-full border-b border-primary/20 bg-background/95 backdrop-blur transition-transform duration-300 ease-out supports-[backdrop-filter]:bg-background/80 ${
+        isVisible ? 'translate-y-0' : '-translate-y-full'
+      }`}
+    >
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
           <SheetTrigger asChild>

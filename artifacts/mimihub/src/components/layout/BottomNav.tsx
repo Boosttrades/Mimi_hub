@@ -1,9 +1,11 @@
 import { useLocation } from 'wouter';
 import { Home, LayoutGrid, Package, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useScrollVisibility } from '@/hooks/useScrollVisibility';
 
 export function BottomNav() {
   const [location, navigate] = useLocation();
+  const isVisible = useScrollVisibility();
 
   const navItems = [
     { href: '/', icon: Home, label: 'Home' },
@@ -13,7 +15,11 @@ export function BottomNav() {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 px-6 pb-6 pt-2 md:hidden pointer-events-none">
+    <div
+      className={`fixed bottom-0 left-0 right-0 z-50 px-6 pb-6 pt-2 md:hidden pointer-events-none transition-transform duration-300 ease-out ${
+        isVisible ? 'translate-y-0' : 'translate-y-full'
+      }`}
+    >
       <div className="flex items-center justify-between max-w-md mx-auto pointer-events-auto">
         {navItems.map((item) => {
           const isActive = item.href === '/'
