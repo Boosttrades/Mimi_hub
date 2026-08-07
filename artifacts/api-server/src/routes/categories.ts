@@ -156,4 +156,16 @@ router.delete("/subcategories/:id", async (req, res): Promise<void> => {
   res.sendStatus(204);
 });
 
+// DEBUG endpoint: GET /_debug/categories
+// Returns whether static mode is active and what the server is serving
+router.get("/_debug/categories", async (_req, res): Promise<void> => {
+  if (isStaticMode()) {
+    res.json({ staticMode: true, staticCount: CATEGORIES.length, categories: CATEGORIES });
+    return;
+  }
+
+  const cats = await db.select().from(categoriesTable);
+  res.json({ staticMode: false, dbCount: cats.length });
+});
+
 export default router;
