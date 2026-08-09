@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'wouter';
 import { Award, Heart, ShieldCheck, Truck, Users } from 'lucide-react';
-import type { Product } from '@workspace/api-client-react';
+import { useListProducts } from '@workspace/api-client-react';
 import { Layout } from '@/components/layout/Layout';
 import { CategoryCard } from '@/components/product/CategoryCard';
 import { ProductCard } from '@/components/product/ProductCard';
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
 
 const personalCareImage = new URL(
   '../../../../attached_assets/A9C78911-D304-4CEA-971B-853D2AF63583_1786255707029.jpeg',
@@ -67,103 +68,10 @@ const trustItems = [
   { title: 'Dedicated Support', subtitle: "We're here to help", icon: Users },
 ];
 
-const hardcodedProducts = [
-  {
-    id: 101,
-    name: 'Signature Eau de Parfum',
-    price: 28000,
-    image: 'https://images.unsplash.com/photo-1594035910387-fea47794261f?auto=format&fit=crop&w=800&q=85',
-    categoryId: 1,
-    subcategoryId: 1,
-  },
-  {
-    id: 102,
-    name: 'Daily Glow Body Cream',
-    price: 12500,
-    image: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=85',
-    categoryId: 1,
-    subcategoryId: 3,
-  },
-  {
-    id: 103,
-    name: 'Nourishing Body Oil',
-    price: 15000,
-    image: 'https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?auto=format&fit=crop&w=800&q=85',
-    categoryId: 1,
-    subcategoryId: 6,
-  },
-  {
-    id: 104,
-    name: 'Wellness Essentials Set',
-    price: 22000,
-    image: personalCareImage,
-    categoryId: 1,
-    subcategoryId: 4,
-  },
-  {
-    id: 105,
-    name: 'Soft Cotton Bedsheet Set',
-    price: 42000,
-    image: 'https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?auto=format&fit=crop&w=800&q=85',
-    categoryId: 2,
-    subcategoryId: 8,
-  },
-  {
-    id: 106,
-    name: 'Textured Living Room Rug',
-    price: 68000,
-    image: 'https://images.unsplash.com/photo-1600166898405-da9535204843?auto=format&fit=crop&w=800&q=85',
-    categoryId: 2,
-    subcategoryId: 9,
-  },
-  {
-    id: 107,
-    name: 'Lightweight Window Curtains',
-    price: 36000,
-    image: 'https://images.unsplash.com/photo-1618220179428-22790b461013?auto=format&fit=crop&w=800&q=85',
-    categoryId: 2,
-    subcategoryId: 7,
-  },
-  {
-    id: 108,
-    name: 'Premium Curtain Pole Set',
-    price: 24000,
-    image: 'https://images.unsplash.com/photo-1615874694520-474822394e73?auto=format&fit=crop&w=800&q=85',
-    categoryId: 2,
-    subcategoryId: 10,
-  },
-] as const;
-
-const toProduct = (
-  product: (typeof hardcodedProducts)[number],
-  section: 'featured' | 'favorite',
-): Product => ({
-  id: product.id,
-  name: product.name,
-  slug: product.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-  description: `A thoughtfully selected MimiiHub ${product.name.toLowerCase()}.`,
-  price: product.price,
-  discountPct: null,
-  discountedPrice: null,
-  images: [product.image],
-  coverImage: product.image,
-  categoryId: product.categoryId,
-  subcategoryId: product.subcategoryId,
-  stockQty: 10,
-  inStock: true,
-  visible: true,
-  featured: section === 'featured',
-  newArrival: section === 'favorite',
-  bestSeller: section === 'favorite',
-  specs: {},
-  createdAt: '2026-01-01T00:00:00.000Z',
-});
-
-const featuredProducts = hardcodedProducts.slice(0, 4).map((product) => toProduct(product, 'featured'));
-const favoriteProducts = hardcodedProducts.slice(4, 8).map((product) => toProduct(product, 'favorite'));
-
 export function Home() {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const { data: featuredProducts = [] } = useListProducts({ featured: true, visible: true });
+  const { data: favoriteProducts = [] } = useListProducts({ bestSeller: true, visible: true });
 
   useEffect(() => {
     const interval = window.setInterval(() => {
@@ -270,11 +178,19 @@ export function Home() {
             View all
           </Link>
         </div>
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
-          {featuredProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
+        {featuredProducts.length > 0 ? (
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
+            {featuredProducts.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            icon={<Award className="h-10 w-10" />}
+            title="Featured products coming soon"
+            description="Our featured collection will appear here once products are added."
+          />
+        )}
       </section>
 
       <section className="px-4 py-10 md:px-8 md:py-14">
@@ -287,11 +203,19 @@ export function Home() {
             View all
           </Link>
         </div>
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
-          {favoriteProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
+        {favoriteProducts.length > 0 ? (
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
+            {favoriteProducts.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            icon={<Heart className="h-10 w-10" />}
+            title="MimiiHub favorites coming soon"
+            description="Our favorite picks will appear here once products are added."
+          />
+        )}
       </section>
 
       <section className="px-4 pb-10 text-center md:px-8 md:pb-14">
