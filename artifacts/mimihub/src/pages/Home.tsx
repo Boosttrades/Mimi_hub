@@ -5,12 +5,17 @@ import { Layout } from '@/components/layout/Layout';
 import { CategoryCard } from '@/components/product/CategoryCard';
 import { Button } from '@/components/ui/button';
 
+const personalCareImage = new URL(
+  '../../../../attached_assets/A9C78911-D304-4CEA-971B-853D2AF63583_1786255707029.jpeg',
+  import.meta.url,
+).href;
+
 const collections = [
   {
     id: 'personal-care',
     title: 'Personal Care',
     description: 'Perfumes, body oils, creams, feminine wash, toothpaste, wellness products and more.',
-    image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=1200&q=85',
+    image: personalCareImage,
     href: '/category/personal-care',
   },
   {
