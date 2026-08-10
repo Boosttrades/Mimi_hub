@@ -24,6 +24,7 @@ import { AdminCategories } from '@/pages/admin/Categories';
 import { AdminOrders } from '@/pages/admin/OrdersAdmin';
 import { AdminHomepage } from '@/pages/admin/Homepage';
 import { AdminSettings } from '@/pages/admin/Settings';
+import { AdminCustomers } from '@/pages/admin/Customers';
 
 const queryClient = new QueryClient();
 
@@ -51,6 +52,7 @@ function Router() {
       <Route path="/admin/products/:id/edit" component={AdminProductForm} />
       <Route path="/admin/categories" component={AdminCategories} />
       <Route path="/admin/orders" component={AdminOrders} />
+      <Route path="/admin/customers" component={AdminCustomers} />
       <Route path="/admin/homepage" component={AdminHomepage} />
       <Route path="/admin/settings" component={AdminSettings} />
 

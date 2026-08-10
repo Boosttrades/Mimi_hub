@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap');
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @plugin "@tailwindcss/typography";
@@ -122,9 +122,16 @@
   --chart-4: 30 15% 25%;
   --chart-5: 43 30% 70%;
 
-  --app-font-sans: 'Inter', sans-serif;
-  --app-font-serif: 'Cormorant Garamond', serif;
-  --app-font-mono: Menlo, monospace;
+  --app-font-sans: 'Manrope', sans-serif;
+  --app-font-serif: 'Fraunces', serif;
+  --app-font-mono: 'DM Mono', monospace;
+  --admin-ink: 163 28% 16%;
+  --admin-deep: 163 48% 22%;
+  --admin-teal: 167 46% 34%;
+  --admin-gold: 39 74% 53%;
+  --admin-sand: 42 38% 92%;
+  --admin-surface: 43 44% 97%;
+  --admin-coral: 13 68% 61%;
   --radius: 0.75rem;
   
   --shadow-2xs: 0px 2px 0px 0px rgba(0,0,0,0.02);
@@ -183,6 +190,13 @@
   --chart-3: 45 20% 68%;
   --chart-4: 30 15% 38%;
   --chart-5: 43 30% 58%;
+  --admin-ink: 43 30% 93%;
+  --admin-deep: 162 38% 54%;
+  --admin-teal: 167 46% 52%;
+  --admin-gold: 39 74% 58%;
+  --admin-sand: 30 11% 22%;
+  --admin-surface: 30 10% 16%;
+  --admin-coral: 13 68% 65%;
 }
 
 @layer base {
@@ -209,3 +223,41 @@
     pointer-events: none;
   }
 }
+
+/* MimiHub admin: a quiet, high-ownership studio rather than a generic back office. */
+.admin-shell {
+  --admin-shadow: 0 18px 55px rgba(20, 63, 54, 0.08);
+  background:
+    radial-gradient(circle at 88% 2%, hsl(var(--admin-gold) / 0.11), transparent 28rem),
+    hsl(var(--admin-surface));
+  color: hsl(var(--admin-ink));
+  font-family: var(--app-font-sans);
+}
+.admin-shell h1,
+.admin-shell h2,
+.admin-shell h3,
+.admin-shell h4 { font-family: var(--app-font-serif); }
+.admin-shell .admin-card {
+  background: hsl(var(--background) / 0.82);
+  border: 1px solid hsl(var(--admin-deep) / 0.12);
+  box-shadow: var(--admin-shadow);
+}
+.admin-shell .admin-label {
+  color: hsl(var(--admin-ink) / 0.62);
+  font-size: .68rem;
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+.admin-shell .admin-mono {
+  font-family: var(--app-font-mono);
+  letter-spacing: -.03em;
+}
+@keyframes admin-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.admin-shell .admin-rise { animation: admin-rise .45s ease-out both; }
+.admin-shell .admin-rise-1 { animation-delay: 70ms; }
+.admin-shell .admin-rise-2 { animation-delay: 130ms; }
+.admin-shell .admin-rise-3 { animation-delay: 190ms; }

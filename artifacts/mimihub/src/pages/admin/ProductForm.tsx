@@ -1,290 +1,137 @@
-import { useState, useEffect } from 'react';
+import { ChangeEvent, DragEvent, FormEvent, useEffect, useRef, useState } from 'react';
 import { useLocation, useRoute } from 'wouter';
+import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { ArrowLeft, Check, ImagePlus, Loader2, MoveRight, Sparkles, Trash2, UploadCloud } from 'lucide-react';
+import {
+  getGetProductQueryKey, getListProductsQueryKey, useCreateProduct, useGetProduct,
+  useListCategories, useUpdateProduct
+} from '@workspace/api-client-react';
 import { AdminLayout } from './AdminLayout';
-import { useGetProduct, useCreateProduct, useUpdateProduct, useListCategories, getListProductsQueryKey, getGetProductQueryKey } from '@workspace/api-client-react';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { toast } from 'sonner';
-import { useQueryClient } from '@tanstack/react-query';
-import { Loader2, ArrowLeft } from 'lucide-react';
+
+type ImageItem = { id: string; src: string; name: string; local?: boolean };
+const fallbackCategories = [
+  { id: 1, name: 'Home & Living', subcategories: [{ id: 11, name: 'Tableware' }, { id: 12, name: 'Decor' }] },
+  { id: 2, name: 'Beauty & Wellness', subcategories: [{ id: 21, name: 'Body care' }, { id: 22, name: 'Fragrance' }] },
+  { id: 3, name: 'Style & Accessories', subcategories: [{ id: 31, name: 'Jewellery' }, { id: 32, name: 'Clothing' }] },
+];
+const units = ['ml', 'cl', 'L', 'g', 'kg', 'oz', 'lb', 'XS', 'S', 'M', 'XL', 'XXL', 'XXXL'];
 
 export function AdminProductForm() {
   const [matchEdit, params] = useRoute('/admin/products/:id/edit');
   const isEditing = Boolean(matchEdit);
-  const productId = isEditing ? parseInt(params!.id, 10) : 0;
-
+  const productId = isEditing ? Number(params?.id) : 0;
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
-
-  const { data: categories } = useListCategories();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: product, isLoading: loadingProduct } = useGetProduct(productId, { query: { enabled: isEditing } as any });
-
+  const { data: remoteCategories } = useListCategories();
+  const { data: product, isLoading } = useGetProduct(productId, { query: { enabled: isEditing, queryKey: getGetProductQueryKey(productId) } });
   const createMutation = useCreateProduct();
   const updateMutation = useUpdateProduct();
-
-  const [formData, setFormData] = useState({
-    name: '', slug: '', description: '', price: 0, discountPct: 0, 
-    coverImage: '', images: '', categoryId: '', subcategoryId: '',
-    stockQty: 0, inStock: true, visible: true, featured: false, 
-    newArrival: false, bestSeller: false,
-    specs: { capacity: '', weight: '', dimensions: '', size: '', color: '', material: '' }
+  const fileRef = useRef<HTMLInputElement>(null);
+  const categories: any[] = remoteCategories?.length ? remoteCategories : fallbackCategories;
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [images, setImages] = useState<ImageItem[]>([]);
+  const [saved, setSaved] = useState(false);
+  const [form, setForm] = useState({
+    name: '', description: '', price: '', discountPct: '', categoryId: '',
+    subcategoryId: '', sizeValue: '', sizeUnit: 'ml', dimensions: '',
+    featured: false, stockQty: '0', visible: true,
   });
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
   useEffect(() => {
-    if (isEditing && product) {
-      setFormData({
-        name: product.name,
-        slug: product.slug,
-        description: product.description || '',
-        price: product.price,
-        discountPct: product.discountPct || 0,
-        coverImage: product.coverImage || '',
-        images: product.images?.join('\n') || '',
-        categoryId: product.categoryId?.toString() || '',
-        subcategoryId: product.subcategoryId?.toString() || '',
-        stockQty: product.stockQty || 0,
-        inStock: product.inStock,
-        visible: product.visible,
-        featured: product.featured,
-        newArrival: product.newArrival,
-        bestSeller: product.bestSeller,
-        specs: {
-          capacity: product.specs?.capacity || '',
-          weight: product.specs?.weight || '',
-          dimensions: product.specs?.dimensions || '',
-          size: product.specs?.size || '',
-          color: product.specs?.color || '',
-          material: product.specs?.material || ''
-        }
-      });
-    }
-  }, [isEditing, product]);
+    if (!product) return;
+    setForm({
+      name: product.name ?? '', description: product.description ?? '', price: String(product.price ?? ''),
+      discountPct: String(product.discountPct ?? ''), categoryId: String(product.categoryId ?? ''),
+      subcategoryId: String(product.subcategoryId ?? ''), sizeValue: product.specs?.capacity ?? product.specs?.size ?? '',
+      sizeUnit: (product.specs as (typeof product.specs & { unit?: string | null }) | undefined)?.unit ?? 'ml', dimensions: product.specs?.dimensions ?? '', featured: Boolean(product.featured),
+      stockQty: String(product.stockQty ?? 0), visible: product.visible !== false,
+    });
+    const urls = [product.coverImage, ...(product.images ?? [])].filter(Boolean);
+    setImages(Array.from(new Set(urls)).map((src: string, index: number) => ({ id: `remote-${index}`, src, name: `image-${index + 1}` })));
+  }, [product]);
 
-  const handleChange = (e: any) => {
-    const { name, value, type, checked } = e.target;
-    if (name.startsWith('specs.')) {
-      const specKey = name.split('.')[1];
-      setFormData(prev => ({ ...prev, specs: { ...prev.specs, [specKey]: value } }));
-    } else {
-      setFormData(prev => ({ 
-        ...prev, 
-        [name]: type === 'checkbox' ? checked : value 
-      }));
-    }
+  const selectedCategory = categories.find((category) => String(category.id) === form.categoryId);
+  const subcategories = selectedCategory?.subcategories ?? [];
+  const setField = (name: string, value: string | boolean) => setForm((current) => ({ ...current, [name]: value }));
+
+  const addFiles = (files: FileList | null) => {
+    if (!files) return;
+    const next = Array.from(files).filter((file) => file.type.startsWith('image/')).map((file) => ({ id: `${file.name}-${file.lastModified}`, src: URL.createObjectURL(file), name: file.name, local: true }));
+    setImages((current) => [...current, ...next]);
   };
+  const handleDrop = (event: DragEvent<HTMLButtonElement>) => { event.preventDefault(); addFiles(event.dataTransfer.files); };
+  const removeImage = (id: string) => setImages((current) => current.filter((image) => image.id !== id));
 
-  const handleSelectChange = (name: string, value: string) => {
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const generateSlug = () => {
-    if (!formData.name) return;
-    const slug = formData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-    setFormData(prev => ({ ...prev, slug }));
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-
-    const imagesArray = formData.images.split('\n').map(i => i.trim()).filter(Boolean);
-    const cId = parseInt(formData.categoryId, 10);
-    const sId = parseInt(formData.subcategoryId, 10);
-
-    const payload = {
-      name: formData.name,
-      slug: formData.slug,
-      description: formData.description,
-      price: Number(formData.price),
-      discountPct: Number(formData.discountPct) || undefined,
-      coverImage: formData.coverImage || (imagesArray.length > 0 ? imagesArray[0] : ''),
-      images: imagesArray,
-      categoryId: isNaN(cId) ? undefined : cId,
-      subcategoryId: isNaN(sId) ? undefined : sId,
-      stockQty: Number(formData.stockQty),
-      inStock: formData.inStock,
-      visible: formData.visible,
-      featured: formData.featured,
-      newArrival: formData.newArrival,
-      bestSeller: formData.bestSeller,
-      specs: formData.specs
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    const nextErrors: Record<string, string> = {};
+    if (!form.name.trim()) nextErrors.name = 'Give this piece a name.';
+    if (!form.categoryId) nextErrors.categoryId = 'Choose a collection.';
+    if (!form.price || Number(form.price) <= 0) nextErrors.price = 'Enter a price above zero.';
+    if (!images.length) nextErrors.images = 'Add at least one product image.';
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length) return;
+    const imageUrls = images.map((image) => image.src);
+    const payload: any = {
+      name: form.name.trim(), slug: form.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+      description: form.description, price: Number(form.price), discountPct: Number(form.discountPct) || undefined,
+      coverImage: imageUrls[0], images: imageUrls, categoryId: Number(form.categoryId),
+      subcategoryId: form.subcategoryId ? Number(form.subcategoryId) : undefined, stockQty: Number(form.stockQty) || 0,
+      inStock: Number(form.stockQty) > 0, visible: form.visible, featured: form.featured,
+      specs: { capacity: form.sizeValue, unit: form.sizeUnit, dimensions: form.dimensions },
     };
-
-    if (isEditing) {
-      updateMutation.mutate({ id: productId, data: payload }, {
-        onSuccess: () => {
-          toast.success('Product updated successfully');
-          queryClient.invalidateQueries({ queryKey: getListProductsQueryKey() });
-          queryClient.invalidateQueries({ queryKey: getGetProductQueryKey(productId) });
-          setLocation('/admin/products');
-        },
-        onError: () => {
-          toast.error('Failed to update product');
-          setIsSubmitting(false);
-        }
-      });
-    } else {
-      createMutation.mutate({ data: payload }, {
-        onSuccess: () => {
-          toast.success('Product created successfully');
-          queryClient.invalidateQueries({ queryKey: getListProductsQueryKey() });
-          setLocation('/admin/products');
-        },
-        onError: () => {
-          toast.error('Failed to create product');
-          setIsSubmitting(false);
-        }
-      });
-    }
+    const onSuccess = () => {
+      setSaved(true);
+      toast.success(isEditing ? 'Product changes saved' : 'Product added to your collection');
+      queryClient.invalidateQueries({ queryKey: getListProductsQueryKey() });
+      if (isEditing) queryClient.invalidateQueries({ queryKey: getGetProductQueryKey(productId) });
+      setTimeout(() => setLocation('/admin/products'), 550);
+    };
+    const onError = () => toast.error('Could not save this product. Try again.');
+    if (isEditing) updateMutation.mutate({ id: productId, data: payload }, { onSuccess, onError });
+    else createMutation.mutate({ data: payload }, { onSuccess, onError });
   };
 
-  if (isEditing && loadingProduct) return <AdminLayout title="Edit Product"><LoadingSpinner size="lg" /></AdminLayout>;
-
-  const selectedCategory = categories?.find(c => c.id.toString() === formData.categoryId);
+  const busy = createMutation.isPending || updateMutation.isPending;
+  if (isEditing && isLoading) return <AdminLayout title="Edit product"><div className="grid gap-5 lg:grid-cols-2">{[1, 2, 3, 4].map((i) => <div key={i} className="h-44 animate-pulse rounded-[26px] bg-[hsl(var(--admin-deep)/.08)]" />)}</div></AdminLayout>;
 
   return (
-    <AdminLayout title={isEditing ? "Edit Product" : "New Product"}>
-      <div className="mb-6">
-        <Button variant="ghost" className="gap-2 -ml-4 text-muted-foreground" onClick={() => setLocation('/admin/products')}>
-          <ArrowLeft className="w-4 h-4" /> Back to Products
-        </Button>
-      </div>
-
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-8">
-          {/* Basic Info */}
-          <div className="bg-card border border-border rounded-2xl p-6">
-            <h3 className="font-serif text-lg mb-4">Basic Information</h3>
-            <div className="grid gap-4">
-              <div>
-                <Label htmlFor="name">Product Name</Label>
-                <Input id="name" name="name" value={formData.name} onChange={handleChange} required className="mt-1" onBlur={generateSlug} />
-              </div>
-              <div>
-                <Label htmlFor="slug">Slug (URL friendly)</Label>
-                <Input id="slug" name="slug" value={formData.slug} onChange={handleChange} required className="mt-1" />
-              </div>
-              <div>
-                <Label htmlFor="description">Description</Label>
-                <Textarea id="description" name="description" value={formData.description} onChange={handleChange} rows={5} className="mt-1" />
-              </div>
-            </div>
-          </div>
-
-          {/* Pricing & Stock */}
-          <div className="bg-card border border-border rounded-2xl p-6">
-            <h3 className="font-serif text-lg mb-4">Pricing & Inventory</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="price">Price (₦)</Label>
-                <Input id="price" name="price" type="number" min="0" value={formData.price} onChange={handleChange} required className="mt-1" />
-              </div>
-              <div>
-                <Label htmlFor="discountPct">Discount (%)</Label>
-                <Input id="discountPct" name="discountPct" type="number" min="0" max="100" value={formData.discountPct} onChange={handleChange} className="mt-1" />
-              </div>
-              <div>
-                <Label htmlFor="stockQty">Stock Quantity</Label>
-                <Input id="stockQty" name="stockQty" type="number" min="0" value={formData.stockQty} onChange={handleChange} className="mt-1" />
-              </div>
-              <div className="flex items-center space-x-2 pt-8">
-                <Switch id="inStock" checked={formData.inStock} onCheckedChange={(c) => setFormData(p => ({ ...p, inStock: c }))} />
-                <Label htmlFor="inStock">In Stock</Label>
-              </div>
-            </div>
-          </div>
-
-          {/* Specifications */}
-          <div className="bg-card border border-border rounded-2xl p-6">
-            <h3 className="font-serif text-lg mb-4">Specifications (Optional)</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {Object.keys(formData.specs).map((key) => (
-                <div key={key}>
-                  <Label htmlFor={`spec-${key}`} className="capitalize">{key}</Label>
-                  <Input id={`spec-${key}`} name={`specs.${key}`} value={(formData.specs as any)[key]} onChange={handleChange} className="mt-1" />
-                </div>
-              ))}
-            </div>
-          </div>
+    <AdminLayout title={isEditing ? 'Edit product' : 'Add a product'} eyebrow={isEditing ? 'Collection / edit mode' : 'Collection / new piece'}>
+      <form onSubmit={submit} className="admin-rise">
+        <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
+          <div><button type="button" onClick={() => setLocation('/admin/products')} data-testid="button-back-products" className="mb-3 inline-flex items-center gap-2 text-xs font-bold text-[hsl(var(--admin-teal))]"><ArrowLeft className="h-4 w-4" /> Back to collection</button><p className="max-w-xl text-sm leading-6 text-[hsl(var(--admin-ink)/.55)]">Add the details that make this piece feel at home in your shop. You can always refine it later.</p></div>
+          <div className="flex gap-3"><Button type="button" variant="outline" onClick={() => setLocation('/admin/products')} data-testid="button-cancel-product" className="h-11 rounded-full border-[hsl(var(--admin-deep)/.18)] px-5">Cancel</Button><Button type="submit" disabled={busy || saved} data-testid="button-save-product" className="h-11 gap-2 rounded-full bg-[hsl(var(--admin-deep))] px-6 text-[hsl(var(--background))] hover:bg-[hsl(var(--admin-teal))]">{saved ? <><Check className="h-4 w-4" /> Saved</> : busy ? <><Loader2 className="h-4 w-4 animate-spin" /> Saving</> : <>{isEditing ? 'Save changes' : 'Add to collection'} <MoveRight className="h-4 w-4" /></>}</Button></div>
         </div>
-
-        <div className="space-y-8">
-          {/* Organization */}
-          <div className="bg-card border border-border rounded-2xl p-6">
-            <h3 className="font-serif text-lg mb-4">Organization</h3>
-            <div className="space-y-4">
-              <div>
-                <Label>Category</Label>
-                <Select value={formData.categoryId} onValueChange={(v) => handleSelectChange('categoryId', v)}>
-                  <SelectTrigger className="mt-1"><SelectValue placeholder="Select category" /></SelectTrigger>
-                  <SelectContent>
-                    {categories?.map(c => <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              {selectedCategory?.subcategories && selectedCategory.subcategories.length > 0 && (
-                <div>
-                  <Label>Subcategory</Label>
-                  <Select value={formData.subcategoryId} onValueChange={(v) => handleSelectChange('subcategoryId', v)}>
-                    <SelectTrigger className="mt-1"><SelectValue placeholder="Select subcategory" /></SelectTrigger>
-                    <SelectContent>
-                      {selectedCategory.subcategories.map(s => <SelectItem key={s.id} value={s.id.toString()}>{s.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-            </div>
+        <div className="grid gap-6 xl:grid-cols-[1.25fr_.75fr]">
+          <div className="space-y-6">
+            <section className="admin-card rounded-[26px] p-6 sm:p-8"><div className="mb-7 flex items-start justify-between"><div><p className="admin-label">The essentials</p><h2 className="mt-1 font-serif text-2xl font-semibold text-[hsl(var(--admin-deep))]">Tell us about it</h2></div><Sparkles className="h-5 w-5 text-[hsl(var(--admin-gold))]" /></div><div className="space-y-5">
+              <div><Label htmlFor="product-name" className="text-xs font-bold">Product name <span className="text-[hsl(var(--admin-coral))]">*</span></Label><Input id="product-name" data-testid="input-product-name" value={form.name} onChange={(e) => setField('name', e.target.value)} placeholder="e.g. Abeni stoneware vase" className="mt-2 h-12 rounded-xl border-[hsl(var(--admin-deep)/.15)] bg-[hsl(var(--background)/.55)]" />{errors.name && <p className="mt-1.5 text-xs text-[hsl(var(--admin-coral))]">{errors.name}</p>}</div>
+              <div><Label htmlFor="product-description" className="text-xs font-bold">Description</Label><Textarea id="product-description" data-testid="input-product-description" value={form.description} onChange={(e) => setField('description', e.target.value)} placeholder="What makes this piece worth bringing home?" rows={5} className="mt-2 resize-none rounded-xl border-[hsl(var(--admin-deep)/.15)] bg-[hsl(var(--background)/.55)] leading-6" /><p className="mt-1.5 text-right text-[10px] text-[hsl(var(--admin-ink)/.4)]">{form.description.length}/500</p></div>
+            </div></section>
+            <section className="admin-card rounded-[26px] p-6 sm:p-8"><div className="mb-7"><p className="admin-label">The details</p><h2 className="mt-1 font-serif text-2xl font-semibold text-[hsl(var(--admin-deep))]">Give it shape</h2></div><div className="grid gap-5 sm:grid-cols-2">
+              <div><Label className="text-xs font-bold">Category <span className="text-[hsl(var(--admin-coral))]">*</span></Label><Select value={form.categoryId} onValueChange={(v) => { setField('categoryId', v); setField('subcategoryId', ''); }}><SelectTrigger data-testid="select-product-category" className="mt-2 h-12 rounded-xl border-[hsl(var(--admin-deep)/.15)] bg-[hsl(var(--background)/.55)]"><SelectValue placeholder="Choose a collection" /></SelectTrigger><SelectContent>{categories.map((category) => <SelectItem key={category.id} value={String(category.id)}>{category.name}</SelectItem>)}</SelectContent></Select>{errors.categoryId && <p className="mt-1.5 text-xs text-[hsl(var(--admin-coral))]">{errors.categoryId}</p>}</div>
+              <div><Label className="text-xs font-bold">Subcategory</Label><Select value={form.subcategoryId} onValueChange={(v) => setField('subcategoryId', v)} disabled={!subcategories.length}><SelectTrigger data-testid="select-product-subcategory" className="mt-2 h-12 rounded-xl border-[hsl(var(--admin-deep)/.15)] bg-[hsl(var(--background)/.55)]"><SelectValue placeholder={subcategories.length ? 'Choose a subcategory' : 'Select a category first'} /></SelectTrigger><SelectContent>{subcategories.map((subcategory: any) => <SelectItem key={subcategory.id} value={String(subcategory.id)}>{subcategory.name}</SelectItem>)}</SelectContent></Select></div>
+              <div><Label htmlFor="product-size" className="text-xs font-bold">Size / capacity</Label><div className="mt-2 flex gap-2"><Input id="product-size" data-testid="input-product-size" value={form.sizeValue} onChange={(e) => setField('sizeValue', e.target.value)} placeholder="e.g. 500" className="h-12 rounded-xl border-[hsl(var(--admin-deep)/.15)] bg-[hsl(var(--background)/.55)]" /><Select value={form.sizeUnit} onValueChange={(v) => setField('sizeUnit', v)}><SelectTrigger data-testid="select-product-size-unit" className="h-12 w-[104px] rounded-xl border-[hsl(var(--admin-deep)/.15)] bg-[hsl(var(--background)/.55)]"><SelectValue /></SelectTrigger><SelectContent>{units.map((unit, index) => <SelectItem key={`${unit}-${index}`} value={unit}>{unit}</SelectItem>)}</SelectContent></Select></div></div>
+              <div><Label htmlFor="product-dimensions" className="text-xs font-bold">Dimensions</Label><Input id="product-dimensions" data-testid="input-product-dimensions" value={form.dimensions} onChange={(e) => setField('dimensions', e.target.value)} placeholder="e.g. 18 × 10 × 10 cm" className="mt-2 h-12 rounded-xl border-[hsl(var(--admin-deep)/.15)] bg-[hsl(var(--background)/.55)]" /></div>
+            </div></section>
+            <section className="admin-card rounded-[26px] p-6 sm:p-8"><div className="mb-7"><p className="admin-label">The numbers</p><h2 className="mt-1 font-serif text-2xl font-semibold text-[hsl(var(--admin-deep))]">Price & availability</h2></div><div className="grid gap-5 sm:grid-cols-3">
+              <div><Label htmlFor="product-price" className="text-xs font-bold">Price (₦) <span className="text-[hsl(var(--admin-coral))]">*</span></Label><Input id="product-price" data-testid="input-product-price" type="number" min="1" value={form.price} onChange={(e) => setField('price', e.target.value)} placeholder="0" className="mt-2 h-12 rounded-xl border-[hsl(var(--admin-deep)/.15)] bg-[hsl(var(--background)/.55)]" />{errors.price && <p className="mt-1.5 text-xs text-[hsl(var(--admin-coral))]">{errors.price}</p>}</div>
+              <div><Label htmlFor="product-discount" className="text-xs font-bold">Discount (%)</Label><Input id="product-discount" data-testid="input-product-discount" type="number" min="0" max="100" value={form.discountPct} onChange={(e) => setField('discountPct', e.target.value)} placeholder="0" className="mt-2 h-12 rounded-xl border-[hsl(var(--admin-deep)/.15)] bg-[hsl(var(--background)/.55)]" /></div>
+              <div><Label htmlFor="product-stock" className="text-xs font-bold">Units in stock</Label><Input id="product-stock" data-testid="input-product-stock" type="number" min="0" value={form.stockQty} onChange={(e) => setField('stockQty', e.target.value)} placeholder="0" className="mt-2 h-12 rounded-xl border-[hsl(var(--admin-deep)/.15)] bg-[hsl(var(--background)/.55)]" /></div>
+            </div></section>
           </div>
-
-          {/* Images */}
-          <div className="bg-card border border-border rounded-2xl p-6">
-            <h3 className="font-serif text-lg mb-4">Images</h3>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="coverImage">Cover Image URL</Label>
-                <Input id="coverImage" name="coverImage" value={formData.coverImage} onChange={handleChange} className="mt-1" placeholder="https://..." />
-              </div>
-              <div>
-                <Label htmlFor="images">Gallery Image URLs (one per line)</Label>
-                <Textarea id="images" name="images" value={formData.images} onChange={handleChange} rows={5} className="mt-1" placeholder="https://..." />
-              </div>
-            </div>
+          <div className="space-y-6">
+            <section className="admin-card rounded-[26px] p-6 sm:p-8"><div className="mb-6 flex items-start justify-between"><div><p className="admin-label">The first impression</p><h2 className="mt-1 font-serif text-2xl font-semibold text-[hsl(var(--admin-deep))]">Product images</h2></div><ImagePlus className="h-5 w-5 text-[hsl(var(--admin-gold))]" /></div><button type="button" data-testid="button-upload-images" onClick={() => fileRef.current?.click()} onDrop={handleDrop} onDragOver={(e) => e.preventDefault()} className="group flex w-full flex-col items-center justify-center rounded-2xl border border-dashed border-[hsl(var(--admin-teal)/.38)] bg-[hsl(var(--admin-teal)/.045)] px-5 py-8 text-center transition-colors hover:bg-[hsl(var(--admin-teal)/.09)]"><span className="grid h-12 w-12 place-items-center rounded-2xl bg-[hsl(var(--admin-gold)/.25)] text-[hsl(var(--admin-deep))] transition-transform group-hover:scale-105"><UploadCloud className="h-5 w-5" /></span><span className="mt-4 text-sm font-extrabold text-[hsl(var(--admin-deep))]">Drop images here or browse</span><span className="mt-1 text-xs text-[hsl(var(--admin-ink)/.48)]">JPG, PNG up to 10MB each</span></button><input ref={fileRef} type="file" accept="image/*" multiple onChange={(e: ChangeEvent<HTMLInputElement>) => addFiles(e.target.files)} className="hidden" />{errors.images && <p className="mt-2 text-xs text-[hsl(var(--admin-coral))]">{errors.images}</p>}<div className="mt-4 grid grid-cols-3 gap-2">{images.map((image, index) => <div key={image.id} className="group relative aspect-square overflow-hidden rounded-xl bg-[hsl(var(--admin-deep)/.08)]" data-testid={`image-preview-${index}`}><img src={image.src} alt={image.name} className="h-full w-full object-cover" /><button type="button" onClick={() => removeImage(image.id)} data-testid={`button-remove-image-${index}`} aria-label={`Remove ${image.name}`} className="absolute right-1.5 top-1.5 grid h-7 w-7 place-items-center rounded-full bg-[hsl(var(--admin-deep)/.82)] text-[hsl(var(--background))] opacity-0 transition-opacity group-hover:opacity-100"><Trash2 className="h-3.5 w-3.5" /></button>{index === 0 && <span className="absolute bottom-1.5 left-1.5 rounded-full bg-[hsl(var(--background)/.9)] px-2 py-1 text-[9px] font-extrabold text-[hsl(var(--admin-deep))]">Cover</span>}</div>)}</div></section>
+            <section className="rounded-[26px] bg-[hsl(var(--admin-gold)/.17)] p-6 sm:p-8"><div className="flex items-start justify-between"><div><p className="admin-label">Store setting</p><h2 className="mt-1 font-serif text-2xl font-semibold text-[hsl(var(--admin-deep))]">Feature this piece</h2></div><Switch data-testid="switch-featured-product" checked={form.featured} onCheckedChange={(checked) => setField('featured', checked)} /></div><p className="mt-4 text-sm leading-6 text-[hsl(var(--admin-ink)/.6)]">Featured pieces appear in the carefully selected spotlight on your storefront. This is an admin setting, not a customer favourite.</p><div className="mt-6 flex items-center gap-2 text-xs font-bold text-[hsl(var(--admin-deep))]"><span className="grid h-6 w-6 place-items-center rounded-full bg-[hsl(var(--background)/.6)]"><Check className="h-3.5 w-3.5" /></span> Visible in your curated collection</div></section>
+            <section className="admin-card rounded-[26px] p-6 sm:p-8"><div className="flex items-center justify-between"><div><p className="admin-label">Store visibility</p><h2 className="mt-1 font-serif text-xl font-semibold text-[hsl(var(--admin-deep))]">Published to shop</h2></div><Switch data-testid="switch-product-visible" checked={form.visible} onCheckedChange={(checked) => setField('visible', checked)} /></div><p className="mt-3 text-xs leading-5 text-[hsl(var(--admin-ink)/.52)]">Turn this off while you are still polishing the details.</p></section>
           </div>
-
-          {/* Visibility & Flags */}
-          <div className="bg-card border border-border rounded-2xl p-6">
-            <h3 className="font-serif text-lg mb-4">Status & Flags</h3>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="visible" className="flex-1 cursor-pointer">Visible in store</Label>
-                <Switch id="visible" checked={formData.visible} onCheckedChange={(c) => setFormData(p => ({ ...p, visible: c }))} />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="featured" className="flex-1 cursor-pointer">Featured Product (Max 8)</Label>
-                <Switch id="featured" checked={formData.featured} onCheckedChange={(c) => setFormData(p => ({ ...p, featured: c }))} />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="newArrival" className="flex-1 cursor-pointer">New Arrival</Label>
-                <Switch id="newArrival" checked={formData.newArrival} onCheckedChange={(c) => setFormData(p => ({ ...p, newArrival: c }))} />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="bestSeller" className="flex-1 cursor-pointer">Best Seller</Label>
-                <Switch id="bestSeller" checked={formData.bestSeller} onCheckedChange={(c) => setFormData(p => ({ ...p, bestSeller: c }))} />
-              </div>
-            </div>
-          </div>
-
-          <Button type="submit" className="w-full h-12" disabled={isSubmitting}>
-            {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : (isEditing ? 'Update Product' : 'Create Product')}
-          </Button>
         </div>
       </form>
     </AdminLayout>

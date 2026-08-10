@@ -1,138 +1,58 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, useLocation } from 'wouter';
-import { AdminLayout } from './AdminLayout';
-import { useListProducts, useDeleteProduct, getListProductsQueryKey } from '@workspace/api-client-react';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { Button } from '@/components/ui/button';
-import { Plus, Edit, Trash2, Eye, EyeOff } from 'lucide-react';
-import { formatNaira } from '@/lib/utils/format';
+import { Archive, Edit3, Eye, EyeOff, Filter, MoreHorizontal, PackagePlus, Search, Star, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { useDeleteProduct, useListProducts, getListProductsQueryKey } from '@workspace/api-client-react';
+import { AdminLayout } from './AdminLayout';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { formatNaira } from '@/lib/utils/format';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+
+const demoProducts = [
+  { id: 901, name: 'Abeni Stoneware Vase', category: { name: 'Home & Living' }, price: 38500, discountPct: 0, stockQty: 12, inStock: true, visible: true, featured: true, coverImage: '' },
+  { id: 902, name: 'Owanbe Silk Head Tie', category: { name: 'Style & Accessories' }, price: 24000, discountPct: 10, stockQty: 8, inStock: true, visible: true, featured: false, coverImage: '' },
+  { id: 903, name: 'Lagos Dawn Body Oil', category: { name: 'Beauty & Wellness' }, price: 18500, discountPct: 0, stockQty: 0, inStock: false, visible: true, featured: true, coverImage: '' },
+  { id: 904, name: 'Ìfẹ́ Beaded Hoops', category: { name: 'Style & Accessories' }, price: 12000, discountPct: 0, stockQty: 23, inStock: true, visible: false, featured: false, coverImage: '' },
+];
 
 export function AdminProducts() {
-  const { data: products, isLoading } = useListProducts();
+  const { data: remoteProducts, isLoading } = useListProducts();
+  const products: any[] = remoteProducts?.length ? remoteProducts : demoProducts;
   const deleteProduct = useDeleteProduct();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
-
-  const [productToDelete, setProductToDelete] = useState<number | null>(null);
-
-  const handleDelete = async () => {
-    if (!productToDelete) return;
-    deleteProduct.mutate({ id: productToDelete }, {
-      onSuccess: () => {
-        toast.success('Product deleted successfully');
-        queryClient.invalidateQueries({ queryKey: getListProductsQueryKey() });
-        setProductToDelete(null);
-      },
-      onError: () => {
-        toast.error('Failed to delete product');
-        setProductToDelete(null);
-      }
-    });
+  const [query, setQuery] = useState('');
+  const [filter, setFilter] = useState<'All pieces' | 'Featured' | 'Low stock'>('All pieces');
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const visibleProducts = useMemo(() => products.filter((product) => {
+    const matchesSearch = product.name.toLowerCase().includes(query.toLowerCase());
+    const matchesFilter = filter === 'All pieces' || (filter === 'Featured' ? product.featured : product.stockQty < 10);
+    return matchesSearch && matchesFilter;
+  }), [products, query, filter]);
+  const productToDelete = products.find((product) => product.id === deleteId);
+  const handleDelete = () => {
+    if (!deleteId) return;
+    deleteProduct.mutate({ id: deleteId }, { onSuccess: () => { toast.success('Product removed from your collection'); queryClient.invalidateQueries({ queryKey: getListProductsQueryKey() }); setDeleteId(null); }, onError: () => toast.error('Could not remove this product') });
   };
-
-  if (isLoading) return <AdminLayout title="Products"><LoadingSpinner size="lg" /></AdminLayout>;
-
   return (
-    <AdminLayout title="Products">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-lg text-muted-foreground">Manage your store products</h2>
-        <Link href="/admin/products/new">
-          <Button className="gap-2"><Plus className="w-4 h-4" /> Add Product</Button>
-        </Link>
+    <AdminLayout title="Your collection" eyebrow="Workspace / products">
+      <div className="admin-rise mb-8 flex flex-wrap items-end justify-between gap-5">
+        <div><p className="max-w-lg text-sm leading-6 text-[hsl(var(--admin-ink)/.55)]">A considered edit of everything currently living in the MimiHub shop.</p></div>
+        <Link href="/admin/products/new" data-testid="link-add-product"><Button className="h-11 gap-2 rounded-full bg-[hsl(var(--admin-deep))] px-5 text-[hsl(var(--background))] hover:bg-[hsl(var(--admin-teal))]"><PackagePlus className="h-4 w-4" /> Add product</Button></Link>
       </div>
-
-      <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-secondary/50 text-muted-foreground text-sm text-left">
-              <tr>
-                <th className="px-6 py-4 font-medium">Product</th>
-                <th className="px-6 py-4 font-medium">Price</th>
-                <th className="px-6 py-4 font-medium">Stock</th>
-                <th className="px-6 py-4 font-medium">Visibility</th>
-                <th className="px-6 py-4 font-medium text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {products?.map((product) => (
-                <tr key={product.id} className="hover:bg-secondary/20 transition-colors">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-md overflow-hidden bg-secondary">
-                        <img src={product.coverImage || product.images?.[0]} alt="" className="w-full h-full object-cover" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-foreground">{product.name}</p>
-                        <p className="text-xs text-muted-foreground">{product.category?.name}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-sm">
-                    {formatNaira(product.price)}
-                    {product.discountPct && (
-                      <span className="ml-2 text-xs text-destructive bg-destructive/10 px-2 py-0.5 rounded-full">
-                        -{product.discountPct}%
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
-                      ${product.inStock ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                      {product.inStock ? `${product.stockQty || 0} in stock` : 'Out of stock'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    {product.visible ? (
-                      <span className="flex items-center gap-1 text-sm text-muted-foreground"><Eye className="w-4 h-4" /> Visible</span>
-                    ) : (
-                      <span className="flex items-center gap-1 text-sm text-muted-foreground opacity-50"><EyeOff className="w-4 h-4" /> Hidden</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Button variant="ghost" size="icon" onClick={() => setLocation(`/admin/products/${product.id}/edit`)}>
-                        <Edit className="w-4 h-4 text-muted-foreground" />
-                      </Button>
-                      
-                      <AlertDialog open={productToDelete === product.id} onOpenChange={(open) => !open && setProductToDelete(null)}>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="icon" onClick={() => setProductToDelete(product.id)}>
-                            <Trash2 className="w-4 h-4 text-destructive" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete Product</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Are you sure you want to delete "{product.name}"? This action cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {products?.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-muted-foreground">
-                    No products found. Click "Add Product" to create one.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+      <div className="admin-rise admin-rise-1 mb-6 flex flex-col gap-4 rounded-[22px] border border-[hsl(var(--admin-deep)/.1)] bg-[hsl(var(--background)/.6)] p-3 sm:flex-row sm:items-center">
+        <div className="relative min-w-0 flex-1"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[hsl(var(--admin-ink)/.38)]" /><Input data-testid="input-search-products" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search your collection" className="h-11 border-0 bg-transparent pl-10 shadow-none focus-visible:ring-0" /></div>
+        <div className="flex gap-1 overflow-x-auto rounded-xl bg-[hsl(var(--admin-deep)/.06)] p-1"><Filter className="ml-2 mr-1 h-4 w-4 self-center text-[hsl(var(--admin-ink)/.45)]" />{(['All pieces', 'Featured', 'Low stock'] as const).map((item) => <button key={item} type="button" onClick={() => setFilter(item)} data-testid={`button-filter-${item.toLowerCase().replace(' ', '-')}`} className={`whitespace-nowrap rounded-lg px-3 py-2 text-xs font-bold transition-colors ${filter === item ? 'bg-[hsl(var(--background))] text-[hsl(var(--admin-deep))] shadow-sm' : 'text-[hsl(var(--admin-ink)/.5)]'}`}>{item}</button>)}</div>
       </div>
+      <section className="admin-card admin-rise admin-rise-2 overflow-hidden rounded-[26px]">
+        <div className="flex items-center justify-between border-b border-[hsl(var(--admin-deep)/.1)] px-5 py-5 sm:px-7"><div><p className="admin-label">{visibleProducts.length} pieces</p><h2 className="mt-1 font-serif text-2xl font-semibold text-[hsl(var(--admin-deep))]">The edit</h2></div><span className="admin-mono text-[10px] uppercase text-[hsl(var(--admin-ink)/.4)]">Last synced just now</span></div>
+        <div className="hidden overflow-x-auto md:block"><table className="w-full"><thead><tr className="border-b border-[hsl(var(--admin-deep)/.08)] text-left"><th className="admin-label px-7 py-4">Piece</th><th className="admin-label px-4 py-4">Price</th><th className="admin-label px-4 py-4">Stock</th><th className="admin-label px-4 py-4">Status</th><th className="admin-label px-7 py-4 text-right">Actions</th></tr></thead><tbody className="divide-y divide-[hsl(var(--admin-deep)/.08)]">{isLoading ? [1, 2, 3].map((i) => <tr key={i}><td colSpan={5} className="p-7"><div className="h-10 animate-pulse rounded-xl bg-[hsl(var(--admin-deep)/.07)]" /></td></tr>) : visibleProducts.map((product) => <tr key={product.id} className="group transition-colors hover:bg-[hsl(var(--admin-deep)/.025)]" data-testid={`row-product-${product.id}`}><td className="px-7 py-4"><div className="flex items-center gap-3"><div className="relative grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-xl bg-[hsl(var(--admin-gold)/.2)]">{product.coverImage ? <img src={product.coverImage} alt="" className="h-full w-full object-cover" /> : <PackagePlus className="h-5 w-5 text-[hsl(var(--admin-deep)/.5)]" />}{product.featured && <Star className="absolute bottom-1 right-1 h-3 w-3 fill-[hsl(var(--admin-gold))] text-[hsl(var(--admin-gold))]" />}</div><div><p className="text-sm font-extrabold text-[hsl(var(--admin-deep))]">{product.name}</p><p className="mt-1 text-[11px] text-[hsl(var(--admin-ink)/.45)]">{product.category?.name ?? 'Uncategorised'}</p></div></div></td><td className="px-4 py-4 text-sm font-extrabold text-[hsl(var(--admin-deep))]">{formatNaira(product.price)}{product.discountPct > 0 && <span className="ml-2 rounded-full bg-[hsl(var(--admin-coral)/.12)] px-2 py-1 text-[10px] text-[hsl(var(--admin-coral))]">-{product.discountPct}%</span>}</td><td className="px-4 py-4"><span className={`text-xs font-bold ${product.inStock ? 'text-[hsl(var(--admin-teal))]' : 'text-[hsl(var(--admin-coral))]'}`}>{product.inStock ? `${product.stockQty ?? 0} available` : 'Out of stock'}</span></td><td className="px-4 py-4"><span className="inline-flex items-center gap-1.5 text-xs font-bold text-[hsl(var(--admin-ink)/.58)]">{product.visible ? <Eye className="h-3.5 w-3.5 text-[hsl(var(--admin-teal))]" /> : <EyeOff className="h-3.5 w-3.5" />}{product.visible ? 'Live in shop' : 'Hidden'}</span></td><td className="px-7 py-4"><div className="flex justify-end gap-1"><Button variant="ghost" size="icon" onClick={() => setLocation(`/admin/products/${product.id}/edit`)} data-testid={`button-edit-product-${product.id}`}><Edit3 className="h-4 w-4 text-[hsl(var(--admin-teal))]" /></Button><Button variant="ghost" size="icon" onClick={() => setDeleteId(product.id)} data-testid={`button-delete-product-${product.id}`}><Trash2 className="h-4 w-4 text-[hsl(var(--admin-coral))]" /></Button></div></td></tr>)}</tbody></table></div>
+        <div className="divide-y divide-[hsl(var(--admin-deep)/.08)] md:hidden">{visibleProducts.map((product) => <div key={product.id} className="flex items-center gap-3 p-4" data-testid={`card-product-${product.id}`}><div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-[hsl(var(--admin-gold)/.2)]"><PackagePlus className="h-5 w-5 text-[hsl(var(--admin-deep)/.5)]" /></div><div className="min-w-0 flex-1"><p className="truncate text-sm font-extrabold text-[hsl(var(--admin-deep))]">{product.name}</p><p className="mt-1 text-xs text-[hsl(var(--admin-ink)/.48)]">{formatNaira(product.price)} · {product.inStock ? `${product.stockQty} available` : 'Out of stock'}</p></div><Button variant="ghost" size="icon" onClick={() => setLocation(`/admin/products/${product.id}/edit`)} data-testid={`button-mobile-edit-product-${product.id}`}><MoreHorizontal className="h-4 w-4" /></Button></div>)}</div>
+        {!isLoading && !visibleProducts.length && <div className="px-6 py-16 text-center"><Archive className="mx-auto h-8 w-8 text-[hsl(var(--admin-teal)/.55)]" /><h3 className="mt-4 font-serif text-2xl font-semibold text-[hsl(var(--admin-deep))]">Nothing in this corner</h3><p className="mt-2 text-sm text-[hsl(var(--admin-ink)/.55)]">Try a different search or add a new piece to your collection.</p></div>}
+      </section>
+      <AlertDialog open={deleteId !== null} onOpenChange={(open) => !open && setDeleteId(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Remove this piece?</AlertDialogTitle><AlertDialogDescription>{productToDelete?.name} will be removed from your collection. This cannot be undone.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Keep it</AlertDialogCancel><AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">Remove product</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
     </AdminLayout>
   );
 }
