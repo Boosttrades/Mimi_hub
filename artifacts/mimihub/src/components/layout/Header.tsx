@@ -1,5 +1,5 @@
 import { Link } from 'wouter';
-import { Menu, Search, ShoppingBag, Crown } from 'lucide-react';
+import { Menu, Search, ShoppingBag, Crown, LayoutDashboard } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { useState } from 'react';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from '@/components/ui/sheet';
@@ -48,6 +48,13 @@ export function Header() {
               <Link href="/orders/lookup" onClick={() => setIsMenuOpen(false)}>
                 <span className="block px-2 py-3 text-lg hover:text-primary hover:bg-primary/5 rounded-md transition-colors cursor-pointer">
                   Track Order
+                </span>
+              </Link>
+              <div className="my-2 border-t border-primary/10" />
+              <Link href="/admin" onClick={() => setIsMenuOpen(false)}>
+                <span className="flex items-center gap-3 rounded-md px-2 py-3 text-lg font-medium text-primary hover:bg-primary/5 transition-colors cursor-pointer">
+                  <LayoutDashboard className="h-5 w-5" />
+                  Admin Panel
                 </span>
               </Link>
             </nav>
