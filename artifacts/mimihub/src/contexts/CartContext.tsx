@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { Product } from '@workspace/api-client-react';
+import { getAccountStorageKey, readStored, removeStored, writeStored } from '@/lib/localData';
 
 export interface CartItem {
   productId: number;
@@ -16,6 +17,7 @@ interface CartContextType {
   removeFromCart: (productId: number) => void;
   updateQuantity: (productId: number, quantity: number) => void;
   clearCart: () => void;
+  switchToAccount: (username: string, mergeGuest: boolean) => void;
   totalItems: number;
   subtotal: number;
 }
@@ -23,18 +25,17 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: ReactNode }) {
+  const [storageScope, setStorageScope] = useState<'guest' | string>('guest');
   const [items, setItems] = useState<CartItem[]>(() => {
-    try {
-      const saved = localStorage.getItem('mimihub_cart');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
+    return readStored<CartItem[]>('mimihub_cart', []);
   });
 
   useEffect(() => {
-    localStorage.setItem('mimihub_cart', JSON.stringify(items));
-  }, [items]);
+    writeStored(
+      storageScope === 'guest' ? 'mimihub_cart' : getAccountStorageKey('cart', storageScope),
+      items,
+    );
+  }, [items, storageScope]);
 
   const addToCart = (product: Product, quantity = 1) => {
     setItems((prev) => {
@@ -83,16 +84,44 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const clearCart = () => setItems([]);
 
+  const switchToAccount = (username: string, mergeGuest: boolean) => {
+    const accountKey = getAccountStorageKey('cart', username);
+    const accountItems = readStored<CartItem[]>(accountKey, []);
+    const nextItems = mergeGuest ? mergeCartItems(accountItems, items) : accountItems;
+
+    writeStored(accountKey, nextItems);
+    if (mergeGuest) removeStored('mimihub_cart');
+    setItems(nextItems);
+    setStorageScope(username);
+  };
+
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
   const subtotal = items.reduce((sum, item) => sum + item.totalPrice, 0);
 
   return (
     <CartContext.Provider
-      value={{ items, addToCart, removeFromCart, updateQuantity, clearCart, totalItems, subtotal }}
+      value={{ items, addToCart, removeFromCart, updateQuantity, clearCart, switchToAccount, totalItems, subtotal }}
     >
       {children}
     </CartContext.Provider>
   );
+}
+
+function mergeCartItems(existing: CartItem[], incoming: CartItem[]) {
+  return incoming.reduce<CartItem[]>((merged, incomingItem) => {
+    const existingItem = merged.find((item) => item.productId === incomingItem.productId);
+    if (!existingItem) return [...merged, incomingItem];
+
+    return merged.map((item) =>
+      item.productId === incomingItem.productId
+        ? {
+            ...item,
+            quantity: item.quantity + incomingItem.quantity,
+            totalPrice: item.unitPrice * (item.quantity + incomingItem.quantity),
+          }
+        : item,
+    );
+  }, [...existing]);
 }
 
 export function useCart() {

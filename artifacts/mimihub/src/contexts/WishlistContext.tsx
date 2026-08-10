@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { getAccountStorageKey, readStored, removeStored, writeStored } from '@/lib/localData';
 
 interface WishlistContextType {
   items: number[]; // Array of product IDs
@@ -6,23 +7,23 @@ interface WishlistContextType {
   removeFromWishlist: (productId: number) => void;
   toggleWishlist: (productId: number) => void;
   isInWishlist: (productId: number) => boolean;
+  switchToAccount: (username: string, mergeGuest: boolean) => void;
 }
 
 const WishlistContext = createContext<WishlistContextType | undefined>(undefined);
 
 export function WishlistProvider({ children }: { children: ReactNode }) {
+  const [storageScope, setStorageScope] = useState<'guest' | string>('guest');
   const [items, setItems] = useState<number[]>(() => {
-    try {
-      const saved = localStorage.getItem('mimihub_wishlist');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
+    return readStored<number[]>('mimihub_wishlist', []);
   });
 
   useEffect(() => {
-    localStorage.setItem('mimihub_wishlist', JSON.stringify(items));
-  }, [items]);
+    writeStored(
+      storageScope === 'guest' ? 'mimihub_wishlist' : getAccountStorageKey('wishlist', storageScope),
+      items,
+    );
+  }, [items, storageScope]);
 
   const addToWishlist = (productId: number) => {
     setItems((prev) => (prev.includes(productId) ? prev : [...prev, productId]));
@@ -40,9 +41,22 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
 
   const isInWishlist = (productId: number) => items.includes(productId);
 
+  const switchToAccount = (username: string, mergeGuest: boolean) => {
+    const accountKey = getAccountStorageKey('wishlist', username);
+    const accountItems = readStored<number[]>(accountKey, []);
+    const nextItems = mergeGuest
+      ? [...accountItems, ...items.filter((id) => !accountItems.includes(id))]
+      : accountItems;
+
+    writeStored(accountKey, nextItems);
+    if (mergeGuest) removeStored('mimihub_wishlist');
+    setItems(nextItems);
+    setStorageScope(username);
+  };
+
   return (
     <WishlistContext.Provider
-      value={{ items, addToWishlist, removeFromWishlist, toggleWishlist, isInWishlist }}
+      value={{ items, addToWishlist, removeFromWishlist, toggleWishlist, isInWishlist, switchToAccount }}
     >
       {children}
     </WishlistContext.Provider>
