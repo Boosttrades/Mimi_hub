@@ -1,5 +1,6 @@
 import { Link } from 'wouter';
 import { ChevronRight } from 'lucide-react';
+import { categoryImages } from '@/data/categoryImages';
 
 interface CategoryCardCategory {
   id: number;
@@ -17,12 +18,19 @@ interface CategoryCardProps {
 
 export function CategoryCard({ category, className = '' }: CategoryCardProps) {
   const subcategories = category.subcategories ?? [];
+  const categoryImage =
+    category.image && !category.image.includes('placehold.co')
+      ? category.image
+      : categoryImages[category.slug];
 
   return (
     <Link href={`/category/${category.slug}`} className={`block ${className}`}>
       <article className="relative aspect-[5/3] overflow-hidden rounded-2xl bg-secondary shadow-sm group">
         <img
-          src={category.image || 'https://placehold.co/800x600/D4B483/FAF6F0?text=Category'}
+          src={
+            categoryImage ||
+            'https://placehold.co/800x600/D4B483/FAF6F0?text=Category'
+          }
           alt={category.name}
           className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
         />

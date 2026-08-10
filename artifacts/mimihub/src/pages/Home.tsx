@@ -7,25 +7,21 @@ import { CategoryCard } from '@/components/product/CategoryCard';
 import { ProductCard } from '@/components/product/ProductCard';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
-
-const personalCareImage = new URL(
-  '../../../../attached_assets/A9C78911-D304-4CEA-971B-853D2AF63583_1786255707029.jpeg',
-  import.meta.url,
-).href;
+import { categoryImages } from '@/data/categoryImages';
 
 const collections = [
   {
     id: 'personal-care',
     title: 'Personal Care',
     description: 'Perfumes, body oils, creams, feminine wash, toothpaste, wellness products and more.',
-    image: personalCareImage,
+    image: categoryImages['personal-care'],
     href: '/category/personal-care',
   },
   {
     id: 'home-essentials',
     title: 'Home Essentials',
     description: 'Curtains, poles, rugs, bedsheets, duvets and more for your home.',
-    image: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1200&q=85',
+    image: categoryImages['home-essentials'],
     href: '/category/home-essentials',
   },
 ];
