@@ -1,3 +1,4 @@
 - [Imported artifact preview registration](imported-artifact-preview.md) — imported artifact metadata may exist without a registered workflow or artifact preview.
 - [Express 5 wildcard routes](express-5-wildcard-routes.md) — bare `*` route patterns fail at startup; use catch-all middleware for SPA fallbacks.
 - [MimiiHub preview dependencies](mimihub-preview-dependencies.md) — the home page is hardcoded and API-independent; other storefront pages still use database-backed data.
+- [Category image fallbacks](category-image-fallbacks.md) — static placeholder URLs should yield to shared frontend category imagery.

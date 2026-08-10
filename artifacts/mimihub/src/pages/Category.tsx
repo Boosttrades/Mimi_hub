@@ -8,6 +8,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { useListCategories, useListProducts } from '@workspace/api-client-react';
 import { PackageSearch } from 'lucide-react';
 import { useMemo } from 'react';
+import { categoryImages } from '@/data/categoryImages';
 
 export function Category() {
   const [matchCategory, paramsCategory] = useRoute('/category/:slug');
@@ -44,7 +45,11 @@ export function Category() {
 
   const title = subcategory ? subcategory.name : category?.name;
   const description = category?.description || `Explore our collection of ${title?.toLowerCase()}`;
-  const image = category?.image || 'https://placehold.co/1200x400/D4B483/FAF6F0?text=Category';
+  const image =
+    category?.image && !category.image.includes('placehold.co')
+      ? category.image
+      : categoryImages[category?.slug || ''] ||
+        'https://placehold.co/1200x400/D4B483/FAF6F0?text=Category';
 
   return (
     <Layout>
@@ -73,13 +78,17 @@ export function Category() {
           </h2>
           
           {/* Subcategory Pills */}
-          {!subcategory && category?.subcategories && category.subcategories.length > 0 && (
+          {category?.subcategories && category.subcategories.length > 0 && (
             <div className="flex overflow-x-auto pb-2 w-full md:w-auto hide-scrollbar gap-2">
               {category.subcategories.map(sub => (
                 <a
                   key={sub.id}
                   href={`/category/${category.slug}/${sub.slug}`}
-                  className="px-4 py-1.5 bg-secondary text-secondary-foreground rounded-full text-xs font-medium whitespace-nowrap hover:bg-primary hover:text-primary-foreground transition-colors"
+                  className={`px-4 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                    subcategory?.slug === sub.slug
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-secondary text-secondary-foreground hover:bg-primary hover:text-primary-foreground'
+                  }`}
                 >
                   {sub.name}
                 </a>

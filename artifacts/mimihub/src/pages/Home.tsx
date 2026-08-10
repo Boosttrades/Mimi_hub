@@ -80,14 +80,8 @@ export function Home() {
   return (
     <Layout>
       <section className="px-4 pb-8 pt-7 md:px-8 md:pb-12 md:pt-10">
-        <div className="mb-5 flex items-end justify-between">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-primary">
-              Curated for you
-            </p>
-            <h1 className="mt-1 font-serif text-3xl text-foreground md:text-4xl">Collections</h1>
-          </div>
-          <div className="flex gap-1.5 pb-1" aria-label="Collection slides">
+        <div className="relative min-h-[430px] md:min-h-[500px]">
+          <div className="absolute right-4 top-4 z-20 flex gap-1.5" aria-label="Collection slides">
             {collections.map((collection, index) => (
               <button
                 key={collection.id}
@@ -100,9 +94,6 @@ export function Home() {
               />
             ))}
           </div>
-        </div>
-
-        <div className="relative min-h-[430px] md:min-h-[500px]">
           {collections.map((collection, index) => (
             <article
               key={collection.id}
