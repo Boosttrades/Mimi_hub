@@ -660,6 +660,40 @@ export const GetOrderStatsResponse = zod.object({
 
 
 /**
+ * @summary Get live admin dashboard and customer summary
+ */
+export const GetAdminSummaryResponse = zod.object({
+  "totalRevenue": zod.number(),
+  "thisMonthRevenue": zod.number(),
+  "totalOrders": zod.number(),
+  "thisMonthOrders": zod.number(),
+  "pendingOrders": zod.number(),
+  "paidOrders": zod.number(),
+  "preparingOrders": zod.number(),
+  "deliveredOrders": zod.number(),
+  "cancelledOrders": zod.number(),
+  "totalProducts": zod.number(),
+  "visibleProducts": zod.number(),
+  "hiddenProducts": zod.number(),
+  "lowStockProducts": zod.number(),
+  "outOfStockProducts": zod.number(),
+  "totalCustomers": zod.number(),
+  "returningCustomers": zod.number(),
+  "customers": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "phone": zod.string(),
+  "location": zod.string(),
+  "orders": zod.number(),
+  "spend": zod.number(),
+  "firstOrderAt": zod.coerce.date(),
+  "lastOrderAt": zod.coerce.date(),
+  "returning": zod.boolean()
+}))
+})
+
+
+/**
  * @summary Get an order by ID
  */
 export const GetOrderParams = zod.object({

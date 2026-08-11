@@ -212,6 +212,38 @@ export interface OrderStats {
   totalRevenue: number;
 }
 
+export interface AdminCustomer {
+  id: string;
+  name: string;
+  phone: string;
+  location: string;
+  orders: number;
+  spend: number;
+  firstOrderAt: string;
+  lastOrderAt: string;
+  returning: boolean;
+}
+
+export interface AdminSummary {
+  totalRevenue: number;
+  thisMonthRevenue: number;
+  totalOrders: number;
+  thisMonthOrders: number;
+  pendingOrders: number;
+  paidOrders: number;
+  preparingOrders: number;
+  deliveredOrders: number;
+  cancelledOrders: number;
+  totalProducts: number;
+  visibleProducts: number;
+  hiddenProducts: number;
+  lowStockProducts: number;
+  outOfStockProducts: number;
+  totalCustomers: number;
+  returningCustomers: number;
+  customers: AdminCustomer[];
+}
+
 export interface TrustItem {
   id: string;
   title: string;

@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { useGetStoreSettings } from '@workspace/api-client-react';
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -102,6 +103,9 @@ function Sidebar({ location }: { location: string }) {
 
 export function AdminLayout({ children, title, eyebrow = 'MimiHub / merchant studio' }: AdminLayoutProps) {
   const [location] = useLocation();
+  const { data: storeSettings } = useGetStoreSettings();
+  const storeName = storeSettings?.storeName || 'Store';
+  const initials = storeName.split(/\s+/).map((word) => word[0]).join('').slice(0, 2).toUpperCase();
   return (
     <div className="admin-shell min-h-[100dvh]">
       <div className="flex min-h-[100dvh]">
@@ -131,10 +135,10 @@ export function AdminLayout({ children, title, eyebrow = 'MimiHub / merchant stu
             </div>
             <div className="flex items-center gap-3">
               <div className="hidden text-right sm:block">
-                <p className="text-xs font-bold text-[hsl(var(--admin-deep))]">Mimi O.</p>
-                <p className="admin-mono text-[9px] uppercase text-[hsl(var(--admin-ink)/.45)]">Store owner</p>
+                 <p className="max-w-[140px] truncate text-xs font-bold text-[hsl(var(--admin-deep))]">{storeName}</p>
+                 <p className="admin-mono text-[9px] uppercase text-[hsl(var(--admin-ink)/.45)]">Store</p>
               </div>
-              <div className="grid h-10 w-10 place-items-center rounded-full border-2 border-[hsl(var(--admin-gold))] bg-[hsl(var(--admin-gold)/.18)] font-serif font-semibold text-[hsl(var(--admin-deep))]" aria-label="Mimi O. profile">MO</div>
+               <div className="grid h-10 w-10 place-items-center rounded-full border-2 border-[hsl(var(--admin-gold))] bg-[hsl(var(--admin-gold)/.18)] font-serif font-semibold text-[hsl(var(--admin-deep))]" aria-label={`${storeName} store`}>{initials}</div>
             </div>
           </header>
           <main className="mx-auto w-full max-w-[1500px] p-4 sm:p-8 lg:p-10">{children}</main>
