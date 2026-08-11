@@ -21,7 +21,8 @@ const fallbackCategories = [
   { id: 2, name: 'Beauty & Wellness', subcategories: [{ id: 21, name: 'Body care' }, { id: 22, name: 'Fragrance' }] },
   { id: 3, name: 'Style & Accessories', subcategories: [{ id: 31, name: 'Jewellery' }, { id: 32, name: 'Clothing' }] },
 ];
-const units = ['ml', 'cl', 'L', 'g', 'kg', 'oz', 'lb', 'XS', 'S', 'M', 'XL', 'XXL', 'XXXL'];
+const measurementUnits = ['ml', 'cl', 'L', 'g', 'kg', 'oz', 'lb', 'mm', 'cm', 'm'];
+const clothingSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
 
 export function AdminProductForm() {
   const [matchEdit, params] = useRoute('/admin/products/:id/edit');
@@ -40,7 +41,7 @@ export function AdminProductForm() {
   const [saved, setSaved] = useState(false);
   const [form, setForm] = useState({
     name: '', description: '', price: '', discountPct: '', categoryId: '',
-    subcategoryId: '', sizeValue: '', sizeUnit: 'ml', dimensions: '',
+    subcategoryId: '', sizeType: 'measurement', sizeValue: '', sizeUnit: 'ml', dimensions: '',
     featured: false, stockQty: '0', visible: true,
   });
 
@@ -49,7 +50,7 @@ export function AdminProductForm() {
     setForm({
       name: product.name ?? '', description: product.description ?? '', price: String(product.price ?? ''),
       discountPct: String(product.discountPct ?? ''), categoryId: String(product.categoryId ?? ''),
-      subcategoryId: String(product.subcategoryId ?? ''), sizeValue: product.specs?.capacity ?? product.specs?.size ?? '',
+      subcategoryId: String(product.subcategoryId ?? ''), sizeType: 'measurement', sizeValue: product.specs?.capacity ?? product.specs?.size ?? '',
       sizeUnit: (product.specs as (typeof product.specs & { unit?: string | null }) | undefined)?.unit ?? 'ml', dimensions: product.specs?.dimensions ?? '', featured: Boolean(product.featured),
       stockQty: String(product.stockQty ?? 0), visible: product.visible !== false,
     });
@@ -104,10 +105,10 @@ export function AdminProductForm() {
 
   return (
     <AdminLayout title={isEditing ? 'Edit product' : 'Add a product'} eyebrow={isEditing ? 'Collection / edit mode' : 'Collection / new piece'}>
-      <form onSubmit={submit} className="admin-rise">
+       <form onSubmit={submit} className="admin-rise">
         <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
           <div><button type="button" onClick={() => setLocation('/admin/products')} data-testid="button-back-products" className="mb-3 inline-flex items-center gap-2 text-xs font-bold text-[hsl(var(--admin-teal))]"><ArrowLeft className="h-4 w-4" /> Back to collection</button><p className="max-w-xl text-sm leading-6 text-[hsl(var(--admin-ink)/.55)]">Add the details that make this piece feel at home in your shop. You can always refine it later.</p></div>
-          <div className="flex gap-3"><Button type="button" variant="outline" onClick={() => setLocation('/admin/products')} data-testid="button-cancel-product" className="h-11 rounded-full border-[hsl(var(--admin-deep)/.18)] px-5">Cancel</Button><Button type="submit" disabled={busy || saved} data-testid="button-save-product" className="h-11 gap-2 rounded-full bg-[hsl(var(--admin-deep))] px-6 text-[hsl(var(--background))] hover:bg-[hsl(var(--admin-teal))]">{saved ? <><Check className="h-4 w-4" /> Saved</> : busy ? <><Loader2 className="h-4 w-4 animate-spin" /> Saving</> : <>{isEditing ? 'Save changes' : 'Add to collection'} <MoveRight className="h-4 w-4" /></>}</Button></div>
+           <div className="flex gap-3"><Button type="button" variant="outline" onClick={() => setLocation('/admin/products')} data-testid="button-cancel-product" className="h-11 rounded-full border-[hsl(var(--admin-deep)/.18)] px-5">Cancel</Button><Button type="submit" disabled={busy || saved} data-testid="button-save-product" className="h-11 gap-2 rounded-full bg-[hsl(var(--admin-deep))] px-6 text-[hsl(var(--background))] hover:bg-[hsl(var(--admin-teal))]">{saved ? <><Check className="h-4 w-4" /> Saved</> : busy ? <><Loader2 className="h-4 w-4 animate-spin" /> Saving</> : <>{isEditing ? 'Save changes' : 'Add Product'} <MoveRight className="h-4 w-4" /></>}</Button></div>
         </div>
         <div className="grid gap-6 xl:grid-cols-[1.25fr_.75fr]">
           <div className="space-y-6">
@@ -118,7 +119,7 @@ export function AdminProductForm() {
             <section className="admin-card rounded-[26px] p-6 sm:p-8"><div className="mb-7"><p className="admin-label">The details</p><h2 className="mt-1 font-serif text-2xl font-semibold text-[hsl(var(--admin-deep))]">Give it shape</h2></div><div className="grid gap-5 sm:grid-cols-2">
               <div><Label className="text-xs font-bold">Category <span className="text-[hsl(var(--admin-coral))]">*</span></Label><Select value={form.categoryId} onValueChange={(v) => { setField('categoryId', v); setField('subcategoryId', ''); }}><SelectTrigger data-testid="select-product-category" className="mt-2 h-12 rounded-xl border-[hsl(var(--admin-deep)/.15)] bg-[hsl(var(--background)/.55)]"><SelectValue placeholder="Choose a collection" /></SelectTrigger><SelectContent>{categories.map((category) => <SelectItem key={category.id} value={String(category.id)}>{category.name}</SelectItem>)}</SelectContent></Select>{errors.categoryId && <p className="mt-1.5 text-xs text-[hsl(var(--admin-coral))]">{errors.categoryId}</p>}</div>
               <div><Label className="text-xs font-bold">Subcategory</Label><Select value={form.subcategoryId} onValueChange={(v) => setField('subcategoryId', v)} disabled={!subcategories.length}><SelectTrigger data-testid="select-product-subcategory" className="mt-2 h-12 rounded-xl border-[hsl(var(--admin-deep)/.15)] bg-[hsl(var(--background)/.55)]"><SelectValue placeholder={subcategories.length ? 'Choose a subcategory' : 'Select a category first'} /></SelectTrigger><SelectContent>{subcategories.map((subcategory: any) => <SelectItem key={subcategory.id} value={String(subcategory.id)}>{subcategory.name}</SelectItem>)}</SelectContent></Select></div>
-              <div><Label htmlFor="product-size" className="text-xs font-bold">Size / capacity</Label><div className="mt-2 flex gap-2"><Input id="product-size" data-testid="input-product-size" value={form.sizeValue} onChange={(e) => setField('sizeValue', e.target.value)} placeholder="e.g. 500" className="h-12 rounded-xl border-[hsl(var(--admin-deep)/.15)] bg-[hsl(var(--background)/.55)]" /><Select value={form.sizeUnit} onValueChange={(v) => setField('sizeUnit', v)}><SelectTrigger data-testid="select-product-size-unit" className="h-12 w-[104px] rounded-xl border-[hsl(var(--admin-deep)/.15)] bg-[hsl(var(--background)/.55)]"><SelectValue /></SelectTrigger><SelectContent>{units.map((unit, index) => <SelectItem key={`${unit}-${index}`} value={unit}>{unit}</SelectItem>)}</SelectContent></Select></div></div>
+               <div className="sm:col-span-2"><div className="flex flex-wrap items-end justify-between gap-3"><div><Label htmlFor="product-size" className="text-xs font-bold">Size / capacity</Label><p className="mt-1 text-[11px] text-[hsl(var(--admin-ink)/.48)]">Choose measurements for products like perfume or rugs, or clothing sizes for apparel.</p></div><Select value={form.sizeType} onValueChange={(value) => setForm((current) => ({ ...current, sizeType: value, sizeUnit: value === 'clothing' ? 'S' : 'ml' }))}><SelectTrigger data-testid="select-product-size-type" className="h-10 w-[150px] rounded-xl border-[hsl(var(--admin-deep)/.15)] bg-[hsl(var(--background)/.55)]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="measurement">Measurement</SelectItem><SelectItem value="clothing">Clothing size</SelectItem></SelectContent></Select></div><div className="mt-2 flex gap-2"><Input id="product-size" data-testid="input-product-size" value={form.sizeValue} onChange={(e) => setField('sizeValue', e.target.value)} placeholder={form.sizeType === 'clothing' ? 'e.g. XL' : 'e.g. 500'} className="h-12 rounded-xl border-[hsl(var(--admin-deep)/.15)] bg-[hsl(var(--background)/.55)]" /><Select value={form.sizeUnit} onValueChange={(v) => setField('sizeUnit', v)}><SelectTrigger data-testid="select-product-size-unit" className="h-12 w-[120px] rounded-xl border-[hsl(var(--admin-deep)/.15)] bg-[hsl(var(--background)/.55)]"><SelectValue /></SelectTrigger><SelectContent>{(form.sizeType === 'clothing' ? clothingSizes : measurementUnits).map((unit) => <SelectItem key={unit} value={unit}>{unit}</SelectItem>)}</SelectContent></Select></div></div>
               <div><Label htmlFor="product-dimensions" className="text-xs font-bold">Dimensions</Label><Input id="product-dimensions" data-testid="input-product-dimensions" value={form.dimensions} onChange={(e) => setField('dimensions', e.target.value)} placeholder="e.g. 18 × 10 × 10 cm" className="mt-2 h-12 rounded-xl border-[hsl(var(--admin-deep)/.15)] bg-[hsl(var(--background)/.55)]" /></div>
             </div></section>
             <section className="admin-card rounded-[26px] p-6 sm:p-8"><div className="mb-7"><p className="admin-label">The numbers</p><h2 className="mt-1 font-serif text-2xl font-semibold text-[hsl(var(--admin-deep))]">Price & availability</h2></div><div className="grid gap-5 sm:grid-cols-3">

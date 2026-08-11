@@ -1,8 +1,8 @@
 import { ReactNode } from 'react';
 import { Link, useLocation } from 'wouter';
 import {
-  BarChart3, ChevronRight, Crown, ExternalLink, LayoutDashboard, Menu,
-  Package, Settings, ShoppingBag, Tags, Users
+  ChevronRight, Crown, ExternalLink, LayoutDashboard, Menu,
+  Package, Settings, ShoppingBag, Users
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
@@ -14,16 +14,10 @@ interface AdminLayoutProps {
 }
 
 const navItems = [
-  { href: '/admin', icon: LayoutDashboard, label: 'Overview', note: 'Pulse of the shop' },
+  { href: '/admin', icon: LayoutDashboard, label: 'Dashboard', note: 'Pulse of the shop' },
   { href: '/admin/orders', icon: ShoppingBag, label: 'Orders', note: 'Fulfilment queue' },
   { href: '/admin/products', icon: Package, label: 'Products', note: 'Your collection' },
   { href: '/admin/customers', icon: Users, label: 'Customers', note: 'People who return' },
-];
-
-const studioItems = [
-  { href: '/admin/categories', icon: Tags, label: 'Categories' },
-  { href: '/admin/homepage', icon: BarChart3, label: 'Storefront' },
-  { href: '/admin/settings', icon: Settings, label: 'Settings' },
 ];
 
 function NavLinks({ location, onNavigate }: { location: string; onNavigate?: () => void }) {
@@ -62,24 +56,17 @@ function NavLinks({ location, onNavigate }: { location: string; onNavigate?: () 
         </nav>
       </div>
       <div>
-        <p className="admin-label mb-3 px-3">Studio</p>
-        <nav className="space-y-1" aria-label="Studio navigation">
-          {studioItems.map((item) => {
-            const active = location.startsWith(item.href);
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={onNavigate}
-                data-testid={`link-admin-${item.label.toLowerCase()}`}
-                className={cn('flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-bold transition-colors', active ? 'bg-[hsl(var(--admin-gold)/.18)] text-[hsl(var(--admin-deep))]' : 'text-[hsl(var(--admin-ink)/.58)] hover:bg-[hsl(var(--admin-deep)/.07)]')}
-              >
-                <Icon className="h-[17px] w-[17px]" strokeWidth={1.8} />
-                {item.label}
-              </Link>
-            );
-          })}
+        <p className="admin-label mb-3 px-3">Manage</p>
+        <nav className="space-y-1" aria-label="Management navigation">
+          <Link
+            href="/admin/settings"
+            onClick={onNavigate}
+            data-testid="link-admin-settings"
+            className={cn('flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-bold transition-colors', location.startsWith('/admin/settings') ? 'bg-[hsl(var(--admin-gold)/.18)] text-[hsl(var(--admin-deep))]' : 'text-[hsl(var(--admin-ink)/.58)] hover:bg-[hsl(var(--admin-deep)/.07)]')}
+          >
+            <Settings className="h-[17px] w-[17px]" strokeWidth={1.8} />
+            Settings
+          </Link>
         </nav>
       </div>
     </div>
