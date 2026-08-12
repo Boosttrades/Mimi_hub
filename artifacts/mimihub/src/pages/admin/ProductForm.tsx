@@ -16,7 +16,7 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { uploadProductImage } from '@/lib/supabase';
 
-type ImageItem = { id: string; src: string; name: string; local?: boolean };
+type ImageItem = { id: string; src: string; name: string; local?: boolean; file?: File };
 const fallbackCategories = [
   { id: 1, name: 'Home & Living', subcategories: [{ id: 11, name: 'Tableware' }, { id: 12, name: 'Decor' }] },
   { id: 2, name: 'Beauty & Wellness', subcategories: [{ id: 21, name: 'Body care' }, { id: 22, name: 'Fragrance' }] },
@@ -40,6 +40,7 @@ export function AdminProductForm() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [images, setImages] = useState<ImageItem[]>([]);
   const [saved, setSaved] = useState(false);
+  const [uploadingImages, setUploadingImages] = useState(false);
   const [form, setForm] = useState({
     name: '', description: '', price: '', discountPct: '', categoryId: '',
     subcategoryId: '', sizeType: 'measurement', sizeValue: '', sizeUnit: 'ml', dimensions: '',
@@ -65,7 +66,15 @@ export function AdminProductForm() {
 
   const addFiles = (files: FileList | null) => {
     if (!files) return;
-    const next = Array.from(files).filter((file) => file.type.startsWith('image/')).map((file) => ({ id: `${file.name}-${file.lastModified}`, src: URL.createObjectURL(file), name: file.name, local: true }));
+    const next = Array.from(files)
+      .filter((file) => file.type.startsWith('image/'))
+      .map((file) => ({
+        id: `${file.name}-${file.lastModified}`,
+        src: URL.createObjectURL(file),
+        name: file.name,
+        local: true,
+        file,
+      }));
     setImages((current) => [...current, ...next]);
   };
   const handleDrop = (event: DragEvent<HTMLButtonElement>) => { event.preventDefault(); addFiles(event.dataTransfer.files); };
@@ -80,19 +89,23 @@ export function AdminProductForm() {
     if (!images.length) nextErrors.images = 'Add at least one product image.';
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
-    const uploadLocalImage = async (image: ImageItem) => {
-      if (!image.local) return image.src;
-      const blob = await fetch(image.src).then((res) => res.blob());
-      return uploadProductImage(blob, image.name);
-    };
-
+    setUploadingImages(true);
     let imageUrls: string[];
     try {
-      imageUrls = await Promise.all(images.map(uploadLocalImage));
-    } catch {
+      imageUrls = await Promise.all(
+        images.map((image) =>
+          image.local && image.file
+            ? uploadProductImage(image.file, image.name)
+            : image.src,
+        ),
+      );
+    } catch (error) {
+      console.error(error);
+      setUploadingImages(false);
       toast.error('Could not upload product images. Try again.');
       return;
     }
+    setUploadingImages(false);
     const payload: any = {
       name: form.name.trim(), slug: form.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
       description: form.description, price: Number(form.price), discountPct: Number(form.discountPct) || undefined,
@@ -113,15 +126,15 @@ export function AdminProductForm() {
     else createMutation.mutate({ data: payload }, { onSuccess, onError });
   };
 
-  const busy = createMutation.isPending || updateMutation.isPending;
+  const busy = createMutation.isPending || updateMutation.isPending || uploadingImages;
   if (isEditing && isLoading) return <AdminLayout title="Edit product"><div className="grid gap-5 lg:grid-cols-2">{[1, 2, 3, 4].map((i) => <div key={i} className="h-44 animate-pulse rounded-[26px] bg-[hsl(var(--admin-deep)/.08)]" />)}</div></AdminLayout>;
 
   return (
     <AdminLayout title={isEditing ? 'Edit product' : 'Add a product'} eyebrow={isEditing ? 'Collection / edit mode' : 'Collection / new piece'}>
        <form onSubmit={submit} className="admin-rise">
         <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
-          <div><button type="button" onClick={() => setLocation('/admin/products')} data-testid="button-back-products" className="mb-3 inline-flex items-center gap-2 text-xs font-bold text-[hsl(var(--admin-teal))]"><ArrowLeft className="h-4 w-4" /> Back to collection</button><p className="max-w-xl text-sm leading-6 text-[hsl(var(--admin-ink)/.55)]">Add the details that make this piece feel at home in your shop. You can always refine it later.</p></div>
-           <div className="flex gap-3"><Button type="button" variant="outline" onClick={() => setLocation('/admin/products')} data-testid="button-cancel-product" className="h-11 rounded-full border-[hsl(var(--admin-deep)/.18)] px-5">Cancel</Button><Button type="submit" disabled={busy || saved} data-testid="button-save-product" className="h-11 gap-2 rounded-full bg-[hsl(var(--admin-deep))] px-6 text-[hsl(var(--background))] hover:bg-[hsl(var(--admin-teal))]">{saved ? <><Check className="h-4 w-4" /> Saved</> : busy ? <><Loader2 className="h-4 w-4 animate-spin" /> Saving</> : <>{isEditing ? 'Save changes' : 'Add Product'} <MoveRight className="h-4 w-4" /></>}</Button></div>
+           <div><button type="button" onClick={() => setLocation('/admin/products')} data-testid="button-back-products" className="mb-3 inline-flex items-center gap-2 text-xs font-bold text-[hsl(var(--admin-teal))]"><ArrowLeft className="h-4 w-4" /> Back to collection</button><p className="max-w-xl text-sm leading-6 text-[hsl(var(--admin-ink)/.55)]">Add the details that make this piece feel at home in your shop. You can always refine it later.</p></div>
+            <div className="flex gap-3"><Button type="button" variant="outline" onClick={() => setLocation('/admin/products')} data-testid="button-cancel-product" className="h-11 rounded-full border-[hsl(var(--admin-deep)/.18)] px-5">Cancel</Button><Button type="submit" disabled={busy || saved} data-testid="button-save-product" className="h-11 gap-2 rounded-full bg-[hsl(var(--admin-deep))] px-6 text-[hsl(var(--background))] hover:bg-[hsl(var(--admin-teal))]">{saved ? <><Check className="h-4 w-4" /> Saved</> : busy ? <><Loader2 className="h-4 w-4 animate-spin" /> {uploadingImages ? 'Uploading images' : 'Saving'}</> : <>{isEditing ? 'Save changes' : 'Add Product'} <MoveRight className="h-4 w-4" /></>}</Button></div>
         </div>
         <div className="grid gap-6 xl:grid-cols-[1.25fr_.75fr]">
           <div className="space-y-6">

@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq, and, ilike, or } from "drizzle-orm";
 import { db, productsTable, categoriesTable, subcategoriesTable } from "@workspace/db";
+import { ensureCategoriesSeeded } from "./categories";
 
 const router: IRouter = Router();
 
@@ -89,6 +90,8 @@ router.post("/products", async (req, res): Promise<void> => {
     res.status(400).json({ error: "name, slug, price, and images are required" });
     return;
   }
+
+  await ensureCategoriesSeeded();
 
   const [product] = await db.insert(productsTable).values({
     name, slug, description, price: Number(price),

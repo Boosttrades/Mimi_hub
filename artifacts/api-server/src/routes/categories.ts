@@ -12,6 +12,46 @@ function parseId(raw: string | string[]): number {
   return parseInt(s, 10);
 }
 
+export async function ensureCategoriesSeeded() {
+  const existing = await db.select().from(categoriesTable).limit(1);
+  if (existing.length) return;
+
+  await db.transaction(async (tx) => {
+    for (const category of CATEGORIES) {
+      const [insertedCategory] = await tx
+        .insert(categoriesTable)
+        .values({
+          name: category.name,
+          slug: category.slug,
+          description: category.description,
+          image: category.image,
+          createdAt: category.createdAt,
+        })
+        .onConflictDoNothing({ target: categoriesTable.slug })
+        .returning();
+
+      const categoryRow =
+        insertedCategory ??
+        (await tx
+          .select()
+          .from(categoriesTable)
+          .where(eq(categoriesTable.slug, category.slug))
+          .limit(1))[0];
+
+      if (!categoryRow) continue;
+
+      for (const subcategory of category.subcategories) {
+        await tx.insert(subcategoriesTable).values({
+          categoryId: categoryRow.id,
+          name: subcategory.name,
+          slug: subcategory.slug,
+          createdAt: subcategory.createdAt,
+        });
+      }
+    }
+  });
+}
+
 async function getCategoryWithSubsFromDb(id: number) {
   const [cat] = await db.select().from(categoriesTable).where(eq(categoriesTable.id, id));
   if (!cat) return null;
@@ -24,17 +64,9 @@ function getCategoryWithSubsFromStatic(id: number) {
   return cat ?? null;
 }
 
-// Helper to check if static mode is enabled
-function isStaticMode() {
-  return Array.isArray(CATEGORIES) && CATEGORIES.length > 0;
-}
-
 // GET /categories
 router.get("/categories", async (_req, res): Promise<void> => {
-  if (isStaticMode()) {
-    res.json(CATEGORIES);
-    return;
-  }
+  await ensureCategoriesSeeded();
 
   const cats = await db.select().from(categoriesTable).orderBy(categoriesTable.createdAt);
   const result = await Promise.all(cats.map(async (cat) => {
@@ -46,11 +78,6 @@ router.get("/categories", async (_req, res): Promise<void> => {
 
 // POST /categories
 router.post("/categories", async (req, res): Promise<void> => {
-  if (isStaticMode()) {
-    res.status(405).json({ error: "Categories are hardcoded in server; mutations are disabled" });
-    return;
-  }
-
   const { name, slug, description, image } = req.body;
   if (!name || !slug) {
     res.status(400).json({ error: "name and slug are required" });
@@ -63,13 +90,7 @@ router.post("/categories", async (req, res): Promise<void> => {
 // GET /categories/:id
 router.get("/categories/:id", async (req, res): Promise<void> => {
   const id = parseId(req.params.id);
-
-  if (isStaticMode()) {
-    const cat = getCategoryWithSubsFromStatic(id);
-    if (!cat) { res.status(404).json({ error: "Category not found" }); return; }
-    res.json(cat);
-    return;
-  }
+  await ensureCategoriesSeeded();
 
   const cat = await getCategoryWithSubsFromDb(id);
   if (!cat) { res.status(404).json({ error: "Category not found" }); return; }
@@ -78,11 +99,6 @@ router.get("/categories/:id", async (req, res): Promise<void> => {
 
 // PATCH /categories/:id
 router.patch("/categories/:id", async (req, res): Promise<void> => {
-  if (isStaticMode()) {
-    res.status(405).json({ error: "Categories are hardcoded in server; mutations are disabled" });
-    return;
-  }
-
   const id = parseId(req.params.id);
   const { name, slug, description, image } = req.body;
   const updates: Record<string, unknown> = {};
@@ -98,11 +114,6 @@ router.patch("/categories/:id", async (req, res): Promise<void> => {
 
 // DELETE /categories/:id
 router.delete("/categories/:id", async (req, res): Promise<void> => {
-  if (isStaticMode()) {
-    res.status(405).json({ error: "Categories are hardcoded in server; mutations are disabled" });
-    return;
-  }
-
   const id = parseId(req.params.id);
   const [cat] = await db.delete(categoriesTable).where(eq(categoriesTable.id, id)).returning();
   if (!cat) { res.status(404).json({ error: "Category not found" }); return; }
@@ -111,11 +122,6 @@ router.delete("/categories/:id", async (req, res): Promise<void> => {
 
 // POST /categories/:categoryId/subcategories
 router.post("/categories/:categoryId/subcategories", async (req, res): Promise<void> => {
-  if (isStaticMode()) {
-    res.status(405).json({ error: "Categories are hardcoded in server; mutations are disabled" });
-    return;
-  }
-
   const categoryId = parseId(req.params.categoryId);
   const { name, slug } = req.body;
   if (!name || !slug) {
@@ -128,11 +134,6 @@ router.post("/categories/:categoryId/subcategories", async (req, res): Promise<v
 
 // PATCH /subcategories/:id
 router.patch("/subcategories/:id", async (req, res): Promise<void> => {
-  if (isStaticMode()) {
-    res.status(405).json({ error: "Categories are hardcoded in server; mutations are disabled" });
-    return;
-  }
-
   const id = parseId(req.params.id);
   const { name, slug } = req.body;
   const updates: Record<string, unknown> = {};
@@ -145,11 +146,6 @@ router.patch("/subcategories/:id", async (req, res): Promise<void> => {
 
 // DELETE /subcategories/:id
 router.delete("/subcategories/:id", async (req, res): Promise<void> => {
-  if (isStaticMode()) {
-    res.status(405).json({ error: "Categories are hardcoded in server; mutations are disabled" });
-    return;
-  }
-
   const id = parseId(req.params.id);
   const [sub] = await db.delete(subcategoriesTable).where(eq(subcategoriesTable.id, id)).returning();
   if (!sub) { res.status(404).json({ error: "Subcategory not found" }); return; }
@@ -159,11 +155,7 @@ router.delete("/subcategories/:id", async (req, res): Promise<void> => {
 // DEBUG endpoint: GET /_debug/categories
 // Returns whether static mode is active and what the server is serving
 router.get("/_debug/categories", async (_req, res): Promise<void> => {
-  if (isStaticMode()) {
-    res.json({ staticMode: true, staticCount: CATEGORIES.length, categories: CATEGORIES });
-    return;
-  }
-
+  await ensureCategoriesSeeded();
   const cats = await db.select().from(categoriesTable);
   res.json({ staticMode: false, dbCount: cats.length });
 });
