@@ -10,7 +10,7 @@ A premium Nigerian lifestyle e-commerce website selling personal care products a
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - Required secrets: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `SUPABASE_DATABASE_URL` — Supabase project URL, server-only service-role key, and Postgres connection string
-- Optional secret: `SUPABASE_ANON_KEY` — available for future browser-side Supabase features; it is not exposed to the server-rendered app
+- `SUPABASE_ANON_KEY` is optional; the browser uses the API server, so Supabase credentials are not exposed in the frontend bundle
 - Optional env: `VITE_FLUTTERWAVE_PUBLIC_KEY` — Flutterwave public key for payments
 
 ## Stack
