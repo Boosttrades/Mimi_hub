@@ -8,7 +8,7 @@ interface CategoryCardCategory {
   slug: string;
   image?: string | null;
   description?: string | null;
-  subcategories?: Array<{ id: number; name: string }>;
+  subcategories?: Array<{ id: number; name: string; slug?: string }>;
 }
 
 interface CategoryCardProps {

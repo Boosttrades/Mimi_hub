@@ -7,55 +7,16 @@ import { CategoryCard } from '@/components/product/CategoryCard';
 import { ProductCard } from '@/components/product/ProductCard';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
-import { categoryImages } from '@/data/categoryImages';
+import { staticCategories } from '@/data/categories';
 
-const collections = [
-  {
-    id: 'personal-care',
-    title: 'Personal Care',
-    description: 'Perfumes, body oils, creams, feminine wash, toothpaste, wellness products and more.',
-    image: categoryImages['personal-care'],
-    href: '/category/personal-care',
-  },
-  {
-    id: 'home-essentials',
-    title: 'Home Essentials',
-    description: 'Curtains, poles, rugs, bedsheets, duvets and more for your home.',
-    image: categoryImages['home-essentials'],
-    href: '/category/home-essentials',
-  },
-];
-
-const categories = [
-  {
-    id: 1,
-    name: 'Personal Care',
-    slug: 'personal-care',
-    description: 'Premium personal care and wellness products',
-    image: collections[0].image,
-    subcategories: [
-      { id: 1, name: 'Perfumes' },
-      { id: 2, name: 'Feminine Wash' },
-      { id: 3, name: 'Creams' },
-      { id: 4, name: 'Wellness Products' },
-      { id: 5, name: 'Toothpaste' },
-      { id: 6, name: 'Body Oils' },
-    ],
-  },
-  {
-    id: 2,
-    name: 'Home Essentials',
-    slug: 'home-essentials',
-    description: 'Premium essentials for a beautiful and comfortable home',
-    image: collections[1].image,
-    subcategories: [
-      { id: 7, name: 'Curtains' },
-      { id: 8, name: 'Bedsheets and Duvets' },
-      { id: 9, name: 'Rugs' },
-      { id: 10, name: 'Poles and Hanger' },
-    ],
-  },
-];
+const categories = staticCategories;
+const collections = staticCategories.map((category) => ({
+  id: category.slug,
+  title: category.name,
+  description: category.description,
+  image: category.image,
+  href: `/category/${category.slug}`,
+}));
 
 const trustItems = [
   { title: 'Premium Quality', subtitle: 'Carefully selected', icon: Award },

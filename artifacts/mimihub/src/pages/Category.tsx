@@ -2,13 +2,13 @@ import { useRoute } from 'wouter';
 import { Layout } from '@/components/layout/Layout';
 import { BackButton } from '@/components/layout/BackButton';
 import { ProductCard } from '@/components/product/ProductCard';
-import { LoadingPage, LoadingSpinner } from '@/components/ui/loading-spinner';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { ErrorState } from '@/components/ui/error-state';
 import { EmptyState } from '@/components/ui/empty-state';
-import { useListCategories, useListProducts } from '@workspace/api-client-react';
+import { useListProducts } from '@workspace/api-client-react';
 import { PackageSearch } from 'lucide-react';
 import { useMemo } from 'react';
-import { categoryImages } from '@/data/categoryImages';
+import { staticCategories } from '@/data/categories';
 
 export function Category() {
   const [matchCategory, paramsCategory] = useRoute('/category/:slug');
@@ -17,11 +17,9 @@ export function Category() {
   const slug = paramsSub?.slug || paramsCategory?.slug;
   const subSlug = paramsSub?.subSlug;
 
-  const { data: categories, isLoading: loadingCats, isError: errorCats } = useListCategories();
-
   const category = useMemo(() => {
-    return categories?.find(c => c.slug === slug);
-  }, [categories, slug]);
+    return staticCategories.find((item) => item.slug === slug);
+  }, [slug]);
 
   const subcategory = useMemo(() => {
     if (!category || !subSlug) return null;
@@ -34,8 +32,7 @@ export function Category() {
     { query: { enabled: !!category?.id } as any }
   );
 
-  if (loadingCats) return <LoadingPage />;
-  if (errorCats || (!loadingCats && !category)) {
+  if (!category) {
     return (
       <Layout>
         <ErrorState title="Category Not Found" message="The category you're looking for doesn't exist." />
@@ -45,11 +42,7 @@ export function Category() {
 
   const title = subcategory ? subcategory.name : category?.name;
   const description = category?.description || `Explore our collection of ${title?.toLowerCase()}`;
-  const image =
-    category?.image && !category.image.includes('placehold.co')
-      ? category.image
-      : categoryImages[category?.slug || ''] ||
-        'https://placehold.co/1200x400/D4B483/FAF6F0?text=Category';
+  const image = category.image;
 
   return (
     <Layout>

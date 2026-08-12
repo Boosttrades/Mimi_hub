@@ -1,16 +1,9 @@
 import { Layout } from '@/components/layout/Layout';
 import { BackButton } from '@/components/layout/BackButton';
 import { CategoryCard } from '@/components/product/CategoryCard';
-import { LoadingPage } from '@/components/ui/loading-spinner';
-import { ErrorState } from '@/components/ui/error-state';
-import { useListCategories } from '@workspace/api-client-react';
+import { staticCategories } from '@/data/categories';
 
 export function Categories() {
-  const { data: categories, isLoading, isError } = useListCategories();
-
-  if (isLoading) return <LoadingPage />;
-  if (isError) return <Layout><ErrorState onRetry={() => window.location.reload()} /></Layout>;
-
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
@@ -23,7 +16,7 @@ export function Categories() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-          {categories?.map((category) => (
+          {staticCategories.map((category) => (
             <CategoryCard key={category.id} category={category} />
           ))}
         </div>
