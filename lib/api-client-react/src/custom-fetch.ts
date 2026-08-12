@@ -8,6 +8,8 @@ export type BodyType<T> = T;
 
 export type AuthTokenGetter = () => Promise<string | null> | string | null;
 
+import { supabaseFetch } from "./supabase-fetch";
+
 const NO_BODY_STATUS = new Set([204, 205, 304]);
 const DEFAULT_JSON_ACCEPT = "application/json, application/problem+json";
 
@@ -326,6 +328,11 @@ export async function customFetch<T = unknown>(
   input: RequestInfo | URL,
   options: CustomFetchOptions = {},
 ): Promise<T> {
+  const requestUrl = resolveUrl(input);
+  if (requestUrl.startsWith("/api/") || requestUrl === "/api") {
+    return supabaseFetch<T>(requestUrl, options);
+  }
+
   input = applyBaseUrl(input);
   const { responseType = "auto", headers: headersInit, ...init } = options;
 

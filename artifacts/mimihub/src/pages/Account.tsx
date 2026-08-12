@@ -14,8 +14,7 @@ import {
   User, ShoppingBag, Sun, Moon, Monitor, ChevronRight,
 } from 'lucide-react';
 import { formatNaira } from '@/lib/utils';
-
-const BASE = import.meta.env.BASE_URL.replace(/\/$/, '');
+import { createOrGetUser, getCurrentUser, listUserOrders, type MimiUser } from '@/lib/supabase';
 
 // ─── theme ────────────────────────────────────────────────────────────────────
 
@@ -57,12 +56,6 @@ function useTheme() {
 }
 
 // ─── types ────────────────────────────────────────────────────────────────────
-
-interface MimiUser {
-  id: number;
-  username: string;
-  createdAt: string;
-}
 
 interface OrderItem {
   name: string;
@@ -111,20 +104,7 @@ function UsernameModal({ onSuccess, onClose }: { onSuccess: (u: MimiUser) => voi
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`${BASE}/api/users`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: trimmed }),
-        credentials: 'include',
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        setError(data.error ?? 'Something went wrong.');
-        return;
-      }
-      const meRes = await fetch(`${BASE}/api/me`, { credentials: 'include' });
-      if (!meRes.ok) { setError('Session could not be confirmed.'); return; }
-      onSuccess(await meRes.json());
+      onSuccess(await createOrGetUser(trimmed));
     } catch {
       setError('Network error. Check your connection.');
     } finally {
@@ -170,9 +150,8 @@ function ProfileView() {
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
-    fetch(`${BASE}/api/me`, { credentials: 'include' })
-      .then(r => r.ok ? r.json() : null)
-      .then((u: MimiUser | null) => { setUser(u); setSessionChecked(true); })
+    getCurrentUser()
+      .then((u) => { setUser(u); setSessionChecked(true); })
       .catch(() => setSessionChecked(true));
   }, []);
 
@@ -298,9 +277,8 @@ function OrdersView() {
   const [orderRef, setOrderRef] = useState('');
 
   useEffect(() => {
-    fetch(`${BASE}/api/me`, { credentials: 'include' })
-      .then(r => r.ok ? r.json() : null)
-      .then((u: MimiUser | null) => { setUser(u); setSessionChecked(true); })
+    getCurrentUser()
+      .then((u) => { setUser(u); setSessionChecked(true); })
       .catch(() => setSessionChecked(true));
   }, []);
 
@@ -308,9 +286,7 @@ function OrdersView() {
     setOrdersLoading(true);
     setOrdersError('');
     try {
-      const res = await fetch(`${BASE}/api/users/${u.id}/orders`, { credentials: 'include' });
-      if (!res.ok) throw new Error();
-      setOrders(await res.json());
+      setOrders(await listUserOrders(u.id));
     } catch {
       setOrdersError('Could not load orders. Please try again.');
     } finally {

@@ -29,6 +29,12 @@ if (!basePath) {
 
 export default defineConfig({
   base: basePath,
+  define: {
+    'globalThis.__MIMIHUB_SUPABASE__': JSON.stringify({
+      url: process.env.SUPABASE_URL ?? '',
+      anonKey: process.env.SUPABASE_ANON_KEY ?? '',
+    }),
+  },
   plugins: [
     react(),
     tailwindcss(),

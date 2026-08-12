@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
+import { uploadProductImage } from '@/lib/supabase';
 
 type ImageItem = { id: string; src: string; name: string; local?: boolean };
 const fallbackCategories = [
@@ -81,18 +82,8 @@ export function AdminProductForm() {
     if (Object.keys(nextErrors).length) return;
     const uploadLocalImage = async (image: ImageItem) => {
       if (!image.local) return image.src;
-      const response = await fetch(`${import.meta.env.BASE_URL.replace(/\/$/, '')}/api/storage/upload`, {
-        method: 'POST',
-        body: await (async () => {
-          const blob = await fetch(image.src).then((res) => res.blob());
-          const formData = new FormData();
-          formData.append('file', blob, image.name);
-          return formData;
-        })(),
-      });
-      if (!response.ok) throw new Error('Image upload failed');
-      const result = await response.json() as { url: string };
-      return result.url;
+      const blob = await fetch(image.src).then((res) => res.blob());
+      return uploadProductImage(blob, image.name);
     };
 
     let imageUrls: string[];
