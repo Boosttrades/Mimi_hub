@@ -9,7 +9,8 @@ A premium Nigerian lifestyle e-commerce website selling personal care products a
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string (pre-configured by Replit)
+- Required secrets: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `SUPABASE_DATABASE_URL` — Supabase project URL, server-only service-role key, and Postgres connection string
+- Optional secret: `SUPABASE_ANON_KEY` — available for future browser-side Supabase features; it is not exposed to the server-rendered app
 - Optional env: `VITE_FLUTTERWAVE_PUBLIC_KEY` — Flutterwave public key for payments
 
 ## Stack
@@ -17,7 +18,7 @@ A premium Nigerian lifestyle e-commerce website selling personal care products a
 - pnpm workspaces, Node.js 24, TypeScript 5.9
 - Frontend: React + Vite, wouter routing, TanStack Query, shadcn/ui components
 - API: Express 5 (artifacts/api-server)
-- DB: PostgreSQL + Drizzle ORM
+- DB: Supabase PostgreSQL + Drizzle ORM
 - Validation: Zod v3, drizzle-zod
 - API codegen: Orval (from OpenAPI spec in lib/api-spec/openapi.yaml)
 
@@ -62,9 +63,10 @@ Admins can manage products, categories, orders, homepage content, payment settin
 
 - After any OpenAPI spec change, run codegen AND then patch: `sed -i 's/zod\.int()/zod.number()/g' lib/api-zod/src/generated/api.ts && pnpm run typecheck:libs`
 - The `cn` utility must be in `src/lib/utils.ts` and exported — the design subagent historically overwrites this file without the proper export
-- Admin route is at `/admin` — no authentication currently (add Clerk auth as a future enhancement)
+- Admin route is at `/admin` — no authentication currently (add admin authentication as a future enhancement)
 
 ## Pointers
 
 - See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
+- Product images upload to the public `product-images` Supabase Storage bucket through `POST /api/storage/upload`
 - Flutterwave integration is scaffolded but needs VITE_FLUTTERWAVE_PUBLIC_KEY env var and backend webhook handling

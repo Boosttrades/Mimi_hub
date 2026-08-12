@@ -70,7 +70,7 @@ export function AdminProductForm() {
   const handleDrop = (event: DragEvent<HTMLButtonElement>) => { event.preventDefault(); addFiles(event.dataTransfer.files); };
   const removeImage = (id: string) => setImages((current) => current.filter((image) => image.id !== id));
 
-  const submit = (event: FormEvent) => {
+  const submit = async (event: FormEvent) => {
     event.preventDefault();
     const nextErrors: Record<string, string> = {};
     if (!form.name.trim()) nextErrors.name = 'Give this piece a name.';
@@ -79,7 +79,29 @@ export function AdminProductForm() {
     if (!images.length) nextErrors.images = 'Add at least one product image.';
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
-    const imageUrls = images.map((image) => image.src);
+    const uploadLocalImage = async (image: ImageItem) => {
+      if (!image.local) return image.src;
+      const response = await fetch(`${import.meta.env.BASE_URL.replace(/\/$/, '')}/api/storage/upload`, {
+        method: 'POST',
+        body: await (async () => {
+          const blob = await fetch(image.src).then((res) => res.blob());
+          const formData = new FormData();
+          formData.append('file', blob, image.name);
+          return formData;
+        })(),
+      });
+      if (!response.ok) throw new Error('Image upload failed');
+      const result = await response.json() as { url: string };
+      return result.url;
+    };
+
+    let imageUrls: string[];
+    try {
+      imageUrls = await Promise.all(images.map(uploadLocalImage));
+    } catch {
+      toast.error('Could not upload product images. Try again.');
+      return;
+    }
     const payload: any = {
       name: form.name.trim(), slug: form.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
       description: form.description, price: Number(form.price), discountPct: Number(form.discountPct) || undefined,
