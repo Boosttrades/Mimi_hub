@@ -2,3 +2,4 @@
 - [Express 5 wildcard routes](express-5-wildcard-routes.md) — bare `*` route patterns fail at startup; use catch-all middleware for SPA fallbacks.
 - [MimiiHub preview dependencies](mimihub-preview-dependencies.md) — the home page is hardcoded and API-independent; other storefront pages still use database-backed data.
 - [Category image fallbacks](category-image-fallbacks.md) — static placeholder URLs should yield to shared frontend category imagery.
+- [MimiiHub Supabase-only backend](mimihub-supabase-only.md) — keep all backend data, uploads, and application APIs on Supabase; avoid Replit SDKs and services.
