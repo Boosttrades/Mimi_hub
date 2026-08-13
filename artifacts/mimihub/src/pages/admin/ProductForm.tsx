@@ -15,9 +15,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { uploadProductImage } from '@/lib/supabase';
-import { staticCategories } from '@/data/categories';
 
 type ImageItem = { id: string; src: string; name: string; local?: boolean; file?: File };
+const fallbackCategories = [
+  { id: 1, name: 'Home & Living', subcategories: [{ id: 11, name: 'Tableware' }, { id: 12, name: 'Decor' }] },
+  { id: 2, name: 'Beauty & Wellness', subcategories: [{ id: 21, name: 'Body care' }, { id: 22, name: 'Fragrance' }] },
+  { id: 3, name: 'Style & Accessories', subcategories: [{ id: 31, name: 'Jewellery' }, { id: 32, name: 'Clothing' }] },
+];
 const measurementUnits = ['ml', 'cl', 'L', 'g', 'kg', 'oz', 'lb', 'mm', 'cm', 'm'];
 const clothingSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
 
@@ -32,30 +36,7 @@ export function AdminProductForm() {
   const createMutation = useCreateProduct();
   const updateMutation = useUpdateProduct();
   const fileRef = useRef<HTMLInputElement>(null);
-  const categories: any[] = remoteCategories?.length
-    ? staticCategories
-        .map((canonicalCategory) => {
-          const remoteCategory = remoteCategories.find((category) => category.slug === canonicalCategory.slug);
-          if (!remoteCategory) return null;
-
-          const remoteSubcategories = remoteCategory.subcategories ?? [];
-          return {
-            ...remoteCategory,
-            name: canonicalCategory.name,
-            subcategories: canonicalCategory.subcategories
-              .map((canonicalSubcategory) => {
-                const remoteSubcategory = remoteSubcategories.find(
-                  (subcategory) => subcategory.slug === canonicalSubcategory.slug,
-                );
-                return remoteSubcategory
-                  ? { ...remoteSubcategory, name: canonicalSubcategory.name }
-                  : null;
-              })
-              .filter(Boolean),
-          };
-        })
-        .filter(Boolean)
-    : staticCategories;
+  const categories: any[] = remoteCategories?.length ? remoteCategories : fallbackCategories;
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [images, setImages] = useState<ImageItem[]>([]);
   const [saved, setSaved] = useState(false);
