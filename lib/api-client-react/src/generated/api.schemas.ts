@@ -257,6 +257,7 @@ export interface AdminSummary {
   visibleProducts: number;
   hiddenProducts: number;
   lowStockProducts: number;
+  lowStockThreshold: number;
   outOfStockProducts: number;
   totalCustomers: number;
   returningCustomers: number;
@@ -329,6 +330,7 @@ export interface StoreSettings {
   /** @nullable */
   whatsapp?: string | null;
   email: string;
+  lowStockThreshold?: number;
   socialLinks?: SocialLinks;
   deliverySettings?: DeliverySettings;
 }
@@ -342,6 +344,7 @@ export interface StoreSettingsUpdate {
   /** @nullable */
   whatsapp?: string | null;
   email?: string;
+  lowStockThreshold?: number;
   socialLinks?: SocialLinks;
   deliverySettings?: DeliverySettings;
 }

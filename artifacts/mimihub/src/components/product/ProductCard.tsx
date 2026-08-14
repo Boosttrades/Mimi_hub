@@ -13,6 +13,7 @@ interface ProductCardProps {
 export function ProductCard({ product }: ProductCardProps) {
   const { isInWishlist, toggleWishlist } = useWishlist();
   const isWishlisted = isInWishlist(product.id);
+  const isOutOfStock = !product.inStock || (product.stockQty ?? 0) <= 0;
   
   const coverImage = product.coverImage || product.images?.[0] || 'https://placehold.co/400x400/D4B483/FAF6F0?text=Product';
 
@@ -23,7 +24,7 @@ export function ProductCard({ product }: ProductCardProps) {
           <img
             src={coverImage}
             alt={product.name}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 cursor-pointer"
+            className={cn("w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 cursor-pointer", isOutOfStock && "opacity-70 grayscale-[.15]")}
             loading="lazy"
           />
         </Link>
@@ -41,6 +42,11 @@ export function ProductCard({ product }: ProductCardProps) {
             </span>
           )}
         </div>
+        {isOutOfStock && (
+          <span className="absolute bottom-2 left-2 rounded-sm bg-foreground/85 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-background">
+            Out of stock
+          </span>
+        )}
 
         {/* Wishlist Button */}
         <Button

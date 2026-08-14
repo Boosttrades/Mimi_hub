@@ -21,6 +21,7 @@ export interface AdminSummary {
   visibleProducts: number;
   hiddenProducts: number;
   lowStockProducts: number;
+  lowStockThreshold: number;
   outOfStockProducts: number;
   totalCustomers: number;
   returningCustomers: number;

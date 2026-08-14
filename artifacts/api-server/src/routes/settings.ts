@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { db, settingsTable } from "@workspace/db";
 
 const router: IRouter = Router();
+const DEFAULT_LOW_STOCK_THRESHOLD = 5;
 
 async function getSetting(key: string): Promise<unknown> {
   const [row] = await db.select().from(settingsTable).where(eq(settingsTable.key, key));
@@ -20,15 +21,34 @@ async function upsertSetting(key: string, value: unknown): Promise<unknown> {
   }
 }
 
-const DEFAULT_STORE: unknown = {
+const DEFAULT_STORE = {
   storeName: "MimiiHub",
   logo: null,
   contactPhone: null,
   whatsapp: null,
   email: "hello@mimihub.com",
+  lowStockThreshold: DEFAULT_LOW_STOCK_THRESHOLD,
   socialLinks: { instagram: null, facebook: null, twitter: null, tiktok: null },
   deliverySettings: { freeDeliveryThreshold: null, deliveryFee: 0, deliveryNote: null },
 };
+
+function normalizeLowStockThreshold(value: unknown): number {
+  const threshold = Number(value);
+  return Number.isInteger(threshold) && threshold >= 1 && threshold <= 100000
+    ? threshold
+    : DEFAULT_LOW_STOCK_THRESHOLD;
+}
+
+function normalizeStoreSettings(value: unknown): typeof DEFAULT_STORE & Record<string, unknown> {
+  const existing = value && typeof value === "object"
+    ? value as Record<string, unknown>
+    : {};
+  return {
+    ...DEFAULT_STORE,
+    ...existing,
+    lowStockThreshold: normalizeLowStockThreshold(existing.lowStockThreshold),
+  };
+}
 
 const DEFAULT_HOMEPAGE: unknown = {
   heroBanners: [
@@ -82,13 +102,18 @@ const DEFAULT_PAYMENT: unknown = {
 // GET /settings/store
 router.get("/settings/store", async (_req, res): Promise<void> => {
   const val = await getSetting("store");
-  res.json(val ?? DEFAULT_STORE);
+  res.json(normalizeStoreSettings(val));
 });
 
 // PATCH /settings/store
 router.patch("/settings/store", async (req, res): Promise<void> => {
-  const existing = (await getSetting("store") as Record<string, unknown>) ?? DEFAULT_STORE as Record<string, unknown>;
-  const updated = { ...(existing as object), ...req.body };
+  const body = req.body as Record<string, unknown>;
+  if (body.lowStockThreshold !== undefined && normalizeLowStockThreshold(body.lowStockThreshold) !== Number(body.lowStockThreshold)) {
+    res.status(400).json({ error: "lowStockThreshold must be a whole number between 1 and 100000" });
+    return;
+  }
+  const existing = normalizeStoreSettings(await getSetting("store"));
+  const updated = normalizeStoreSettings({ ...existing, ...body });
   await upsertSetting("store", updated);
   res.json(updated);
 });

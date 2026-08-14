@@ -12,6 +12,7 @@ declare global {
 }
 
 const PRODUCT_SELECT = "*,category:categories(*),subcategory:subcategories(*)";
+const DEFAULT_LOW_STOCK_THRESHOLD = 5;
 
 const DEFAULT_STORE = {
   storeName: "MimiiHub",
@@ -19,6 +20,7 @@ const DEFAULT_STORE = {
   contactPhone: null,
   whatsapp: null,
   email: "hello@mimihub.com",
+  lowStockThreshold: DEFAULT_LOW_STOCK_THRESHOLD,
   socialLinks: { instagram: null, facebook: null, twitter: null, tiktok: null },
   deliverySettings: { freeDeliveryThreshold: null, deliveryFee: 0, deliveryNote: null },
 };
@@ -88,6 +90,7 @@ function enrichProduct<T extends Record<string, any>>(product: T) {
     : null;
   return {
     ...camel,
+    inStock: Boolean(camel.inStock) && Number(camel.stockQty ?? 0) > 0,
     discountedPrice,
     coverImage: camel.coverImage ?? camel.images?.[0] ?? null,
     specs: camel.specs ?? {},
@@ -217,12 +220,17 @@ async function getNextOrderRef() {
 }
 
 async function getAdminSummary() {
-  const [orders, products] = await Promise.all([
+  const [orders, products, storeSettings] = await Promise.all([
     supabaseRequest<Record<string, any>[]>("orders", { query: { select: "*" } }),
     supabaseRequest<Record<string, any>[]>("products", { query: { select: "*" } }),
+    getSetting("store", DEFAULT_STORE),
   ]);
   const normalizedOrders = orders.map(camelize) as Array<Record<string, any>>;
   const normalizedProducts = products.map(camelize) as Array<Record<string, any>>;
+  const configuredThreshold = (storeSettings as Record<string, unknown>)?.lowStockThreshold;
+  const lowStockThreshold = Number.isInteger(Number(configuredThreshold)) && Number(configuredThreshold) >= 1
+    ? Number(configuredThreshold)
+    : DEFAULT_LOW_STOCK_THRESHOLD;
   const paid = normalizedOrders.filter((order) => order.paymentStatus === "Paid");
   const now = new Date();
   const thisMonth = (date: string) => {
@@ -269,8 +277,13 @@ async function getAdminSummary() {
     totalProducts: normalizedProducts.length,
     visibleProducts: normalizedProducts.filter((product) => product.visible).length,
     hiddenProducts: normalizedProducts.filter((product) => !product.visible).length,
-    lowStockProducts: normalizedProducts.filter((product) => product.inStock && (product.stockQty ?? 0) < 10).length,
-    outOfStockProducts: normalizedProducts.filter((product) => !product.inStock || (product.stockQty ?? 0) <= 0).length,
+    lowStockProducts: normalizedProducts.filter(
+      (product) => product.inStock && Number(product.stockQty ?? 0) > 0 && Number(product.stockQty ?? 0) < lowStockThreshold,
+    ).length,
+    lowStockThreshold,
+    outOfStockProducts: normalizedProducts.filter(
+      (product) => !product.inStock || Number(product.stockQty ?? 0) <= 0,
+    ).length,
     totalCustomers: customerMap.size,
     returningCustomers: [...customerMap.values()].filter((customer) => customer.returning).length,
     customers: [...customerMap.values()],

@@ -28,6 +28,7 @@ export function Product() {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
   const isWishlisted = isInWishlist(id);
+  const isOutOfStock = !product?.inStock || (product?.stockQty ?? 0) <= 0;
 
   const allImages = useMemo(() => {
     if (!product) return [];
@@ -120,6 +121,11 @@ export function Product() {
                 </span>
               )}
             </div>
+            {isOutOfStock && (
+              <span className="mb-6 inline-flex w-fit rounded-full bg-destructive/10 px-3 py-1.5 text-sm font-semibold text-destructive">
+                Out of stock
+              </span>
+            )}
 
             <div className="h-px w-full bg-border mb-6" />
 
@@ -154,7 +160,7 @@ export function Product() {
                   <button 
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
                     className="w-12 h-full flex items-center justify-center text-foreground hover:text-primary transition-colors disabled:opacity-50"
-                    disabled={quantity <= 1}
+                    disabled={quantity <= 1 || isOutOfStock}
                   >
                     <Minus className="h-4 w-4" />
                   </button>
@@ -162,6 +168,7 @@ export function Product() {
                   <button 
                     onClick={() => setQuantity(quantity + 1)}
                     className="w-12 h-full flex items-center justify-center text-foreground hover:text-primary transition-colors"
+                    disabled={isOutOfStock}
                   >
                     <Plus className="h-4 w-4" />
                   </button>

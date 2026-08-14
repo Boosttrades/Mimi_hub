@@ -79,6 +79,22 @@ export function AdminSettings() {
             <Label>WhatsApp Number</Label>
             <Input value={storeForm.whatsapp || ''} onChange={e => setStoreForm({...storeForm, whatsapp: e.target.value})} className="mt-1" />
           </div>
+          <div>
+            <Label htmlFor="low-stock-threshold">Low stock threshold</Label>
+            <Input
+              id="low-stock-threshold"
+              type="number"
+              min={1}
+              max={100000}
+              step={1}
+              value={storeForm.lowStockThreshold ?? 5}
+              onChange={e => setStoreForm({...storeForm, lowStockThreshold: Number(e.target.value)})}
+              className="mt-1"
+            />
+            <p className="mt-2 text-xs text-muted-foreground">
+              Products with 1–{storeForm.lowStockThreshold ?? 5 - 1} units remaining appear as low stock.
+            </p>
+          </div>
           
           <Button type="submit" className="mt-auto">Save Store Settings</Button>
         </form>

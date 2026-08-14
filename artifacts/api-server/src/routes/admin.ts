@@ -1,8 +1,9 @@
 import { Router, type IRouter } from "express";
-import { db, ordersTable, productsTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
+import { db, ordersTable, productsTable, settingsTable } from "@workspace/db";
 
 const router: IRouter = Router();
-const LOW_STOCK_THRESHOLD = 10;
+const DEFAULT_LOW_STOCK_THRESHOLD = 5;
 
 function asDate(value: Date | string): Date {
   return value instanceof Date ? value : new Date(value);
@@ -20,6 +21,13 @@ router.get("/admin/summary", async (_req, res): Promise<void> => {
     db.select().from(ordersTable),
     db.select().from(productsTable),
   ]);
+  const [storeSettings] = await db.select().from(settingsTable).where(eq(settingsTable.key, "store"));
+  const configuredThreshold = storeSettings?.value && typeof storeSettings.value === "object"
+    ? (storeSettings.value as Record<string, unknown>).lowStockThreshold
+    : undefined;
+  const lowStockThreshold = Number.isInteger(Number(configuredThreshold)) && Number(configuredThreshold) >= 1
+    ? Number(configuredThreshold)
+    : DEFAULT_LOW_STOCK_THRESHOLD;
 
   const now = new Date();
   const monthStart = startOfCurrentMonth(now);
@@ -98,8 +106,11 @@ router.get("/admin/summary", async (_req, res): Promise<void> => {
     totalProducts: products.length,
     visibleProducts: products.filter((product) => product.visible).length,
     hiddenProducts: products.filter((product) => !product.visible).length,
-    lowStockProducts: products.filter((product) => product.inStock && (product.stockQty ?? 0) < LOW_STOCK_THRESHOLD).length,
+    lowStockProducts: products.filter(
+      (product) => product.inStock && (product.stockQty ?? 0) > 0 && (product.stockQty ?? 0) < lowStockThreshold,
+    ).length,
     outOfStockProducts: products.filter((product) => !product.inStock || (product.stockQty ?? 0) <= 0).length,
+    lowStockThreshold,
     totalCustomers: customers.length,
     returningCustomers: customers.filter((customer) => customer.returning).length,
     customers,

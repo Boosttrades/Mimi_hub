@@ -737,7 +737,7 @@ components:
 
     AdminSummary:
       type: object
-      required: [totalRevenue, thisMonthRevenue, totalOrders, thisMonthOrders, pendingOrders, paidOrders, preparingOrders, deliveredOrders, cancelledOrders, totalProducts, visibleProducts, hiddenProducts, lowStockProducts, outOfStockProducts, totalCustomers, returningCustomers, customers]
+      required: [totalRevenue, thisMonthRevenue, totalOrders, thisMonthOrders, pendingOrders, paidOrders, preparingOrders, deliveredOrders, cancelledOrders, totalProducts, visibleProducts, hiddenProducts, lowStockProducts, lowStockThreshold, outOfStockProducts, totalCustomers, returningCustomers, customers]
       properties:
         totalRevenue:       { type: number }
         thisMonthRevenue:   { type: number }
@@ -752,6 +752,7 @@ components:
         visibleProducts:    { type: number }
         hiddenProducts:     { type: number }
         lowStockProducts:   { type: number }
+        lowStockThreshold:  { type: number }
         outOfStockProducts: { type: number }
         totalCustomers:     { type: number }
         returningCustomers: { type: number }
@@ -848,6 +849,7 @@ components:
         contactPhone:     { type: ["string", "null"] }
         whatsapp:         { type: ["string", "null"] }
         email:            { type: string }
+        lowStockThreshold: { type: number }
         socialLinks:      { $ref: "#/components/schemas/SocialLinks" }
         deliverySettings: { $ref: "#/components/schemas/DeliverySettings" }
 
@@ -859,6 +861,7 @@ components:
         contactPhone:     { type: ["string", "null"] }
         whatsapp:         { type: ["string", "null"] }
         email:            { type: string }
+        lowStockThreshold: { type: number }
         socialLinks:      { $ref: "#/components/schemas/SocialLinks" }
         deliverySettings: { $ref: "#/components/schemas/DeliverySettings" }
 

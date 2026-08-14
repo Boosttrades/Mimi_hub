@@ -17,6 +17,7 @@ export interface StoreSettingsUpdate {
   /** @nullable */
   whatsapp?: string | null;
   email?: string;
+  lowStockThreshold?: number;
   socialLinks?: SocialLinks;
   deliverySettings?: DeliverySettings;
 }

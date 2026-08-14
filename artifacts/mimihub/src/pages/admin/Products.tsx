@@ -20,6 +20,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import {
   getListProductsQueryKey,
   useDeleteProduct,
+  useGetStoreSettings,
   useListProducts,
   useUpdateProduct,
 } from '@workspace/api-client-react';
@@ -38,10 +39,11 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
-type ProductFilter = 'All products' | 'Featured' | 'Low stock' | 'Unpublished';
+type ProductFilter = 'All products' | 'Featured' | 'Low stock' | 'Out of stock' | 'Unpublished';
 
 export function AdminProducts() {
   const { data: products = [], isLoading, isError, refetch } = useListProducts();
+  const { data: storeSettings } = useGetStoreSettings();
   const deleteProduct = useDeleteProduct();
   const updateProduct = useUpdateProduct();
   const queryClient = useQueryClient();
@@ -49,6 +51,7 @@ export function AdminProducts() {
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<ProductFilter>('All products');
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const lowStockThreshold = storeSettings?.lowStockThreshold ?? 5;
 
   const filteredProducts = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -61,12 +64,16 @@ export function AdminProducts() {
       const matchesFilter =
         filter === 'All products' ||
         (filter === 'Featured' && product.featured) ||
-        (filter === 'Low stock' && (product.stockQty ?? 0) < 10) ||
+        (filter === 'Low stock' &&
+          product.inStock &&
+          (product.stockQty ?? 0) > 0 &&
+          (product.stockQty ?? 0) < lowStockThreshold) ||
+        (filter === 'Out of stock' && (!product.inStock || (product.stockQty ?? 0) <= 0)) ||
         (filter === 'Unpublished' && !product.visible);
 
       return matchesSearch && matchesFilter;
     });
-  }, [filter, products, query]);
+  }, [filter, lowStockThreshold, products, query]);
 
   const productToDelete = products.find((product) => product.id === deleteId);
 
@@ -128,7 +135,7 @@ export function AdminProducts() {
         </div>
         <div className="flex gap-1 overflow-x-auto rounded-xl bg-[hsl(var(--admin-deep)/.06)] p-1">
           <Filter className="ml-2 mr-1 h-4 w-4 self-center text-[hsl(var(--admin-ink)/.45)]" />
-          {(['All products', 'Featured', 'Low stock', 'Unpublished'] as const).map((item) => (
+          {(['All products', 'Featured', 'Low stock', 'Out of stock', 'Unpublished'] as const).map((item) => (
             <button
               key={item}
               type="button"
@@ -237,8 +244,8 @@ export function AdminProducts() {
                             )}
                           </td>
                           <td className="px-4 py-4">
-                            <span className={`text-xs font-bold ${product.inStock ? 'text-[hsl(var(--admin-teal))]' : 'text-[hsl(var(--admin-coral))]'}`}>
-                              {product.inStock ? `${product.stockQty ?? 0} available` : 'Out of stock'}
+                            <span className={`text-xs font-bold ${product.inStock && (product.stockQty ?? 0) > 0 ? 'text-[hsl(var(--admin-teal))]' : 'text-[hsl(var(--admin-coral))]'}`}>
+                              {product.inStock && (product.stockQty ?? 0) > 0 ? `${product.stockQty ?? 0} available` : 'Out of stock'}
                             </span>
                           </td>
                           <td className="px-4 py-4">
@@ -310,8 +317,8 @@ export function AdminProducts() {
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-extrabold text-[hsl(var(--admin-deep))]">{product.name}</p>
-                        <p className="mt-1 text-xs text-[hsl(var(--admin-ink)/.48)]">
-                          {formatNaira(product.price)} · {product.visible ? 'Published' : 'Unpublished'}
+                          <p className="mt-1 text-xs text-[hsl(var(--admin-ink)/.48)]">
+                            {formatNaira(product.price)} · {product.inStock && (product.stockQty ?? 0) > 0 ? `${product.stockQty ?? 0} available` : 'Out of stock'} · {product.visible ? 'Published' : 'Unpublished'}
                         </p>
                       </div>
                       <div className="flex items-center gap-1">

@@ -5,6 +5,10 @@ import { ensureCategoriesSeeded } from "./categories";
 
 const router: IRouter = Router();
 
+function isProductOutOfStock(product: { inStock: boolean; stockQty: number | null }) {
+  return !product.inStock || (product.stockQty ?? 0) <= 0;
+}
+
 function parseId(raw: string | string[]): number {
   const s = Array.isArray(raw) ? raw[0] : raw;
   return parseInt(s, 10);
@@ -35,6 +39,7 @@ async function enrichProduct(product: typeof productsTable.$inferSelect) {
 
   return {
     ...product,
+    inStock: !isProductOutOfStock(product),
     discountedPrice: discountedPrice ? Math.round(discountedPrice) : null,
     coverImage: product.coverImage ?? (product.images[0] ?? null),
     category,
@@ -74,7 +79,7 @@ router.get("/products/summary", async (_req, res): Promise<void> => {
     featured: all.filter(p => p.featured).length,
     newArrivals: all.filter(p => p.newArrival).length,
     bestSellers: all.filter(p => p.bestSeller).length,
-    outOfStock: all.filter(p => !p.inStock).length,
+     outOfStock: all.filter(isProductOutOfStock).length,
   });
 });
 
@@ -93,6 +98,7 @@ router.post("/products", async (req, res): Promise<void> => {
 
   await ensureCategoriesSeeded();
 
+  const normalizedStockQty = stockQty !== undefined ? Number(stockQty) : 0;
   const [product] = await db.insert(productsTable).values({
     name, slug, description, price: Number(price),
     discountPct: discountPct !== undefined ? Number(discountPct) : null,
@@ -100,8 +106,8 @@ router.post("/products", async (req, res): Promise<void> => {
     coverImage: coverImage ?? null,
     categoryId: categoryId ? Number(categoryId) : null,
     subcategoryId: subcategoryId ? Number(subcategoryId) : null,
-    stockQty: stockQty !== undefined ? Number(stockQty) : 0,
-    inStock: inStock !== undefined ? Boolean(inStock) : true,
+    stockQty: normalizedStockQty,
+    inStock: normalizedStockQty > 0 && (inStock !== undefined ? Boolean(inStock) : true),
     visible: visible !== undefined ? Boolean(visible) : true,
     featured: featured !== undefined ? Boolean(featured) : false,
     newArrival: newArrival !== undefined ? Boolean(newArrival) : false,
@@ -139,6 +145,7 @@ router.patch("/products/:id", async (req, res): Promise<void> => {
   if (updates.price !== undefined) updates.price = Number(updates.price);
   if (updates.discountPct !== undefined) updates.discountPct = updates.discountPct === null ? null : Number(updates.discountPct);
   if (updates.stockQty !== undefined) updates.stockQty = Number(updates.stockQty);
+  if (updates.stockQty !== undefined && Number(updates.stockQty) <= 0) updates.inStock = false;
   if (updates.categoryId !== undefined) updates.categoryId = updates.categoryId === null ? null : Number(updates.categoryId);
   if (updates.subcategoryId !== undefined) updates.subcategoryId = updates.subcategoryId === null ? null : Number(updates.subcategoryId);
 

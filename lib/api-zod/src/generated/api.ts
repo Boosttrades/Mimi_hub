@@ -676,6 +676,7 @@ export const GetAdminSummaryResponse = zod.object({
   "visibleProducts": zod.number(),
   "hiddenProducts": zod.number(),
   "lowStockProducts": zod.number(),
+  "lowStockThreshold": zod.number(),
   "outOfStockProducts": zod.number(),
   "totalCustomers": zod.number(),
   "returningCustomers": zod.number(),
@@ -819,6 +820,7 @@ export const GetStoreSettingsResponse = zod.object({
   "contactPhone": zod.string().nullish(),
   "whatsapp": zod.string().nullish(),
   "email": zod.string(),
+  "lowStockThreshold": zod.number().optional(),
   "socialLinks": zod.object({
   "instagram": zod.string().nullish(),
   "facebook": zod.string().nullish(),
@@ -842,6 +844,7 @@ export const UpdateStoreSettingsBody = zod.object({
   "contactPhone": zod.string().nullish(),
   "whatsapp": zod.string().nullish(),
   "email": zod.string().optional(),
+  "lowStockThreshold": zod.number().optional(),
   "socialLinks": zod.object({
   "instagram": zod.string().nullish(),
   "facebook": zod.string().nullish(),
@@ -861,6 +864,7 @@ export const UpdateStoreSettingsResponse = zod.object({
   "contactPhone": zod.string().nullish(),
   "whatsapp": zod.string().nullish(),
   "email": zod.string(),
+  "lowStockThreshold": zod.number().optional(),
   "socialLinks": zod.object({
   "instagram": zod.string().nullish(),
   "facebook": zod.string().nullish(),
