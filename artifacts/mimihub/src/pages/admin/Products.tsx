@@ -41,6 +41,20 @@ import {
 
 type ProductFilter = 'All products' | 'Featured' | 'Low stock' | 'Out of stock' | 'Unpublished';
 
+function getInventoryLabel(product: { inStock: boolean; stockQty?: number | null }, lowStockThreshold: number) {
+  const stockQty = product.stockQty ?? 0;
+
+  if (!product.inStock || stockQty <= 0) {
+    return { text: 'Out of stock', className: 'text-[hsl(var(--admin-coral))]' };
+  }
+
+  if (stockQty < lowStockThreshold) {
+    return { text: `${stockQty} low stock`, className: 'text-[hsl(var(--admin-deep))]' };
+  }
+
+  return { text: `${stockQty} available`, className: 'text-[hsl(var(--admin-teal))]' };
+}
+
 export function AdminProducts() {
   const { data: products = [], isLoading, isError, refetch } = useListProducts();
   const { data: storeSettings } = useGetStoreSettings();
@@ -244,8 +258,8 @@ export function AdminProducts() {
                             )}
                           </td>
                           <td className="px-4 py-4">
-                            <span className={`text-xs font-bold ${product.inStock && (product.stockQty ?? 0) > 0 ? 'text-[hsl(var(--admin-teal))]' : 'text-[hsl(var(--admin-coral))]'}`}>
-                              {product.inStock && (product.stockQty ?? 0) > 0 ? `${product.stockQty ?? 0} available` : 'Out of stock'}
+                            <span className={`text-xs font-bold ${getInventoryLabel(product, lowStockThreshold).className}`}>
+                              {getInventoryLabel(product, lowStockThreshold).text}
                             </span>
                           </td>
                           <td className="px-4 py-4">
@@ -317,8 +331,8 @@ export function AdminProducts() {
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-extrabold text-[hsl(var(--admin-deep))]">{product.name}</p>
-                          <p className="mt-1 text-xs text-[hsl(var(--admin-ink)/.48)]">
-                            {formatNaira(product.price)} · {product.inStock && (product.stockQty ?? 0) > 0 ? `${product.stockQty ?? 0} available` : 'Out of stock'} · {product.visible ? 'Published' : 'Unpublished'}
+                          <p className={`mt-1 text-xs ${getInventoryLabel(product, lowStockThreshold).className}`}>
+                            {formatNaira(product.price)} · {getInventoryLabel(product, lowStockThreshold).text} · {product.visible ? 'Published' : 'Unpublished'}
                         </p>
                       </div>
                       <div className="flex items-center gap-1">

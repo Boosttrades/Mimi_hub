@@ -176,10 +176,10 @@ export function Product() {
                 <Button 
                   onClick={handleAddToCart}
                   className="flex-1 h-12 rounded-full text-base gap-2"
-                  disabled={!product.inStock}
+                  disabled={isOutOfStock}
                 >
                   <ShoppingBag className="h-5 w-5" />
-                  {product.inStock ? 'Add to Cart' : 'Out of Stock'}
+                  {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
                 </Button>
                 <Button 
                   variant="outline"
