@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { eq } from "drizzle-orm";
-import { db, ordersTable } from "@workspace/db";
+import { and, eq, gte, sql } from "drizzle-orm";
+import { db, ordersTable, productsTable } from "@workspace/db";
 
 const router: IRouter = Router();
 
@@ -13,6 +13,14 @@ type OrderTimelineEntry = {
   timestamp: string;
   note: string | null;
 };
+type OrderItem = {
+  productId: number;
+  quantity: number;
+};
+
+class InventoryError extends Error {
+  statusCode = 409;
+}
 
 const LEGACY_ORDER_STATUS_MAP: Record<string, OrderStatus> = {
   "Awaiting Payment": "Confirming",
@@ -46,8 +54,9 @@ function normalizeTimeline(value: unknown): OrderTimelineEntry[] {
 }
 
 function normalizeOrder(order: typeof ordersTable.$inferSelect) {
+  const { inventoryAdjusted: _inventoryAdjusted, ...publicOrder } = order;
   return {
-    ...order,
+    ...publicOrder,
     orderStatus: normalizeOrderStatus(order.orderStatus),
     paymentStatus: normalizePaymentStatus(order.paymentStatus, order.paymentMethod),
     timeline: normalizeTimeline(order.timeline),
@@ -61,6 +70,63 @@ function isRevenueRealized(order: { orderStatus: string; paymentStatus: string }
 function parseId(raw: string | string[]): number {
   const s = Array.isArray(raw) ? raw[0] : raw;
   return parseInt(s, 10);
+}
+
+function parseOrderItems(value: unknown): OrderItem[] | null {
+  if (!Array.isArray(value) || value.length === 0) return null;
+
+  const items: OrderItem[] = [];
+  for (const item of value) {
+    if (!item || typeof item !== "object") return null;
+    const record = item as Record<string, unknown>;
+    const productId = Number(record.productId);
+    const quantity = Number(record.quantity);
+    if (!Number.isInteger(productId) || productId <= 0 || !Number.isInteger(quantity) || quantity <= 0) {
+      return null;
+    }
+    items.push({ productId, quantity });
+  }
+  return items;
+}
+
+async function adjustInventory(
+  tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+  items: unknown,
+  direction: -1 | 1,
+) {
+  const parsedItems = parseOrderItems(items);
+  if (!parsedItems) {
+    throw new InventoryError("This order has invalid product quantities and cannot update inventory.");
+  }
+
+  const quantities = new Map<number, number>();
+  for (const item of parsedItems) {
+    quantities.set(item.productId, (quantities.get(item.productId) ?? 0) + item.quantity);
+  }
+
+  for (const [productId, quantity] of quantities) {
+    const delta = direction * quantity;
+    const [product] = await tx
+      .update(productsTable)
+      .set({
+        stockQty: sql`${productsTable.stockQty} + ${delta}`,
+        inStock: sql<boolean>`${productsTable.stockQty} + ${delta} > 0`,
+      })
+      .where(
+        direction === -1
+          ? and(eq(productsTable.id, productId), gte(productsTable.stockQty, quantity))
+          : eq(productsTable.id, productId),
+      )
+      .returning({ id: productsTable.id });
+
+    if (!product) {
+      throw new InventoryError(
+        direction === -1
+          ? "Not enough stock is available to mark this order as delivered."
+          : "A product from this order no longer exists, so its stock could not be restored.",
+      );
+    }
+  }
 }
 
 async function generateOrderRef(): Promise<string> {
@@ -98,6 +164,10 @@ router.post("/orders", async (req, res): Promise<void> => {
   const { fullName, phone, state, city, address, items, paymentMethod, flutterwaveRef } = req.body;
   if (!fullName || !phone || !state || !city || !address || !items || !paymentMethod) {
     res.status(400).json({ error: "Missing required fields" });
+    return;
+  }
+  if (!parseOrderItems(items)) {
+    res.status(400).json({ error: "Order items must include valid product IDs and quantities" });
     return;
   }
   if (paymentMethod !== "flutterwave" && paymentMethod !== "pay_on_delivery") {
@@ -169,22 +239,44 @@ router.patch("/orders/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  const [existing] = await db.select().from(ordersTable).where(eq(ordersTable.id, id));
-  if (!existing) { res.status(404).json({ error: "Order not found" }); return; }
+  try {
+    const order = await db.transaction(async (tx) => {
+      const [existing] = await tx.select().from(ordersTable).where(eq(ordersTable.id, id));
+      if (!existing) return null;
 
-  const existingOrder = normalizeOrder(existing);
-  const timeline = [...existingOrder.timeline];
-  const nextOrderStatus = orderStatus ? normalizeOrderStatus(orderStatus) : existingOrder.orderStatus;
-  if (orderStatus) {
-    timeline.push({ status: nextOrderStatus, timestamp: new Date().toISOString(), note: note ?? null });
+      const existingOrder = normalizeOrder(existing);
+      const timeline = [...existingOrder.timeline];
+      const nextOrderStatus = orderStatus ? normalizeOrderStatus(orderStatus) : existingOrder.orderStatus;
+      if (orderStatus) {
+        timeline.push({ status: nextOrderStatus, timestamp: new Date().toISOString(), note: note ?? null });
+      }
+
+      let inventoryAdjusted = existing.inventoryAdjusted;
+      if (nextOrderStatus === "Delivered" && !inventoryAdjusted) {
+        await adjustInventory(tx, existing.items, -1);
+        inventoryAdjusted = true;
+      } else if (nextOrderStatus !== "Delivered" && inventoryAdjusted) {
+        await adjustInventory(tx, existing.items, 1);
+        inventoryAdjusted = false;
+      }
+
+      const updates: Record<string, unknown> = { timeline, inventoryAdjusted };
+      if (orderStatus) updates.orderStatus = nextOrderStatus;
+      if (paymentStatus !== undefined) updates.paymentStatus = normalizePaymentStatus(paymentStatus, existing.paymentMethod);
+
+      const [updated] = await tx.update(ordersTable).set(updates).where(eq(ordersTable.id, id)).returning();
+      return updated;
+    });
+
+    if (!order) { res.status(404).json({ error: "Order not found" }); return; }
+    res.json(normalizeOrder(order));
+  } catch (error) {
+    if (error instanceof InventoryError) {
+      res.status(error.statusCode).json({ error: error.message });
+      return;
+    }
+    throw error;
   }
-
-  const updates: Record<string, unknown> = { timeline };
-  if (orderStatus) updates.orderStatus = nextOrderStatus;
-  if (paymentStatus !== undefined) updates.paymentStatus = normalizePaymentStatus(paymentStatus, existing.paymentMethod);
-
-  const [order] = await db.update(ordersTable).set(updates).where(eq(ordersTable.id, id)).returning();
-  res.json(normalizeOrder(order));
 });
 
 export default router;

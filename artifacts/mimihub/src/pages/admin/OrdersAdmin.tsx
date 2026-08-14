@@ -1,5 +1,12 @@
 import { AdminLayout } from './AdminLayout';
-import { useListOrders, useUpdateOrderStatus, getListOrdersQueryKey, type OrderStatus } from '@workspace/api-client-react';
+import {
+  useListOrders,
+  useUpdateOrderStatus,
+  getListOrdersQueryKey,
+  getListProductsQueryKey,
+  getGetAdminSummaryQueryKey,
+  type OrderStatus,
+} from '@workspace/api-client-react';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -21,7 +28,12 @@ export function AdminOrders() {
       onSuccess: () => {
         toast.success('Status updated');
         queryClient.invalidateQueries({ queryKey: getListOrdersQueryKey() });
-      }
+        queryClient.invalidateQueries({ queryKey: getListProductsQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetAdminSummaryQueryKey() });
+      },
+      onError: (error) => {
+        toast.error(error instanceof Error ? error.message : 'Could not update order status');
+      },
     });
   };
 

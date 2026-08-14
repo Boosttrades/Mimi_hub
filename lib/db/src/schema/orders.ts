@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, doublePrecision, jsonb, integer } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, doublePrecision, jsonb, integer, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { usersTable } from "./users";
@@ -18,6 +18,7 @@ export const ordersTable = pgTable("orders", {
   orderStatus: text("order_status").notNull().default("Confirming"),
   flutterwaveRef: text("flutterwave_ref"),
   timeline: jsonb("timeline").notNull().default([]),
+  inventoryAdjusted: boolean("inventory_adjusted").notNull().default(false),
   // nullable userId to associate orders with a lightweight user account (backwards compatible)
   userId: integer("user_id").references(() => usersTable.id),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
