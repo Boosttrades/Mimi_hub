@@ -26,7 +26,7 @@ export function removeStored(key: string) {
   localStorage.removeItem(key);
 }
 
-export function getAccountStorageKey(type: 'cart' | 'wishlist' | 'orders', username: string) {
+export function getAccountStorageKey(type: 'cart' | 'wishlist' | 'orders' | 'checkout', username: string) {
   return accountKey(type, username);
 }
 
