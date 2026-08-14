@@ -1,8 +1,10 @@
-import { useMemo, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import {
   Archive,
   Check,
+  ChevronDown,
+  ChevronRight,
   Edit3,
   Eye,
   EyeOff,
@@ -24,6 +26,7 @@ import {
   useListProducts,
   useUpdateProduct,
 } from '@workspace/api-client-react';
+import type { Product } from '@workspace/api-client-react';
 import { AdminLayout } from './AdminLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -40,6 +43,16 @@ import {
 } from '@/components/ui/alert-dialog';
 
 type ProductFilter = 'All products' | 'Featured' | 'Low stock' | 'Out of stock' | 'Unpublished';
+
+type ProductGroup = {
+  key: string;
+  name: string;
+  subcategories: {
+    key: string;
+    name: string;
+    products: Product[];
+  }[];
+};
 
 function getInventoryLabel(product: { inStock: boolean; stockQty?: number | null }, lowStockThreshold: number) {
   const stockQty = product.stockQty ?? 0;
@@ -65,6 +78,8 @@ export function AdminProducts() {
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<ProductFilter>('All products');
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  const [expandedSubcategories, setExpandedSubcategories] = useState<Set<string>>(new Set());
   const lowStockThreshold = storeSettings?.lowStockThreshold ?? 5;
 
   const filteredProducts = useMemo(() => {
@@ -88,6 +103,64 @@ export function AdminProducts() {
       return matchesSearch && matchesFilter;
     });
   }, [filter, lowStockThreshold, products, query]);
+
+  const groupedProducts = useMemo<ProductGroup[]>(() => {
+    const categories = new Map<string, {
+      key: string;
+      name: string;
+      subcategories: Map<string, { key: string; name: string; products: Product[] }>;
+    }>();
+
+    filteredProducts.forEach((product) => {
+      const categoryKey = product.categoryId != null
+        ? `category-${product.categoryId}`
+        : `category-${product.category?.name ?? 'uncategorised'}`;
+      const categoryName = product.category?.name ?? 'Uncategorised';
+      const category = categories.get(categoryKey) ?? {
+        key: categoryKey,
+        name: categoryName,
+        subcategories: new Map(),
+      };
+      const subcategoryKey = product.subcategoryId != null
+        ? `${categoryKey}-subcategory-${product.subcategoryId}`
+        : `${categoryKey}-subcategory-uncategorised`;
+      const subcategoryName = product.subcategory?.name ?? 'Uncategorised';
+      const subcategory = category.subcategories.get(subcategoryKey) ?? {
+        key: subcategoryKey,
+        name: subcategoryName,
+        products: [],
+      };
+
+      subcategory.products.push(product);
+      category.subcategories.set(subcategoryKey, subcategory);
+      categories.set(categoryKey, category);
+    });
+
+    return Array.from(categories.values())
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((category) => ({
+        ...category,
+        subcategories: Array.from(category.subcategories.values()).sort((a, b) => a.name.localeCompare(b.name)),
+      }));
+  }, [filteredProducts]);
+
+  const toggleCategory = (key: string) => {
+    setExpandedCategories((current) => {
+      const next = new Set(current);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const toggleSubcategory = (key: string) => {
+    setExpandedSubcategories((current) => {
+      const next = new Set(current);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   const productToDelete = products.find((product) => product.id === deleteId);
 
@@ -215,7 +288,7 @@ export function AdminProducts() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[hsl(var(--admin-deep)/.08)]">
-                  {isLoading
+                   {isLoading
                     ? [1, 2, 3].map((row) => (
                         <tr key={row}>
                           <td colSpan={5} className="p-7">
@@ -223,85 +296,130 @@ export function AdminProducts() {
                           </td>
                         </tr>
                       ))
-                    : filteredProducts.map((product) => (
-                        <tr
-                          key={product.id}
-                          className="group transition-colors hover:bg-[hsl(var(--admin-deep)/.025)]"
-                          data-testid={`row-product-${product.id}`}
-                        >
-                          <td className="px-7 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className="relative grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-xl bg-[hsl(var(--admin-gold)/.2)]">
-                                {product.coverImage ? (
-                                  <img src={product.coverImage} alt="" className="h-full w-full object-cover" />
-                                ) : (
-                                  <PackagePlus className="h-5 w-5 text-[hsl(var(--admin-deep)/.5)]" />
-                                )}
-                                {product.featured && (
-                                  <Star className="absolute bottom-1 right-1 h-3 w-3 fill-[hsl(var(--admin-gold))] text-[hsl(var(--admin-gold))]" />
-                                )}
-                              </div>
-                              <div>
-                                <p className="text-sm font-extrabold text-[hsl(var(--admin-deep))]">{product.name}</p>
-                                <p className="mt-1 text-[11px] text-[hsl(var(--admin-ink)/.45)]">
-                                  {product.category?.name ?? 'Uncategorised'}
-                                </p>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-4 py-4 text-sm font-extrabold text-[hsl(var(--admin-deep))]">
-                            {formatNaira(product.price)}
-                            {(product.discountPct ?? 0) > 0 && (
-                              <span className="ml-2 rounded-full bg-[hsl(var(--admin-coral)/.12)] px-2 py-1 text-[10px] text-[hsl(var(--admin-coral))]">
-                                -{product.discountPct}%
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-4 py-4">
-                            <span className={`text-xs font-bold ${getInventoryLabel(product, lowStockThreshold).className}`}>
-                              {getInventoryLabel(product, lowStockThreshold).text}
-                            </span>
-                          </td>
-                          <td className="px-4 py-4">
-                            <button
-                              type="button"
-                              onClick={() => handleVisibilityChange(product.id, !product.visible)}
-                              disabled={updateProduct.isPending}
-                              data-testid={`button-toggle-product-${product.id}`}
-                              className="inline-flex items-center gap-1.5 text-xs font-bold text-[hsl(var(--admin-ink)/.58)] transition-colors hover:text-[hsl(var(--admin-teal))] disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                              {product.visible ? (
-                                <Eye className="h-3.5 w-3.5 text-[hsl(var(--admin-teal))]" />
-                              ) : (
-                                <EyeOff className="h-3.5 w-3.5" />
-                              )}
-                              {product.visible ? 'Published' : 'Unpublished'}
-                            </button>
-                          </td>
-                          <td className="px-7 py-4">
-                            <div className="flex justify-end gap-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => setLocation(`/admin/products/${product.id}/edit`)}
-                                data-testid={`button-edit-product-${product.id}`}
-                                aria-label={`Edit ${product.name}`}
-                              >
-                                <Edit3 className="h-4 w-4 text-[hsl(var(--admin-teal))]" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => setDeleteId(product.id)}
-                                data-testid={`button-delete-product-${product.id}`}
-                                aria-label={`Delete ${product.name}`}
-                              >
-                                <Trash2 className="h-4 w-4 text-[hsl(var(--admin-coral))]" />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
+                     : groupedProducts.map((category) => (
+                         <Fragment key={category.key}>
+                           <tr className="bg-[hsl(var(--admin-deep)/.035)]">
+                             <td colSpan={5} className="px-5 py-2 sm:px-7">
+                               <button
+                                 type="button"
+                                 onClick={() => toggleCategory(category.key)}
+                                 aria-expanded={expandedCategories.has(category.key)}
+                                 className="flex w-full items-center gap-2 py-2 text-left"
+                                 data-testid={`button-toggle-category-${category.key}`}
+                               >
+                                 {expandedCategories.has(category.key) ? (
+                                   <ChevronDown className="h-4 w-4 text-[hsl(var(--admin-teal))]" />
+                                 ) : (
+                                   <ChevronRight className="h-4 w-4 text-[hsl(var(--admin-teal))]" />
+                                 )}
+                                 <span className="text-sm font-extrabold text-[hsl(var(--admin-deep))]">{category.name}</span>
+                                 <span className="ml-1 rounded-full bg-[hsl(var(--admin-deep)/.08)] px-2 py-0.5 text-[10px] font-bold text-[hsl(var(--admin-ink)/.55)]">
+                                   {category.subcategories.reduce((count, subcategory) => count + subcategory.products.length, 0)}
+                                 </span>
+                               </button>
+                             </td>
+                           </tr>
+                           {expandedCategories.has(category.key) && category.subcategories.map((subcategory) => (
+                             <Fragment key={subcategory.key}>
+                               <tr className="bg-[hsl(var(--admin-gold)/.045)]">
+                                 <td colSpan={5} className="px-5 py-2 pl-10 sm:px-7 sm:pl-12">
+                                   <button
+                                     type="button"
+                                     onClick={() => toggleSubcategory(subcategory.key)}
+                                     aria-expanded={expandedSubcategories.has(subcategory.key)}
+                                     className="flex w-full items-center gap-2 py-1.5 text-left"
+                                     data-testid={`button-toggle-subcategory-${subcategory.key}`}
+                                   >
+                                     {expandedSubcategories.has(subcategory.key) ? (
+                                       <ChevronDown className="h-3.5 w-3.5 text-[hsl(var(--admin-gold))]" />
+                                     ) : (
+                                       <ChevronRight className="h-3.5 w-3.5 text-[hsl(var(--admin-gold))]" />
+                                     )}
+                                     <span className="text-xs font-bold text-[hsl(var(--admin-ink)/.7)]">{subcategory.name}</span>
+                                     <span className="text-[10px] text-[hsl(var(--admin-ink)/.4)]">{subcategory.products.length}</span>
+                                   </button>
+                                 </td>
+                               </tr>
+                               {expandedSubcategories.has(subcategory.key) && subcategory.products.map((product) => (
+                                 <tr
+                                   key={product.id}
+                                   className="group transition-colors hover:bg-[hsl(var(--admin-deep)/.025)]"
+                                   data-testid={`row-product-${product.id}`}
+                                 >
+                                   <td className="px-7 py-4 pl-14 sm:pl-20">
+                                     <div className="flex items-center gap-3">
+                                       <div className="relative grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-xl bg-[hsl(var(--admin-gold)/.2)]">
+                                         {product.coverImage ? (
+                                           <img src={product.coverImage} alt="" className="h-full w-full object-cover" />
+                                         ) : (
+                                           <PackagePlus className="h-5 w-5 text-[hsl(var(--admin-deep)/.5)]" />
+                                         )}
+                                         {product.featured && (
+                                           <Star className="absolute bottom-1 right-1 h-3 w-3 fill-[hsl(var(--admin-gold))] text-[hsl(var(--admin-gold))]" />
+                                         )}
+                                       </div>
+                                       <div>
+                                         <p className="text-sm font-extrabold text-[hsl(var(--admin-deep))]">{product.name}</p>
+                                       </div>
+                                     </div>
+                                   </td>
+                                   <td className="px-4 py-4 text-sm font-extrabold text-[hsl(var(--admin-deep))]">
+                                     {formatNaira(product.price)}
+                                     {(product.discountPct ?? 0) > 0 && (
+                                       <span className="ml-2 rounded-full bg-[hsl(var(--admin-coral)/.12)] px-2 py-1 text-[10px] text-[hsl(var(--admin-coral))]">
+                                         -{product.discountPct}%
+                                       </span>
+                                     )}
+                                   </td>
+                                   <td className="px-4 py-4">
+                                     <span className={`text-xs font-bold ${getInventoryLabel(product, lowStockThreshold).className}`}>
+                                       {getInventoryLabel(product, lowStockThreshold).text}
+                                     </span>
+                                   </td>
+                                   <td className="px-4 py-4">
+                                     <button
+                                       type="button"
+                                       onClick={() => handleVisibilityChange(product.id, !product.visible)}
+                                       disabled={updateProduct.isPending}
+                                       data-testid={`button-toggle-product-${product.id}`}
+                                       className="inline-flex items-center gap-1.5 text-xs font-bold text-[hsl(var(--admin-ink)/.58)] transition-colors hover:text-[hsl(var(--admin-teal))] disabled:cursor-not-allowed disabled:opacity-50"
+                                     >
+                                       {product.visible ? (
+                                         <Eye className="h-3.5 w-3.5 text-[hsl(var(--admin-teal))]" />
+                                       ) : (
+                                         <EyeOff className="h-3.5 w-3.5" />
+                                       )}
+                                       {product.visible ? 'Published' : 'Unpublished'}
+                                     </button>
+                                   </td>
+                                   <td className="px-7 py-4">
+                                     <div className="flex justify-end gap-1">
+                                       <Button
+                                         variant="ghost"
+                                         size="icon"
+                                         onClick={() => setLocation(`/admin/products/${product.id}/edit`)}
+                                         data-testid={`button-edit-product-${product.id}`}
+                                         aria-label={`Edit ${product.name}`}
+                                       >
+                                         <Edit3 className="h-4 w-4 text-[hsl(var(--admin-teal))]" />
+                                       </Button>
+                                       <Button
+                                         variant="ghost"
+                                         size="icon"
+                                         onClick={() => setDeleteId(product.id)}
+                                         data-testid={`button-delete-product-${product.id}`}
+                                         aria-label={`Delete ${product.name}`}
+                                       >
+                                         <Trash2 className="h-4 w-4 text-[hsl(var(--admin-coral))]" />
+                                       </Button>
+                                     </div>
+                                   </td>
+                                 </tr>
+                               ))}
+                             </Fragment>
+                           ))}
+                         </Fragment>
+                       ))}
                 </tbody>
               </table>
             </div>
@@ -313,60 +431,100 @@ export function AdminProducts() {
                       <div className="h-14 animate-pulse rounded-xl bg-[hsl(var(--admin-deep)/.07)]" />
                     </div>
                   ))
-                : filteredProducts.map((product) => (
-                    <div
-                      key={product.id}
-                      className="flex items-center gap-3 p-4"
-                      data-testid={`card-product-${product.id}`}
-                    >
-                      <div className="relative grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-xl bg-[hsl(var(--admin-gold)/.2)]">
-                        {product.coverImage ? (
-                          <img src={product.coverImage} alt="" className="h-full w-full object-cover" />
-                        ) : (
-                          <PackagePlus className="h-5 w-5 text-[hsl(var(--admin-deep)/.5)]" />
-                        )}
-                        {product.featured && (
-                          <Star className="absolute bottom-1 right-1 h-3 w-3 fill-[hsl(var(--admin-gold))] text-[hsl(var(--admin-gold))]" />
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-extrabold text-[hsl(var(--admin-deep))]">{product.name}</p>
-                          <p className={`mt-1 text-xs ${getInventoryLabel(product, lowStockThreshold).className}`}>
-                            {formatNaira(product.price)} · {getInventoryLabel(product, lowStockThreshold).text} · {product.visible ? 'Published' : 'Unpublished'}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleVisibilityChange(product.id, !product.visible)}
-                          disabled={updateProduct.isPending}
-                          data-testid={`button-mobile-toggle-product-${product.id}`}
-                          aria-label={`${product.visible ? 'Unpublish' : 'Publish'} ${product.name}`}
-                        >
-                          {product.visible ? <EyeOff className="h-4 w-4" /> : <Upload className="h-4 w-4" />}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setLocation(`/admin/products/${product.id}/edit`)}
-                          data-testid={`button-mobile-edit-product-${product.id}`}
-                          aria-label={`Edit ${product.name}`}
-                        >
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setDeleteId(product.id)}
-                          data-testid={`button-mobile-delete-product-${product.id}`}
-                          aria-label={`Delete ${product.name}`}
-                        >
-                          <Trash2 className="h-4 w-4 text-[hsl(var(--admin-coral))]" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
+               : groupedProducts.map((category) => (
+                   <Fragment key={category.key}>
+                     <button
+                       type="button"
+                       onClick={() => toggleCategory(category.key)}
+                       aria-expanded={expandedCategories.has(category.key)}
+                       className="flex w-full items-center gap-2 bg-[hsl(var(--admin-deep)/.035)] px-4 py-3 text-left"
+                       data-testid={`button-mobile-toggle-category-${category.key}`}
+                     >
+                       {expandedCategories.has(category.key) ? (
+                         <ChevronDown className="h-4 w-4 text-[hsl(var(--admin-teal))]" />
+                       ) : (
+                         <ChevronRight className="h-4 w-4 text-[hsl(var(--admin-teal))]" />
+                       )}
+                       <span className="text-sm font-extrabold text-[hsl(var(--admin-deep))]">{category.name}</span>
+                       <span className="text-[10px] text-[hsl(var(--admin-ink)/.45)]">
+                         {category.subcategories.reduce((count, subcategory) => count + subcategory.products.length, 0)}
+                       </span>
+                     </button>
+                     {expandedCategories.has(category.key) && category.subcategories.map((subcategory) => (
+                       <Fragment key={subcategory.key}>
+                         <button
+                           type="button"
+                           onClick={() => toggleSubcategory(subcategory.key)}
+                           aria-expanded={expandedSubcategories.has(subcategory.key)}
+                           className="flex w-full items-center gap-2 bg-[hsl(var(--admin-gold)/.045)] py-2.5 pl-10 pr-4 text-left"
+                           data-testid={`button-mobile-toggle-subcategory-${subcategory.key}`}
+                         >
+                           {expandedSubcategories.has(subcategory.key) ? (
+                             <ChevronDown className="h-3.5 w-3.5 text-[hsl(var(--admin-gold))]" />
+                           ) : (
+                             <ChevronRight className="h-3.5 w-3.5 text-[hsl(var(--admin-gold))]" />
+                           )}
+                           <span className="text-xs font-bold text-[hsl(var(--admin-ink)/.7)]">{subcategory.name}</span>
+                           <span className="text-[10px] text-[hsl(var(--admin-ink)/.4)]">{subcategory.products.length}</span>
+                         </button>
+                         {expandedSubcategories.has(subcategory.key) && subcategory.products.map((product) => (
+                           <div
+                             key={product.id}
+                             className="flex items-center gap-3 border-t border-[hsl(var(--admin-deep)/.06)] py-3 pl-14 pr-4"
+                             data-testid={`card-product-${product.id}`}
+                           >
+                             <div className="relative grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-xl bg-[hsl(var(--admin-gold)/.2)]">
+                               {product.coverImage ? (
+                                 <img src={product.coverImage} alt="" className="h-full w-full object-cover" />
+                               ) : (
+                                 <PackagePlus className="h-5 w-5 text-[hsl(var(--admin-deep)/.5)]" />
+                               )}
+                               {product.featured && (
+                                 <Star className="absolute bottom-1 right-1 h-3 w-3 fill-[hsl(var(--admin-gold))] text-[hsl(var(--admin-gold))]" />
+                               )}
+                             </div>
+                             <div className="min-w-0 flex-1">
+                               <p className="truncate text-sm font-extrabold text-[hsl(var(--admin-deep))]">{product.name}</p>
+                               <p className={`mt-1 text-xs ${getInventoryLabel(product, lowStockThreshold).className}`}>
+                                 {formatNaira(product.price)} · {getInventoryLabel(product, lowStockThreshold).text} · {product.visible ? 'Published' : 'Unpublished'}
+                               </p>
+                             </div>
+                             <div className="flex items-center gap-1">
+                               <Button
+                                 variant="ghost"
+                                 size="icon"
+                                 onClick={() => handleVisibilityChange(product.id, !product.visible)}
+                                 disabled={updateProduct.isPending}
+                                 data-testid={`button-mobile-toggle-product-${product.id}`}
+                                 aria-label={`${product.visible ? 'Unpublish' : 'Publish'} ${product.name}`}
+                               >
+                                 {product.visible ? <EyeOff className="h-4 w-4" /> : <Upload className="h-4 w-4" />}
+                               </Button>
+                               <Button
+                                 variant="ghost"
+                                 size="icon"
+                                 onClick={() => setLocation(`/admin/products/${product.id}/edit`)}
+                                 data-testid={`button-mobile-edit-product-${product.id}`}
+                                 aria-label={`Edit ${product.name}`}
+                               >
+                                 <MoreHorizontal className="h-4 w-4" />
+                               </Button>
+                               <Button
+                                 variant="ghost"
+                                 size="icon"
+                                 onClick={() => setDeleteId(product.id)}
+                                 data-testid={`button-mobile-delete-product-${product.id}`}
+                                 aria-label={`Delete ${product.name}`}
+                               >
+                                 <Trash2 className="h-4 w-4 text-[hsl(var(--admin-coral))]" />
+                               </Button>
+                             </div>
+                           </div>
+                         ))}
+                       </Fragment>
+                     ))}
+                   </Fragment>
+                 ))}
             </div>
 
             {!isLoading && !filteredProducts.length && (
