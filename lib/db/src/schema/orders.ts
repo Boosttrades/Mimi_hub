@@ -14,8 +14,8 @@ export const ordersTable = pgTable("orders", {
   items: jsonb("items").notNull().default([]),
   subtotal: doublePrecision("subtotal").notNull(),
   paymentMethod: text("payment_method").notNull(),
-  paymentStatus: text("payment_status").notNull().default("Awaiting Payment"),
-  orderStatus: text("order_status").notNull().default("Awaiting Payment"),
+  paymentStatus: text("payment_status").notNull().default("Payment on delivery"),
+  orderStatus: text("order_status").notNull().default("Confirming"),
   flutterwaveRef: text("flutterwave_ref"),
   timeline: jsonb("timeline").notNull().default([]),
   // nullable userId to associate orders with a lightweight user account (backwards compatible)

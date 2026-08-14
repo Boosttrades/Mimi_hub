@@ -9,6 +9,7 @@ import { formatNaira } from '@/lib/utils/format';
 function statusClass(status: string) {
   if (status === 'Delivered') return 'bg-[hsl(var(--admin-teal)/.12)] text-[hsl(var(--admin-teal))]';
   if (status === 'Preparing') return 'bg-[hsl(var(--admin-gold)/.18)] text-[hsl(var(--admin-deep))]';
+  if (status === 'Shipping') return 'bg-[hsl(var(--admin-teal)/.1)] text-[hsl(var(--admin-teal))]';
   return 'bg-[hsl(var(--admin-coral)/.12)] text-[hsl(var(--admin-coral))]';
 }
 
@@ -20,7 +21,7 @@ export function Dashboard() {
   const today = format(new Date(), "EEEE, MMMM d, yyyy / HH:mm 'WAT'");
   const displayValue = (value: string | number | undefined) => value === undefined ? '—' : value;
   const statCards = [
-    { label: 'All-time paid revenue', value: summary ? formatNaira(summary.totalRevenue) : undefined, icon: TrendingUp },
+    { label: 'Collected revenue', value: summary ? formatNaira(summary.totalRevenue) : undefined, icon: TrendingUp },
     { label: 'Revenue this month', value: summary ? formatNaira(summary.thisMonthRevenue) : undefined, icon: TrendingUp },
     { label: 'Orders this month', value: summary?.thisMonthOrders, icon: ShoppingBag },
     { label: 'Open orders', value: summary?.pendingOrders, icon: Clock3 },

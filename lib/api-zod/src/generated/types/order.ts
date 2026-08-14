@@ -6,7 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { OrderItem } from './orderItem';
+import type { OrderStatus } from './orderStatus';
 import type { OrderTimeline } from './orderTimeline';
+import type { PaymentStatus } from './paymentStatus';
 
 export interface Order {
   id: number;
@@ -19,8 +21,8 @@ export interface Order {
   items: OrderItem[];
   subtotal: number;
   paymentMethod: string;
-  paymentStatus: string;
-  orderStatus: string;
+  paymentStatus: PaymentStatus;
+  orderStatus: OrderStatus;
   /** @nullable */
   flutterwaveRef?: string | null;
   timeline: OrderTimeline[];

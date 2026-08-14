@@ -166,6 +166,25 @@ export interface OrderTimeline {
   note?: string | null;
 }
 
+export type PaymentStatus = typeof PaymentStatus[keyof typeof PaymentStatus];
+
+
+export const PaymentStatus = {
+  Paid: 'Paid',
+  Payment_on_delivery: 'Payment on delivery',
+} as const;
+
+export type OrderStatus = typeof OrderStatus[keyof typeof OrderStatus];
+
+
+export const OrderStatus = {
+  Confirming: 'Confirming',
+  Preparing: 'Preparing',
+  Shipping: 'Shipping',
+  Delivered: 'Delivered',
+  Cancelled: 'Cancelled',
+} as const;
+
 export interface Order {
   id: number;
   orderRef: string;
@@ -177,8 +196,8 @@ export interface Order {
   items: OrderItem[];
   subtotal: number;
   paymentMethod: string;
-  paymentStatus: string;
-  orderStatus: string;
+  paymentStatus: PaymentStatus;
+  orderStatus: OrderStatus;
   /** @nullable */
   flutterwaveRef?: string | null;
   timeline: OrderTimeline[];
@@ -197,8 +216,8 @@ export interface OrderInput {
 }
 
 export interface OrderStatusUpdate {
-  orderStatus: string;
-  paymentStatus?: string;
+  orderStatus?: OrderStatus;
+  paymentStatus?: PaymentStatus;
   note?: string;
 }
 

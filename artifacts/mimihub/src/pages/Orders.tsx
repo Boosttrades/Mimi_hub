@@ -35,11 +35,10 @@ export function OrderTracking() {
 
   const getStatusIcon = (status: string) => {
     switch(status) {
-      case 'Awaiting Payment': return <Clock className="w-5 h-5" />;
-      case 'Paid': return <CheckCircle2 className="w-5 h-5" />;
+      case 'Confirming': return <Clock className="w-5 h-5" />;
       case 'Preparing': return <Package className="w-5 h-5" />;
-      case 'Ready for Shipping': return <PackageCheck className="w-5 h-5" />;
-      case 'Delivered': return <Truck className="w-5 h-5" />;
+      case 'Shipping': return <Truck className="w-5 h-5" />;
+      case 'Delivered': return <PackageCheck className="w-5 h-5" />;
       default: return <Clock className="w-5 h-5" />;
     }
   };
@@ -150,7 +149,7 @@ export function OrderTracking() {
             </div>
             
             <div className="flex justify-between items-end">
-              <span className="font-medium">Total Paid</span>
+               <span className="font-medium">Order total</span>
               <span className="font-sans font-bold text-2xl text-primary">{formatNaira(order.subtotal)}</span>
             </div>
           </div>

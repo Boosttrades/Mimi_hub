@@ -76,9 +76,9 @@ interface UserOrder {
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
 const STATUS_COLORS: Record<string, string> = {
-  'Awaiting Payment': 'bg-amber-100 text-amber-800',
+  'Confirming':        'bg-amber-100 text-amber-800',
   'Preparing':        'bg-blue-100 text-blue-800',
-  'Shipped':          'bg-indigo-100 text-indigo-800',
+  'Shipping':         'bg-indigo-100 text-indigo-800',
   'Delivered':        'bg-green-100 text-green-800',
   'Cancelled':        'bg-red-100 text-red-800',
 };

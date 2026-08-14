@@ -581,8 +581,8 @@ export const ListOrdersResponseItem = zod.object({
 })),
   "subtotal": zod.number(),
   "paymentMethod": zod.string(),
-  "paymentStatus": zod.string(),
-  "orderStatus": zod.string(),
+  "paymentStatus": zod.enum(['Paid', 'Payment on delivery']),
+  "orderStatus": zod.enum(['Confirming', 'Preparing', 'Shipping', 'Delivered', 'Cancelled']),
   "flutterwaveRef": zod.string().nullish(),
   "timeline": zod.array(zod.object({
   "status": zod.string(),
@@ -633,8 +633,8 @@ export const CreateOrderResponse = zod.object({
 })),
   "subtotal": zod.number(),
   "paymentMethod": zod.string(),
-  "paymentStatus": zod.string(),
-  "orderStatus": zod.string(),
+  "paymentStatus": zod.enum(['Paid', 'Payment on delivery']),
+  "orderStatus": zod.enum(['Confirming', 'Preparing', 'Shipping', 'Delivered', 'Cancelled']),
   "flutterwaveRef": zod.string().nullish(),
   "timeline": zod.array(zod.object({
   "status": zod.string(),
@@ -718,8 +718,8 @@ export const GetOrderResponse = zod.object({
 })),
   "subtotal": zod.number(),
   "paymentMethod": zod.string(),
-  "paymentStatus": zod.string(),
-  "orderStatus": zod.string(),
+  "paymentStatus": zod.enum(['Paid', 'Payment on delivery']),
+  "orderStatus": zod.enum(['Confirming', 'Preparing', 'Shipping', 'Delivered', 'Cancelled']),
   "flutterwaveRef": zod.string().nullish(),
   "timeline": zod.array(zod.object({
   "status": zod.string(),
@@ -738,8 +738,8 @@ export const UpdateOrderStatusParams = zod.object({
 })
 
 export const UpdateOrderStatusBody = zod.object({
-  "orderStatus": zod.string(),
-  "paymentStatus": zod.string().optional(),
+  "orderStatus": zod.enum(['Confirming', 'Preparing', 'Shipping', 'Delivered', 'Cancelled']).optional(),
+  "paymentStatus": zod.enum(['Paid', 'Payment on delivery']).optional(),
   "note": zod.string().optional()
 })
 
@@ -761,8 +761,8 @@ export const UpdateOrderStatusResponse = zod.object({
 })),
   "subtotal": zod.number(),
   "paymentMethod": zod.string(),
-  "paymentStatus": zod.string(),
-  "orderStatus": zod.string(),
+  "paymentStatus": zod.enum(['Paid', 'Payment on delivery']),
+  "orderStatus": zod.enum(['Confirming', 'Preparing', 'Shipping', 'Delivered', 'Cancelled']),
   "flutterwaveRef": zod.string().nullish(),
   "timeline": zod.array(zod.object({
   "status": zod.string(),
@@ -798,8 +798,8 @@ export const GetOrderByRefResponse = zod.object({
 })),
   "subtotal": zod.number(),
   "paymentMethod": zod.string(),
-  "paymentStatus": zod.string(),
-  "orderStatus": zod.string(),
+  "paymentStatus": zod.enum(['Paid', 'Payment on delivery']),
+  "orderStatus": zod.enum(['Confirming', 'Preparing', 'Shipping', 'Delivered', 'Cancelled']),
   "flutterwaveRef": zod.string().nullish(),
   "timeline": zod.array(zod.object({
   "status": zod.string(),

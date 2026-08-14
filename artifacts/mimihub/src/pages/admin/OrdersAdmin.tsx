@@ -1,5 +1,5 @@
 import { AdminLayout } from './AdminLayout';
-import { useListOrders, useUpdateOrderStatus, getListOrdersQueryKey } from '@workspace/api-client-react';
+import { useListOrders, useUpdateOrderStatus, getListOrdersQueryKey, type OrderStatus } from '@workspace/api-client-react';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -9,14 +9,14 @@ import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
-const STATUSES = ['Awaiting Payment', 'Paid', 'Preparing', 'Ready for Shipping', 'Delivered', 'Cancelled'];
+const STATUSES: OrderStatus[] = ['Confirming', 'Preparing', 'Shipping', 'Delivered', 'Cancelled'];
 
 export function AdminOrders() {
   const { data: orders, isLoading } = useListOrders();
   const updateStatus = useUpdateOrderStatus();
   const queryClient = useQueryClient();
 
-  const handleStatusChange = (orderId: number, newStatus: string) => {
+  const handleStatusChange = (orderId: number, newStatus: OrderStatus) => {
     updateStatus.mutate({ id: orderId, data: { orderStatus: newStatus } }, {
       onSuccess: () => {
         toast.success('Status updated');
@@ -62,7 +62,7 @@ export function AdminOrders() {
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <Select value={order.orderStatus} onValueChange={(val) => handleStatusChange(order.id, val)}>
+                    <Select value={order.orderStatus} onValueChange={(val) => handleStatusChange(order.id, val as OrderStatus)}>
                       <SelectTrigger className="w-[160px] h-8 text-xs">
                         <SelectValue />
                       </SelectTrigger>
@@ -110,7 +110,7 @@ export function AdminOrders() {
                           </div>
                           
                           <div className="flex justify-between items-center pt-4 border-t text-lg font-bold">
-                            <span>Total Paid</span>
+                            <span>{order.orderStatus === 'Delivered' ? 'Collected amount' : 'Order total'}</span>
                             <span className="text-primary">{formatNaira(order.subtotal)}</span>
                           </div>
                         </div>

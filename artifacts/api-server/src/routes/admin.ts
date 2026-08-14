@@ -24,8 +24,13 @@ router.get("/admin/summary", async (_req, res): Promise<void> => {
   const now = new Date();
   const monthStart = startOfCurrentMonth(now);
   const paidOrders = orders.filter((order) => order.paymentStatus === "Paid");
+  const realizedRevenueOrders = orders.filter(
+    (order) => order.paymentStatus === "Paid" || order.orderStatus === "Delivered",
+  );
   const currentMonthOrders = orders.filter((order) => asDate(order.createdAt) >= monthStart);
-  const currentMonthPaidOrders = currentMonthOrders.filter((order) => order.paymentStatus === "Paid");
+  const currentMonthPaidOrders = currentMonthOrders.filter(
+    (order) => order.paymentStatus === "Paid" || order.orderStatus === "Delivered",
+  );
 
   const customerMap = new Map<string, {
     id: string;
@@ -44,7 +49,9 @@ router.get("/admin/summary", async (_req, res): Promise<void> => {
       : `phone:${order.phone.trim().replace(/\s+/g, "").toLowerCase()}`;
     const orderDate = asDate(order.createdAt);
     const existing = customerMap.get(key);
-    const paidSpend = order.paymentStatus === "Paid" ? order.subtotal : 0;
+    const paidSpend = order.paymentStatus === "Paid" || order.orderStatus === "Delivered"
+      ? order.subtotal
+      : 0;
 
     if (!existing) {
       customerMap.set(key, {
@@ -79,7 +86,7 @@ router.get("/admin/summary", async (_req, res): Promise<void> => {
     }));
 
   res.json({
-    totalRevenue: paidOrders.reduce((sum, order) => sum + order.subtotal, 0),
+    totalRevenue: realizedRevenueOrders.reduce((sum, order) => sum + order.subtotal, 0),
     thisMonthRevenue: currentMonthPaidOrders.reduce((sum, order) => sum + order.subtotal, 0),
     totalOrders: orders.length,
     thisMonthOrders: currentMonthOrders.length,

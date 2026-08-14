@@ -669,8 +669,8 @@ components:
             $ref: "#/components/schemas/OrderItem"
         subtotal:       { type: number }
         paymentMethod:  { type: string }
-        paymentStatus:  { type: string }
-        orderStatus:    { type: string }
+        paymentStatus:  { $ref: "#/components/schemas/PaymentStatus" }
+        orderStatus:    { $ref: "#/components/schemas/OrderStatus" }
         flutterwaveRef: { type: ["string", "null"] }
         timeline:
           type: array
@@ -696,11 +696,18 @@ components:
 
     OrderStatusUpdate:
       type: object
-      required: [orderStatus]
       properties:
-        orderStatus:   { type: string }
-        paymentStatus: { type: string }
+        orderStatus:   { $ref: "#/components/schemas/OrderStatus" }
+        paymentStatus: { $ref: "#/components/schemas/PaymentStatus" }
         note:          { type: string }
+
+    OrderStatus:
+      type: string
+      enum: [Confirming, Preparing, Shipping, Delivered, Cancelled]
+
+    PaymentStatus:
+      type: string
+      enum: [Paid, "Payment on delivery"]
 
     OrderStats:
       type: object

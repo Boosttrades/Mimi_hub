@@ -5,9 +5,11 @@
  * MimiiHub e-commerce API
  * OpenAPI spec version: 0.1.0
  */
+import type { OrderStatus } from './orderStatus';
+import type { PaymentStatus } from './paymentStatus';
 
 export interface OrderStatusUpdate {
-  orderStatus: string;
-  paymentStatus?: string;
+  orderStatus?: OrderStatus;
+  paymentStatus?: PaymentStatus;
   note?: string;
 }

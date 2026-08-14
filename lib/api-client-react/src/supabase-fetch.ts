@@ -200,9 +200,9 @@ function orderPayload(body: unknown) {
     (sum: number, item: { total_price?: number }) => sum + Number(item.total_price ?? 0),
     0,
   );
-  payload.payment_status = "Awaiting Payment";
-  payload.order_status = "Awaiting Payment";
-  payload.timeline = [{ status: "Awaiting Payment", timestamp: new Date().toISOString(), note: null }];
+  payload.payment_status = payload.payment_method === "flutterwave" ? "Paid" : "Payment on delivery";
+  payload.order_status = "Confirming";
+  payload.timeline = [{ status: "Confirming", timestamp: new Date().toISOString(), note: null }];
   const storedUserId = typeof localStorage !== "undefined" ? localStorage.getItem("mimi_user_id") : null;
   if (storedUserId) payload.user_id = Number(storedUserId);
   return payload;
@@ -241,14 +241,16 @@ async function getAdminSummary() {
         phone: order.phone,
         location: `${order.city}, ${order.state}`,
         orders: 1,
-        spend: order.paymentStatus === "Paid" ? order.subtotal : 0,
+        spend: order.paymentStatus === "Paid" || order.orderStatus === "Delivered" ? order.subtotal : 0,
         firstOrderAt: order.createdAt,
         lastOrderAt: order.createdAt,
         returning: false,
       });
     } else {
       existing.orders += 1;
-      existing.spend += order.paymentStatus === "Paid" ? order.subtotal : 0;
+      existing.spend += order.paymentStatus === "Paid" || order.orderStatus === "Delivered"
+        ? order.subtotal
+        : 0;
       if (date < new Date(existing.firstOrderAt)) existing.firstOrderAt = order.createdAt;
       if (date > new Date(existing.lastOrderAt)) existing.lastOrderAt = order.createdAt;
       existing.returning = existing.orders > 1;
@@ -396,15 +398,17 @@ async function routeSupabaseApi(pathname: string, options: CustomFetchOptions): 
   if (resource === "orders") {
     if (method === "GET" && segments[1] === "stats") {
       const orders = await supabaseRequest<Record<string, any>[]>("orders", { query: { select: "*" } });
-      const paid = orders.filter((order) => order.payment_status === "Paid");
+      const realized = orders.filter(
+        (order) => order.payment_status === "Paid" || order.order_status === "Delivered",
+      );
       return {
         totalOrders: orders.length,
-        pendingOrders: orders.filter((order) => order.order_status === "Awaiting Payment").length,
-        paidOrders: paid.length,
+        pendingOrders: orders.filter((order) => !["Delivered", "Cancelled"].includes(order.order_status)).length,
+        paidOrders: orders.filter((order) => order.payment_status === "Paid").length,
         preparingOrders: orders.filter((order) => order.order_status === "Preparing").length,
         deliveredOrders: orders.filter((order) => order.order_status === "Delivered").length,
         cancelledOrders: orders.filter((order) => order.order_status === "Cancelled").length,
-        totalRevenue: paid.reduce((sum, order) => sum + Number(order.subtotal), 0),
+        totalRevenue: realized.reduce((sum, order) => sum + Number(order.subtotal), 0),
       };
     }
     if (method === "GET" && segments[1] === "ref" && segments[2]) {
@@ -434,9 +438,11 @@ async function routeSupabaseApi(pathname: string, options: CustomFetchOptions): 
         query: { select: "*", id: `eq.${segments[1]}`, limit: 1 },
       });
       if (!current[0]) return null;
-      const update = snakeize(body) as Record<string, unknown>;
+       const update = snakeize(body) as Record<string, unknown>;
       const timeline = Array.isArray(current[0].timeline) ? [...current[0].timeline] : [];
-      timeline.push({ status: update.order_status, timestamp: new Date().toISOString(), note: update.note ?? null });
+       if (update.order_status) {
+         timeline.push({ status: update.order_status, timestamp: new Date().toISOString(), note: update.note ?? null });
+       }
       delete update.note;
       update.timeline = timeline;
       const rows = await supabaseRequest<Record<string, unknown>[]>("orders", {
