@@ -17,6 +17,87 @@ export const HealthCheckResponse = zod.object({
 
 
 /**
+ * @summary Create an account and start email verification
+ */
+export const signUpBodyPasswordMin = 8;
+export const signUpBodyPasswordMax = 128;
+
+
+
+export const SignUpBody = zod.object({
+  "email": zod.string().email(),
+  "password": zod.string().min(signUpBodyPasswordMin).max(signUpBodyPasswordMax)
+})
+
+export const SignUpResponse = zod.object({
+  "user": zod.object({
+  "id": zod.string(),
+  "email": zod.string().email().nullable(),
+  "emailVerified": zod.boolean(),
+  "createdAt": zod.coerce.date()
+}),
+  "emailVerificationRequired": zod.boolean(),
+  "message": zod.string().optional()
+})
+
+
+/**
+ * @summary Sign in with email and password
+ */
+export const signInBodyPasswordMin = 8;
+export const signInBodyPasswordMax = 128;
+
+
+
+export const SignInBody = zod.object({
+  "email": zod.string().email(),
+  "password": zod.string().min(signInBodyPasswordMin).max(signInBodyPasswordMax)
+})
+
+export const SignInResponse = zod.object({
+  "user": zod.object({
+  "id": zod.string(),
+  "email": zod.string().email().nullable(),
+  "emailVerified": zod.boolean(),
+  "createdAt": zod.coerce.date()
+}),
+  "emailVerificationRequired": zod.boolean(),
+  "message": zod.string().optional()
+})
+
+
+/**
+ * @summary Clear the current session
+ */
+export const SignOutResponse = zod.unknown()
+
+
+/**
+ * @summary Get and refresh the current session
+ */
+export const GetAuthSessionResponse = zod.object({
+  "user": zod.object({
+  "id": zod.string(),
+  "email": zod.string().email().nullable(),
+  "emailVerified": zod.boolean(),
+  "createdAt": zod.coerce.date()
+}),
+  "emailVerificationRequired": zod.boolean(),
+  "message": zod.string().optional()
+})
+
+
+/**
+ * @summary Resend the email verification message
+ */
+export const ResendVerificationEmailBody = zod.object({
+  "email": zod.string().email()
+})
+
+export const ResendVerificationEmailResponse = zod.void()
+
+
+/**
  * @summary List all categories with subcategories
  */
 export const ListCategoriesResponseItem = zod.object({

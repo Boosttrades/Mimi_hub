@@ -8,10 +8,14 @@
 
 export * from './adminCustomer';
 export * from './adminSummary';
+export * from './authCredentials';
+export * from './authResponse';
+export * from './authUser';
 export * from './category';
 export * from './categoryInput';
 export * from './categoryUpdate';
 export * from './deliverySettings';
+export * from './emailInput';
 export * from './featuredCollection';
 export * from './healthStatus';
 export * from './heroBanner';

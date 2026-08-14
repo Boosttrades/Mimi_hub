@@ -9,6 +9,33 @@ export interface HealthStatus {
   status: string;
 }
 
+export interface AuthCredentials {
+  email: string;
+  /**
+     * @minLength 8
+     * @maxLength 128
+     */
+  password: string;
+}
+
+export interface EmailInput {
+  email: string;
+}
+
+export interface AuthUser {
+  id: string;
+  /** @nullable */
+  email: string | null;
+  emailVerified: boolean;
+  createdAt: string;
+}
+
+export interface AuthResponse {
+  user: AuthUser;
+  emailVerificationRequired: boolean;
+  message?: string;
+}
+
 export interface Subcategory {
   id: number;
   categoryId: number;

@@ -9,6 +9,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Supabase email authentication and sessions
   - name: categories
     description: Category and subcategory management
   - name: products
@@ -32,6 +34,94 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # ── AUTH ───────────────────────────────────────────────────────
+  /auth/signup:
+    post:
+      operationId: signUp
+      tags: [auth]
+      summary: Create an account and start email verification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthCredentials"
+      responses:
+        "201":
+          description: Account created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Invalid credentials
+        "409":
+          description: Account already exists
+
+  /auth/login:
+    post:
+      operationId: signIn
+      tags: [auth]
+      summary: Sign in with email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthCredentials"
+      responses:
+        "200":
+          description: Signed in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+        "403":
+          description: Email address is not verified
+
+  /auth/logout:
+    post:
+      operationId: signOut
+      tags: [auth]
+      summary: Clear the current session
+      responses:
+        "200":
+          description: Signed out
+
+  /auth/session:
+    get:
+      operationId: getAuthSession
+      tags: [auth]
+      summary: Get and refresh the current session
+      responses:
+        "200":
+          description: Valid session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Not authenticated
+
+  /auth/verification/resend:
+    post:
+      operationId: resendVerificationEmail
+      tags: [auth]
+      summary: Resend the email verification message
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmailInput"
+      responses:
+        "202":
+          description: Verification request accepted
+        "400":
+          description: Invalid email address
 
   # ── CATEGORIES ────────────────────────────────────────────────
   /categories:
@@ -483,6 +573,36 @@ components:
         status:
           type: string
       required: [status]
+
+    AuthCredentials:
+      type: object
+      required: [email, password]
+      properties:
+        email:    { type: string, format: email }
+        password: { type: string, minLength: 8, maxLength: 128 }
+
+    EmailInput:
+      type: object
+      required: [email]
+      properties:
+        email: { type: string, format: email }
+
+    AuthUser:
+      type: object
+      required: [id, email, emailVerified, createdAt]
+      properties:
+        id:            { type: string }
+        email:         { type: ["string", "null"], format: email }
+        emailVerified: { type: boolean }
+        createdAt:     { type: string, format: date-time }
+
+    AuthResponse:
+      type: object
+      required: [user, emailVerificationRequired]
+      properties:
+        user: { $ref: "#/components/schemas/AuthUser" }
+        emailVerificationRequired: { type: boolean }
+        message: { type: string }
 
     # ── CATEGORY ────────────────────────────────────────────────
     Category:
