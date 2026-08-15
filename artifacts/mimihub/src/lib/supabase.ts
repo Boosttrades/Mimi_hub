@@ -80,6 +80,11 @@ export async function syncUserData(
   return toCamel(stored) as MimiAccountData;
 }
 
+export async function getUserData(): Promise<MimiAccountData> {
+  const stored = await request<Record<string, unknown>>('/users/data');
+  return toCamel(stored) as MimiAccountData;
+}
+
 export async function uploadProductImage(file: Blob, filename: string): Promise<string> {
   const formData = new FormData();
   formData.append('file', file, filename);
