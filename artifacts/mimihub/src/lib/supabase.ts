@@ -4,6 +4,21 @@ export interface MimiUser {
   createdAt: string;
 }
 
+export interface MimiAccountData {
+  userId: number;
+  cart: Array<{
+    productId: number;
+    productName: string;
+    productImage: string;
+    quantity: number;
+    unitPrice: number;
+    totalPrice: number;
+  }>;
+  wishlist: number[];
+  checkout: Record<string, string>;
+  updatedAt: string;
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const headers = new Headers(options.headers);
   headers.set('Accept', 'application/json');
@@ -34,6 +49,7 @@ export async function createOrGetUser(username: string): Promise<MimiUser> {
   });
   const normalized = toCamel(user) as MimiUser;
   localStorage.setItem('mimi_user_id', String(normalized.id));
+  window.dispatchEvent(new Event('mimihub:user-session-changed'));
   return normalized;
 }
 
@@ -51,6 +67,22 @@ export async function getCurrentUser(): Promise<MimiUser | null> {
 export async function listUserOrders(userId: number) {
   const rows = await request<Record<string, unknown>[]>(`/users/${encodeURIComponent(userId)}/orders`);
   return rows.map(toCamel);
+}
+
+export async function syncUserData(
+  data: Pick<MimiAccountData, 'cart' | 'wishlist' | 'checkout'>,
+  mode: 'merge' | 'replace' = 'merge',
+): Promise<MimiAccountData> {
+  const stored = await request<Record<string, unknown>>('/users/data', {
+    method: 'POST',
+    body: JSON.stringify({ ...data, mode }),
+  });
+  return toCamel(stored) as MimiAccountData;
+}
+
+export async function getUserData(): Promise<MimiAccountData> {
+  const stored = await request<Record<string, unknown>>('/users/data');
+  return toCamel(stored) as MimiAccountData;
 }
 
 export async function uploadProductImage(file: Blob, filename: string): Promise<string> {

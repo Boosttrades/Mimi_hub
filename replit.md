@@ -30,11 +30,13 @@ A premium Nigerian lifestyle e-commerce website selling personal care products a
 - `artifacts/mimihub/src/components/layout/` — Header, BottomNav
 - `artifacts/api-server/src/routes/` — categories, products, orders, settings
 - `lib/db/src/schema/` — Drizzle table definitions
+- `lib/db/src/schema/user-data.ts` — optional account cart, wishlist, and checkout data
 - `lib/api-spec/openapi.yaml` — single source of truth for API contracts
 
 ## Architecture decisions
 
-- Cart and Wishlist are purely client-side (localStorage) — no auth required
+- Cart and Wishlist are guest-first and localStorage-backed — no account is required to browse or order
+- When a user creates an optional username account, guest cart, wishlist, and checkout progress merge into Supabase and continue syncing
 - Checkout progress is saved to localStorage so users can resume
 - Orders use IDs like MH-000001, generated server-side
 - Settings (store, homepage, payment) stored as JSON blobs in a single `settings` table

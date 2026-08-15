@@ -60,6 +60,7 @@ export function Checkout() {
   // Save progress automatically
   useEffect(() => {
     localStorage.setItem('mimihub_checkout', JSON.stringify(formValues));
+    window.dispatchEvent(new Event('mimihub:checkout-changed'));
   }, [formValues]);
 
   // If cart is empty, redirect to cart
