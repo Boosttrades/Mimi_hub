@@ -17,6 +17,151 @@ export const HealthCheckResponse = zod.object({
 
 
 /**
+ * @summary Create an email account
+ */
+export const signUpBodyPasswordMin = 8;
+export const signUpBodyPasswordMax = 72;
+
+export const signUpBodyFullNameMax = 120;
+
+
+
+export const SignUpBody = zod.object({
+  "email": zod.string().email(),
+  "password": zod.string().min(signUpBodyPasswordMin).max(signUpBodyPasswordMax),
+  "fullName": zod.string().max(signUpBodyFullNameMax).optional()
+})
+
+export const SignUpResponse = zod.object({
+  "user": zod.object({
+  "id": zod.string(),
+  "email": zod.string().email().nullable(),
+  "phone": zod.string().optional(),
+  "role": zod.string(),
+  "aud": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "emailConfirmedAt": zod.coerce.date().nullable(),
+  "userMetadata": zod.record(zod.string(), zod.unknown())
+}),
+  "authenticated": zod.boolean(),
+  "session": zod.object({
+  "expiresAt": zod.number().nullish(),
+  "expiresIn": zod.number(),
+  "tokenType": zod.string()
+}).optional()
+}).and(zod.object({
+  "requiresEmailVerification": zod.boolean()
+}))
+
+
+/**
+ * @summary Sign in with email and password
+ */
+export const signInBodyPasswordMin = 8;
+export const signInBodyPasswordMax = 72;
+
+
+
+export const SignInBody = zod.object({
+  "email": zod.string().email(),
+  "password": zod.string().min(signInBodyPasswordMin).max(signInBodyPasswordMax)
+})
+
+export const SignInResponse = zod.object({
+  "user": zod.object({
+  "id": zod.string(),
+  "email": zod.string().email().nullable(),
+  "phone": zod.string().optional(),
+  "role": zod.string(),
+  "aud": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "emailConfirmedAt": zod.coerce.date().nullable(),
+  "userMetadata": zod.record(zod.string(), zod.unknown())
+}),
+  "authenticated": zod.boolean(),
+  "session": zod.object({
+  "expiresAt": zod.number().nullish(),
+  "expiresIn": zod.number(),
+  "tokenType": zod.string()
+}).optional()
+})
+
+
+/**
+ * @summary Clear the current authentication session
+ */
+export const SignOutResponse = zod.void()
+
+
+/**
+ * @summary Get the current user session
+ */
+export const GetAuthSessionResponse = zod.object({
+  "user": zod.object({
+  "id": zod.string(),
+  "email": zod.string().email().nullable(),
+  "phone": zod.string().optional(),
+  "role": zod.string(),
+  "aud": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "emailConfirmedAt": zod.coerce.date().nullable(),
+  "userMetadata": zod.record(zod.string(), zod.unknown())
+}),
+  "authenticated": zod.boolean(),
+  "session": zod.object({
+  "expiresAt": zod.number().nullish(),
+  "expiresIn": zod.number(),
+  "tokenType": zod.string()
+}).optional()
+})
+
+
+/**
+ * @summary Resend an email verification message
+ */
+export const ResendEmailVerificationBody = zod.object({
+  "email": zod.string().email()
+})
+
+export const ResendEmailVerificationResponse = zod.object({
+  "message": zod.string()
+})
+
+
+/**
+ * @summary Verify an email using a Supabase token hash
+ */
+
+
+
+export const VerifyEmailBody = zod.object({
+  "tokenHash": zod.string().min(1)
+})
+
+export const VerifyEmailResponse = zod.object({
+  "user": zod.object({
+  "id": zod.string(),
+  "email": zod.string().email().nullable(),
+  "phone": zod.string().optional(),
+  "role": zod.string(),
+  "aud": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "emailConfirmedAt": zod.coerce.date().nullable(),
+  "userMetadata": zod.record(zod.string(), zod.unknown())
+}),
+  "authenticated": zod.boolean(),
+  "session": zod.object({
+  "expiresAt": zod.number().nullish(),
+  "expiresIn": zod.number(),
+  "tokenType": zod.string()
+}).optional()
+}).and(zod.object({
+  "verified": zod.boolean(),
+  "requiresEmailVerification": zod.boolean()
+}))
+
+
+/**
  * @summary List all categories with subcategories
  */
 export const ListCategoriesResponseItem = zod.object({

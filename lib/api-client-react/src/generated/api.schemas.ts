@@ -9,6 +9,85 @@ export interface HealthStatus {
   status: string;
 }
 
+export type AuthUserUserMetadata = { [key: string]: unknown };
+
+export interface AuthUser {
+  id: string;
+  /** @nullable */
+  email: string | null;
+  phone?: string;
+  role: string;
+  aud: string;
+  createdAt: string;
+  /** @nullable */
+  emailConfirmedAt: string | null;
+  userMetadata: AuthUserUserMetadata;
+}
+
+export interface AuthSession {
+  /** @nullable */
+  expiresAt?: number | null;
+  expiresIn: number;
+  tokenType: string;
+}
+
+export interface AuthSignupInput {
+  email: string;
+  /**
+     * @minLength 8
+     * @maxLength 72
+     */
+  password: string;
+  /** @maxLength 120 */
+  fullName?: string;
+}
+
+export interface AuthCredentials {
+  email: string;
+  /**
+     * @minLength 8
+     * @maxLength 72
+     */
+  password: string;
+}
+
+export interface AuthEmailInput {
+  email: string;
+}
+
+export interface AuthVerifyEmailInput {
+  /** @minLength 1 */
+  tokenHash: string;
+}
+
+export interface AuthError {
+  code: string;
+  message: string;
+}
+
+export interface AuthErrorResponse {
+  error: AuthError;
+}
+
+export interface AuthSessionResponse {
+  user: AuthUser;
+  authenticated: boolean;
+  session?: AuthSession;
+}
+
+export type AuthSignupResponse = AuthSessionResponse & {
+  requiresEmailVerification: boolean;
+};
+
+export type AuthVerificationResponse = AuthSessionResponse & {
+  verified: boolean;
+  requiresEmailVerification: boolean;
+};
+
+export interface AuthMessageResponse {
+  message: string;
+}
+
 export interface Subcategory {
   id: number;
   categoryId: number;

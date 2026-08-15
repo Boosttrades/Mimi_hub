@@ -19,6 +19,8 @@ tags:
     description: Live admin dashboard data
   - name: settings
     description: Store and homepage settings
+  - name: auth
+    description: Supabase email authentication and sessions
 paths:
   /healthz:
     get:
@@ -32,6 +34,153 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # ── AUTH ─────────────────────────────────────────────────────
+  /auth/signup:
+    post:
+      operationId: signUp
+      tags: [auth]
+      summary: Create an email account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthSignupInput"
+      responses:
+        "201":
+          description: Account created; email verification may be required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSignupResponse"
+        "400":
+          description: Invalid account details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
+        "409":
+          description: Email already registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
+
+  /auth/login:
+    post:
+      operationId: signIn
+      tags: [auth]
+      summary: Sign in with email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthCredentials"
+      responses:
+        "200":
+          description: Authenticated session established in HttpOnly cookies
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSessionResponse"
+        "400":
+          description: Invalid credentials format
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
+        "403":
+          description: Email has not been verified
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
+
+  /auth/logout:
+    post:
+      operationId: signOut
+      tags: [auth]
+      summary: Clear the current authentication session
+      responses:
+        "204":
+          description: Session cleared
+
+  /auth/session:
+    get:
+      operationId: getAuthSession
+      tags: [auth]
+      summary: Get the current user session
+      responses:
+        "200":
+          description: Current authenticated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSessionResponse"
+        "401":
+          description: No active or refreshable session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
+
+  /auth/resend-verification:
+    post:
+      operationId: resendEmailVerification
+      tags: [auth]
+      summary: Resend an email verification message
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthEmailInput"
+      responses:
+        "202":
+          description: Verification request accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthMessageResponse"
+        "400":
+          description: Invalid email
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
+
+  /auth/verify-email:
+    post:
+      operationId: verifyEmail
+      tags: [auth]
+      summary: Verify an email using a Supabase token hash
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthVerifyEmailInput"
+      responses:
+        "200":
+          description: Email verified
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthVerificationResponse"
+        "400":
+          description: Invalid verification token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
 
   # ── CATEGORIES ────────────────────────────────────────────────
   /categories:
@@ -483,6 +632,98 @@ components:
         status:
           type: string
       required: [status]
+
+    AuthUser:
+      type: object
+      required: [id, email, role, aud, createdAt, emailConfirmedAt, userMetadata]
+      properties:
+        id: { type: string }
+        email: { type: ["string", "null"], format: email }
+        phone: { type: string }
+        role: { type: string }
+        aud: { type: string }
+        createdAt: { type: string, format: date-time }
+        emailConfirmedAt: { type: ["string", "null"], format: date-time }
+        userMetadata: { type: object, additionalProperties: true }
+
+    AuthSession:
+      type: object
+      required: [expiresIn, tokenType]
+      properties:
+        expiresAt: { type: ["number", "null"] }
+        expiresIn: { type: number }
+        tokenType: { type: string }
+
+    AuthSignupInput:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, minLength: 8, maxLength: 72 }
+        fullName: { type: string, maxLength: 120 }
+
+    AuthCredentials:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, minLength: 8, maxLength: 72 }
+
+    AuthEmailInput:
+      type: object
+      required: [email]
+      properties:
+        email: { type: string, format: email }
+
+    AuthVerifyEmailInput:
+      type: object
+      required: [tokenHash]
+      properties:
+        tokenHash: { type: string, minLength: 1 }
+
+    AuthError:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: string }
+        message: { type: string }
+
+    AuthErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error: { $ref: "#/components/schemas/AuthError" }
+
+    AuthSessionResponse:
+      type: object
+      required: [user, authenticated]
+      properties:
+        user: { $ref: "#/components/schemas/AuthUser" }
+        authenticated: { type: boolean }
+        session: { $ref: "#/components/schemas/AuthSession" }
+
+    AuthSignupResponse:
+      allOf:
+        - $ref: "#/components/schemas/AuthSessionResponse"
+        - type: object
+          required: [requiresEmailVerification]
+          properties:
+            requiresEmailVerification: { type: boolean }
+
+    AuthVerificationResponse:
+      allOf:
+        - $ref: "#/components/schemas/AuthSessionResponse"
+        - type: object
+          required: [verified, requiresEmailVerification]
+          properties:
+            verified: { type: boolean }
+            requiresEmailVerification: { type: boolean }
+
+    AuthMessageResponse:
+      type: object
+      required: [message]
+      properties:
+        message: { type: string }
 
     # ── CATEGORY ────────────────────────────────────────────────
     Category:
