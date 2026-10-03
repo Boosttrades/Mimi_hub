@@ -1,7 +1,7 @@
 export const CATEGORIES = [
   {
     id: 1,
-    name: "Personal Care",
+    name: "Beauty/Personal Care",
     slug: "personal-care",
     description: "Premium personal care and wellness products",
     image: "https://placehold.co/800x600/D4B483/FAF6F0?text=Personal+Care",
@@ -17,7 +17,7 @@ export const CATEGORIES = [
   },
   {
     id: 2,
-    name: "Home Essentials",
+    name: "Home",
     slug: "home-essentials",
     description: "Premium essentials for a beautiful and comfortable home",
     image: "https://placehold.co/800x600/C4A47C/FAF6F0?text=Home+Essentials",
@@ -26,7 +26,7 @@ export const CATEGORIES = [
       { id: 7, categoryId: 2, name: "Curtains", slug: "curtains", createdAt: new Date("2026-01-02T00:00:00.000Z") },
       { id: 8, categoryId: 2, name: "Bedsheets and Duvets", slug: "bedsheets-and-duvets", createdAt: new Date("2026-01-02T00:00:00.000Z") },
       { id: 9, categoryId: 2, name: "Rugs", slug: "rugs", createdAt: new Date("2026-01-02T00:00:00.000Z") },
-      { id: 10, categoryId: 2, name: "Poles and Hanger", slug: "poles-and-hanger", createdAt: new Date("2026-01-02T00:00:00.000Z") },
+      { id: 10, categoryId: 2, name: "Poles and Hangers", slug: "poles-and-hanger", createdAt: new Date("2026-01-02T00:00:00.000Z") },
     ],
   },
 ];

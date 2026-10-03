@@ -18,9 +18,28 @@ import { uploadProductImage } from '@/lib/supabase';
 
 type ImageItem = { id: string; src: string; name: string; local?: boolean; file?: File };
 const fallbackCategories = [
-  { id: 1, name: 'Home & Living', subcategories: [{ id: 11, name: 'Tableware' }, { id: 12, name: 'Decor' }] },
-  { id: 2, name: 'Beauty & Wellness', subcategories: [{ id: 21, name: 'Body care' }, { id: 22, name: 'Fragrance' }] },
-  { id: 3, name: 'Style & Accessories', subcategories: [{ id: 31, name: 'Jewellery' }, { id: 32, name: 'Clothing' }] },
+  {
+    id: 1,
+    name: 'Beauty/Personal Care',
+    subcategories: [
+      { id: 1, name: 'Perfumes' },
+      { id: 2, name: 'Feminine Wash' },
+      { id: 3, name: 'Creams' },
+      { id: 4, name: 'Wellness Products' },
+      { id: 5, name: 'Toothpaste' },
+      { id: 6, name: 'Body Oils' },
+    ],
+  },
+  {
+    id: 2,
+    name: 'Home',
+    subcategories: [
+      { id: 7, name: 'Curtains' },
+      { id: 8, name: 'Bedsheets and Duvets' },
+      { id: 9, name: 'Rugs' },
+      { id: 10, name: 'Poles and Hangers' },
+    ],
+  },
 ];
 const measurementUnits = ['ml', 'cl', 'L', 'g', 'kg', 'oz', 'lb', 'mm', 'cm', 'm'];
 const clothingSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];

@@ -62,7 +62,7 @@ const DEFAULT_HOMEPAGE: unknown = {
     },
     {
       id: "banner2",
-      title: "Home Essentials",
+      title: "Home",
       subtitle: "Transform your living space with our premium home collection",
       image: "https://placehold.co/800x400/C4A47C/FAF6F0?text=Home+Essentials",
       buttonText: "Shop Now",
@@ -78,14 +78,14 @@ const DEFAULT_HOMEPAGE: unknown = {
   featuredCollections: [
     {
       id: "col1",
-      title: "Personal Care",
+      title: "Beauty/Personal Care",
       description: "Perfumes, body oils, creams, feminine wash, toothpaste, wellness products and more.",
       image: "https://placehold.co/600x300/D4B483/FAF6F0?text=Personal+Care",
       link: "/category/personal-care",
     },
     {
       id: "col2",
-      title: "Home Essentials",
+      title: "Home",
       description: "Curtains, poles, rugs, bedsheets, duvets and more for your home.",
       image: "https://placehold.co/600x300/C4A47C/FAF6F0?text=Home+Essentials",
       link: "/category/home-essentials",

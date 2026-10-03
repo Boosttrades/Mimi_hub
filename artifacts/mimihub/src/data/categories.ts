@@ -18,7 +18,7 @@ export interface StaticCategory {
 export const staticCategories: StaticCategory[] = [
   {
     id: 1,
-    name: 'Personal Care',
+    name: 'Beauty/Personal Care',
     slug: 'personal-care',
     description: 'Premium personal care and wellness products',
     image: categoryImages['personal-care'],
@@ -33,7 +33,7 @@ export const staticCategories: StaticCategory[] = [
   },
   {
     id: 2,
-    name: 'Home Essentials',
+    name: 'Home',
     slug: 'home-essentials',
     description: 'Premium essentials for a beautiful and comfortable home',
     image: categoryImages['home-essentials'],
@@ -41,7 +41,7 @@ export const staticCategories: StaticCategory[] = [
       { id: 7, name: 'Curtains', slug: 'curtains' },
       { id: 8, name: 'Bedsheets and Duvets', slug: 'bedsheets-and-duvets' },
       { id: 9, name: 'Rugs', slug: 'rugs' },
-      { id: 10, name: 'Poles and Hanger', slug: 'poles-and-hanger' },
+      { id: 10, name: 'Poles and Hangers', slug: 'poles-and-hanger' },
     ],
   },
 ];
