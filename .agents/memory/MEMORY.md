@@ -6,3 +6,4 @@
 - [Catalog data authenticity](catalog-data-authenticity.md) — keep product subcategories empty until real merchant product data is available; do not seed fake listings.
 - [Account preview styling](account-preview-style.md) — keep sign-in and sign-up previews aligned with the approved MimiiHub screen-only design.
 - [Workspace typecheck freshness](workspace-typecheck-freshness.md) — rebuild shared library declarations before treating missing artifact imports as contract defects.
+- [Orval/Zod generation](orval-zod-generation.md) — pin Orval to Zod v3; its default can emit v4-only APIs with this workspace's Zod 3 package.

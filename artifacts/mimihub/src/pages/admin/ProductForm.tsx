@@ -7,6 +7,7 @@ import {
   getGetProductQueryKey, getListProductsQueryKey, useCreateProduct, useGetProduct,
   useListCategories, useUpdateProduct
 } from '@workspace/api-client-react';
+import type { ProductInput, ProductUpdate } from '@workspace/api-client-react';
 import { AdminLayout } from './AdminLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -55,7 +56,7 @@ export function AdminProductForm() {
   const createMutation = useCreateProduct();
   const updateMutation = useUpdateProduct();
   const fileRef = useRef<HTMLInputElement>(null);
-  const categories: any[] = remoteCategories?.length ? remoteCategories : fallbackCategories;
+  const listedCategories: any[] = remoteCategories?.length ? remoteCategories : fallbackCategories;
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [images, setImages] = useState<ImageItem[]>([]);
   const [saved, setSaved] = useState(false);
@@ -79,9 +80,33 @@ export function AdminProductForm() {
     setImages(Array.from(new Set(urls)).map((src: string, index: number) => ({ id: `remote-${index}`, src, name: `image-${index + 1}` })));
   }, [product]);
 
-  const selectedCategory = categories.find((category) => String(category.id) === form.categoryId);
-  const subcategories = selectedCategory?.subcategories ?? [];
-  const setField = (name: string, value: string | boolean) => setForm((current) => ({ ...current, [name]: value }));
+  const persistedCategoryId = product?.categoryId ?? product?.category?.id;
+  const categoryId = form.categoryId || (persistedCategoryId != null ? String(persistedCategoryId) : '');
+  const categories = product?.category && !listedCategories.some((category) => String(category.id) === String(product.category?.id))
+    ? [...listedCategories, product.category]
+    : listedCategories;
+  const selectedCategory = categories.find((category) => String(category.id) === categoryId);
+  const persistedSubcategoryId = product?.subcategoryId ?? product?.subcategory?.id;
+  const subcategoryId = form.subcategoryId || (
+    persistedCategoryId != null && categoryId === String(persistedCategoryId) && persistedSubcategoryId != null
+      ? String(persistedSubcategoryId)
+      : ''
+  );
+  const subcategories = selectedCategory?.subcategories?.length
+    ? selectedCategory.subcategories
+    : product?.subcategory && String(product.subcategory.categoryId) === categoryId
+      ? [product.subcategory]
+      : [];
+  const selectedSubcategory = subcategories.find((subcategory: any) => String(subcategory.id) === subcategoryId);
+  const setField = (name: string, value: string | boolean) => {
+    setForm((current) => ({ ...current, [name]: value }));
+    setErrors((current) => {
+      if (!current[name]) return current;
+      const next = { ...current };
+      delete next[name];
+      return next;
+    });
+  };
 
   const addFiles = (files: FileList | null) => {
     if (!files) return;
@@ -95,6 +120,12 @@ export function AdminProductForm() {
         file,
       }));
     setImages((current) => [...current, ...next]);
+    setErrors((current) => {
+      if (!current.images) return current;
+      const nextErrors = { ...current };
+      delete nextErrors.images;
+      return nextErrors;
+    });
   };
   const handleDrop = (event: DragEvent<HTMLButtonElement>) => { event.preventDefault(); addFiles(event.dataTransfer.files); };
   const removeImage = (id: string) => setImages((current) => current.filter((image) => image.id !== id));
@@ -103,11 +134,36 @@ export function AdminProductForm() {
     event.preventDefault();
     const nextErrors: Record<string, string> = {};
     if (!form.name.trim()) nextErrors.name = 'Give this piece a name.';
-    if (!form.categoryId) nextErrors.categoryId = 'Choose a collection.';
-    if (!form.price || Number(form.price) <= 0) nextErrors.price = 'Enter a price above zero.';
+    if (!categoryId) nextErrors.categoryId = 'Choose a collection.';
+    if (!form.price || !Number.isFinite(Number(form.price)) || Number(form.price) <= 0) nextErrors.price = 'Enter a price above zero.';
+    if (form.discountPct.trim() && (!Number.isFinite(Number(form.discountPct)) || Number(form.discountPct) < 0 || Number(form.discountPct) > 100)) {
+      nextErrors.discountPct = 'Enter a discount between 0 and 100.';
+    }
+    if (form.stockQty.trim() && (!Number.isFinite(Number(form.stockQty)) || Number(form.stockQty) < 0)) {
+      nextErrors.stockQty = 'Enter a stock quantity of zero or more.';
+    }
     if (!images.length) nextErrors.images = 'Add at least one product image.';
     setErrors(nextErrors);
-    if (Object.keys(nextErrors).length) return;
+    if (Object.keys(nextErrors).length) {
+      toast.error('Please fix the highlighted fields before saving.');
+      const firstInvalidTestId = nextErrors.name
+        ? 'input-product-name'
+        : nextErrors.categoryId
+          ? 'select-product-category'
+          : nextErrors.price
+            ? 'input-product-price'
+            : nextErrors.discountPct
+              ? 'input-product-discount'
+              : nextErrors.stockQty
+                ? 'input-product-stock'
+                : 'button-upload-images';
+      window.requestAnimationFrame(() => {
+        const invalidField = document.querySelector<HTMLElement>(`[data-testid="${firstInvalidTestId}"]`);
+        invalidField?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        invalidField?.focus();
+      });
+      return;
+    }
     setUploadingImages(true);
     let imageUrls: string[];
     try {
@@ -120,29 +176,46 @@ export function AdminProductForm() {
       );
     } catch (error) {
       console.error(error);
-      setUploadingImages(false);
-      toast.error('Could not upload product images. Try again.');
+      toast.error(error instanceof Error ? error.message : 'Could not upload product images. Try again.');
       return;
+    } finally {
+      setUploadingImages(false);
     }
-    setUploadingImages(false);
-    const payload: any = {
+    const basePayload = {
       name: form.name.trim(), slug: form.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
-      description: form.description, price: Number(form.price), discountPct: Number(form.discountPct) || undefined,
-      coverImage: imageUrls[0], images: imageUrls, categoryId: Number(form.categoryId),
-      subcategoryId: form.subcategoryId ? Number(form.subcategoryId) : undefined, stockQty: Number(form.stockQty) || 0,
+      description: form.description, price: Number(form.price),
+      coverImage: imageUrls[0], images: imageUrls, categoryId: Number(categoryId),
+      stockQty: Number(form.stockQty) || 0,
       inStock: Number(form.stockQty) > 0, visible: form.visible, featured: form.featured,
       specs: { capacity: form.sizeValue, unit: form.sizeUnit, dimensions: form.dimensions },
     };
-    const onSuccess = () => {
+    try {
+      if (isEditing) {
+        const payload: ProductUpdate = {
+          ...basePayload,
+          discountPct: form.discountPct.trim() ? Number(form.discountPct) : null,
+          subcategoryId: subcategoryId ? Number(subcategoryId) : null,
+        };
+        await updateMutation.mutateAsync({ id: productId, data: payload });
+      } else {
+        const payload: ProductInput = {
+          ...basePayload,
+          ...(form.discountPct.trim() ? { discountPct: Number(form.discountPct) } : {}),
+          ...(subcategoryId ? { subcategoryId: Number(subcategoryId) } : {}),
+        };
+        await createMutation.mutateAsync({ data: payload });
+      }
       setSaved(true);
       toast.success(isEditing ? 'Product changes saved' : 'Product added to your collection');
-      queryClient.invalidateQueries({ queryKey: getListProductsQueryKey() });
-      if (isEditing) queryClient.invalidateQueries({ queryKey: getGetProductQueryKey(productId) });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: getListProductsQueryKey() }),
+        ...(isEditing ? [queryClient.invalidateQueries({ queryKey: getGetProductQueryKey(productId) })] : []),
+      ]);
       setTimeout(() => setLocation('/admin/products'), 550);
-    };
-    const onError = () => toast.error('Could not save this product. Try again.');
-    if (isEditing) updateMutation.mutate({ id: productId, data: payload }, { onSuccess, onError });
-    else createMutation.mutate({ data: payload }, { onSuccess, onError });
+    } catch (error) {
+      console.error(error);
+      toast.error(error instanceof Error ? error.message : 'Could not save this product. Try again.');
+    }
   };
 
   const busy = createMutation.isPending || updateMutation.isPending || uploadingImages;
@@ -150,7 +223,7 @@ export function AdminProductForm() {
 
   return (
     <AdminLayout title={isEditing ? 'Edit product' : 'Add a product'} eyebrow={isEditing ? 'Collection / edit mode' : 'Collection / new piece'}>
-       <form onSubmit={submit} className="admin-rise">
+        <form onSubmit={submit} noValidate className="admin-rise">
         <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
            <div><button type="button" onClick={() => setLocation('/admin/products')} data-testid="button-back-products" className="mb-3 inline-flex items-center gap-2 text-xs font-bold text-[hsl(var(--admin-teal))]"><ArrowLeft className="h-4 w-4" /> Back to collection</button><p className="max-w-xl text-sm leading-6 text-[hsl(var(--admin-ink)/.55)]">Add the details that make this piece feel at home in your shop. You can always refine it later.</p></div>
             <div className="flex gap-3"><Button type="button" variant="outline" onClick={() => setLocation('/admin/products')} data-testid="button-cancel-product" className="h-11 rounded-full border-[hsl(var(--admin-deep)/.18)] px-5">Cancel</Button><Button type="submit" disabled={busy || saved} data-testid="button-save-product" className="h-11 gap-2 rounded-full bg-[hsl(var(--admin-deep))] px-6 text-[hsl(var(--background))] hover:bg-[hsl(var(--admin-teal))]">{saved ? <><Check className="h-4 w-4" /> Saved</> : busy ? <><Loader2 className="h-4 w-4 animate-spin" /> {uploadingImages ? 'Uploading images' : 'Saving'}</> : <>{isEditing ? 'Save changes' : 'Add Product'} <MoveRight className="h-4 w-4" /></>}</Button></div>
@@ -162,15 +235,15 @@ export function AdminProductForm() {
               <div><Label htmlFor="product-description" className="text-xs font-bold">Description</Label><Textarea id="product-description" data-testid="input-product-description" value={form.description} onChange={(e) => setField('description', e.target.value)} placeholder="What makes this piece worth bringing home?" rows={5} className="mt-2 resize-none rounded-xl border-[hsl(var(--admin-deep)/.15)] bg-[hsl(var(--background)/.55)] leading-6" /><p className="mt-1.5 text-right text-[10px] text-[hsl(var(--admin-ink)/.4)]">{form.description.length}/500</p></div>
             </div></section>
             <section className="admin-card rounded-[26px] p-6 sm:p-8"><div className="mb-7"><p className="admin-label">The details</p><h2 className="mt-1 font-serif text-2xl font-semibold text-[hsl(var(--admin-deep))]">Give it shape</h2></div><div className="grid gap-5 sm:grid-cols-2">
-              <div><Label className="text-xs font-bold">Category <span className="text-[hsl(var(--admin-coral))]">*</span></Label><Select value={form.categoryId} onValueChange={(v) => { setField('categoryId', v); setField('subcategoryId', ''); }}><SelectTrigger data-testid="select-product-category" className="mt-2 h-12 rounded-xl border-[hsl(var(--admin-deep)/.15)] bg-[hsl(var(--background)/.55)]"><SelectValue placeholder="Choose a collection" /></SelectTrigger><SelectContent>{categories.map((category) => <SelectItem key={category.id} value={String(category.id)}>{category.name}</SelectItem>)}</SelectContent></Select>{errors.categoryId && <p className="mt-1.5 text-xs text-[hsl(var(--admin-coral))]">{errors.categoryId}</p>}</div>
-              <div><Label className="text-xs font-bold">Subcategory</Label><Select value={form.subcategoryId} onValueChange={(v) => setField('subcategoryId', v)} disabled={!subcategories.length}><SelectTrigger data-testid="select-product-subcategory" className="mt-2 h-12 rounded-xl border-[hsl(var(--admin-deep)/.15)] bg-[hsl(var(--background)/.55)]"><SelectValue placeholder={subcategories.length ? 'Choose a subcategory' : 'Select a category first'} /></SelectTrigger><SelectContent>{subcategories.map((subcategory: any) => <SelectItem key={subcategory.id} value={String(subcategory.id)}>{subcategory.name}</SelectItem>)}</SelectContent></Select></div>
+              <div><Label className="text-xs font-bold">Category <span className="text-[hsl(var(--admin-coral))]">*</span></Label><Select value={categoryId} onValueChange={(v) => { setField('categoryId', v); setField('subcategoryId', ''); }}><SelectTrigger data-testid="select-product-category" className="mt-2 h-12 rounded-xl border-[hsl(var(--admin-deep)/.15)] bg-[hsl(var(--background)/.55)]"><SelectValue placeholder="Choose a collection">{selectedCategory?.name}</SelectValue></SelectTrigger><SelectContent>{categories.map((category) => <SelectItem key={category.id} value={String(category.id)}>{category.name}</SelectItem>)}</SelectContent></Select>{errors.categoryId && <p className="mt-1.5 text-xs text-[hsl(var(--admin-coral))]">{errors.categoryId}</p>}</div>
+              <div><Label className="text-xs font-bold">Subcategory</Label><Select value={subcategoryId} onValueChange={(v) => setField('subcategoryId', v)} disabled={!subcategories.length}><SelectTrigger data-testid="select-product-subcategory" className="mt-2 h-12 rounded-xl border-[hsl(var(--admin-deep)/.15)] bg-[hsl(var(--background)/.55)]"><SelectValue placeholder={subcategories.length ? 'Choose a subcategory' : 'Select a category first'}>{selectedSubcategory?.name}</SelectValue></SelectTrigger><SelectContent>{subcategories.map((subcategory: any) => <SelectItem key={subcategory.id} value={String(subcategory.id)}>{subcategory.name}</SelectItem>)}</SelectContent></Select></div>
                <div className="sm:col-span-2"><div className="flex flex-wrap items-end justify-between gap-3"><div><Label htmlFor="product-size" className="text-xs font-bold">Size / capacity</Label><p className="mt-1 text-[11px] text-[hsl(var(--admin-ink)/.48)]">Choose measurements for products like perfume or rugs, or clothing sizes for apparel.</p></div><Select value={form.sizeType} onValueChange={(value) => setForm((current) => ({ ...current, sizeType: value, sizeUnit: value === 'clothing' ? 'S' : 'ml' }))}><SelectTrigger data-testid="select-product-size-type" className="h-10 w-[150px] rounded-xl border-[hsl(var(--admin-deep)/.15)] bg-[hsl(var(--background)/.55)]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="measurement">Measurement</SelectItem><SelectItem value="clothing">Clothing size</SelectItem></SelectContent></Select></div><div className="mt-2 flex gap-2"><Input id="product-size" data-testid="input-product-size" value={form.sizeValue} onChange={(e) => setField('sizeValue', e.target.value)} placeholder={form.sizeType === 'clothing' ? 'e.g. XL' : 'e.g. 500'} className="h-12 rounded-xl border-[hsl(var(--admin-deep)/.15)] bg-[hsl(var(--background)/.55)]" /><Select value={form.sizeUnit} onValueChange={(v) => setField('sizeUnit', v)}><SelectTrigger data-testid="select-product-size-unit" className="h-12 w-[120px] rounded-xl border-[hsl(var(--admin-deep)/.15)] bg-[hsl(var(--background)/.55)]"><SelectValue /></SelectTrigger><SelectContent>{(form.sizeType === 'clothing' ? clothingSizes : measurementUnits).map((unit) => <SelectItem key={unit} value={unit}>{unit}</SelectItem>)}</SelectContent></Select></div></div>
               <div><Label htmlFor="product-dimensions" className="text-xs font-bold">Dimensions</Label><Input id="product-dimensions" data-testid="input-product-dimensions" value={form.dimensions} onChange={(e) => setField('dimensions', e.target.value)} placeholder="e.g. 18 × 10 × 10 cm" className="mt-2 h-12 rounded-xl border-[hsl(var(--admin-deep)/.15)] bg-[hsl(var(--background)/.55)]" /></div>
             </div></section>
             <section className="admin-card rounded-[26px] p-6 sm:p-8"><div className="mb-7"><p className="admin-label">The numbers</p><h2 className="mt-1 font-serif text-2xl font-semibold text-[hsl(var(--admin-deep))]">Price & availability</h2></div><div className="grid gap-5 sm:grid-cols-3">
               <div><Label htmlFor="product-price" className="text-xs font-bold">Price (₦) <span className="text-[hsl(var(--admin-coral))]">*</span></Label><Input id="product-price" data-testid="input-product-price" type="number" min="1" value={form.price} onChange={(e) => setField('price', e.target.value)} placeholder="0" className="mt-2 h-12 rounded-xl border-[hsl(var(--admin-deep)/.15)] bg-[hsl(var(--background)/.55)]" />{errors.price && <p className="mt-1.5 text-xs text-[hsl(var(--admin-coral))]">{errors.price}</p>}</div>
-              <div><Label htmlFor="product-discount" className="text-xs font-bold">Discount (%)</Label><Input id="product-discount" data-testid="input-product-discount" type="number" min="0" max="100" value={form.discountPct} onChange={(e) => setField('discountPct', e.target.value)} placeholder="0" className="mt-2 h-12 rounded-xl border-[hsl(var(--admin-deep)/.15)] bg-[hsl(var(--background)/.55)]" /></div>
-              <div><Label htmlFor="product-stock" className="text-xs font-bold">Units in stock</Label><Input id="product-stock" data-testid="input-product-stock" type="number" min="0" value={form.stockQty} onChange={(e) => setField('stockQty', e.target.value)} placeholder="0" className="mt-2 h-12 rounded-xl border-[hsl(var(--admin-deep)/.15)] bg-[hsl(var(--background)/.55)]" /></div>
+               <div><Label htmlFor="product-discount" className="text-xs font-bold">Discount (%)</Label><Input id="product-discount" data-testid="input-product-discount" type="number" min="0" max="100" value={form.discountPct} onChange={(e) => setField('discountPct', e.target.value)} placeholder="0" className="mt-2 h-12 rounded-xl border-[hsl(var(--admin-deep)/.15)] bg-[hsl(var(--background)/.55)]" />{errors.discountPct && <p className="mt-1.5 text-xs text-[hsl(var(--admin-coral))]">{errors.discountPct}</p>}</div>
+               <div><Label htmlFor="product-stock" className="text-xs font-bold">Units in stock</Label><Input id="product-stock" data-testid="input-product-stock" type="number" min="0" value={form.stockQty} onChange={(e) => setField('stockQty', e.target.value)} placeholder="0" className="mt-2 h-12 rounded-xl border-[hsl(var(--admin-deep)/.15)] bg-[hsl(var(--background)/.55)]" />{errors.stockQty && <p className="mt-1.5 text-xs text-[hsl(var(--admin-coral))]">{errors.stockQty}</p>}</div>
             </div></section>
           </div>
           <div className="space-y-6">

@@ -383,6 +383,7 @@ export const ListProductsResponseItem = zod.object({
   "capacity": zod.string().nullish(),
   "weight": zod.string().nullish(),
   "dimensions": zod.string().nullish(),
+  "unit": zod.string().nullish(),
   "size": zod.string().nullish(),
   "color": zod.string().nullish(),
   "material": zod.string().nullish()
@@ -415,6 +416,7 @@ export const CreateProductBody = zod.object({
   "capacity": zod.string().nullish(),
   "weight": zod.string().nullish(),
   "dimensions": zod.string().nullish(),
+  "unit": zod.string().nullish(),
   "size": zod.string().nullish(),
   "color": zod.string().nullish(),
   "material": zod.string().nullish()
@@ -465,6 +467,7 @@ export const CreateProductResponse = zod.object({
   "capacity": zod.string().nullish(),
   "weight": zod.string().nullish(),
   "dimensions": zod.string().nullish(),
+  "unit": zod.string().nullish(),
   "size": zod.string().nullish(),
   "color": zod.string().nullish(),
   "material": zod.string().nullish()
@@ -538,6 +541,7 @@ export const GetProductResponse = zod.object({
   "capacity": zod.string().nullish(),
   "weight": zod.string().nullish(),
   "dimensions": zod.string().nullish(),
+  "unit": zod.string().nullish(),
   "size": zod.string().nullish(),
   "color": zod.string().nullish(),
   "material": zod.string().nullish()
@@ -573,6 +577,7 @@ export const UpdateProductBody = zod.object({
   "capacity": zod.string().nullish(),
   "weight": zod.string().nullish(),
   "dimensions": zod.string().nullish(),
+  "unit": zod.string().nullish(),
   "size": zod.string().nullish(),
   "color": zod.string().nullish(),
   "material": zod.string().nullish()
@@ -623,6 +628,7 @@ export const UpdateProductResponse = zod.object({
   "capacity": zod.string().nullish(),
   "weight": zod.string().nullish(),
   "dimensions": zod.string().nullish(),
+  "unit": zod.string().nullish(),
   "size": zod.string().nullish(),
   "color": zod.string().nullish(),
   "material": zod.string().nullish()
@@ -692,6 +698,7 @@ export const GetRelatedProductsResponseItem = zod.object({
   "capacity": zod.string().nullish(),
   "weight": zod.string().nullish(),
   "dimensions": zod.string().nullish(),
+  "unit": zod.string().nullish(),
   "size": zod.string().nullish(),
   "color": zod.string().nullish(),
   "material": zod.string().nullish()

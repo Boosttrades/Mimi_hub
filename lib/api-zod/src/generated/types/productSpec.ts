@@ -14,6 +14,8 @@ export interface ProductSpec {
   /** @nullable */
   dimensions?: string | null;
   /** @nullable */
+  unit?: string | null;
+  /** @nullable */
   size?: string | null;
   /** @nullable */
   color?: string | null;

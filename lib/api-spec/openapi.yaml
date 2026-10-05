@@ -788,6 +788,7 @@ components:
         capacity:   { type: ["string", "null"] }
         weight:     { type: ["string", "null"] }
         dimensions: { type: ["string", "null"] }
+        unit:       { type: ["string", "null"] }
         size:       { type: ["string", "null"] }
         color:      { type: ["string", "null"] }
         material:   { type: ["string", "null"] }
