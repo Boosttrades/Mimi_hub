@@ -37,6 +37,7 @@ import { Checkout } from '@/pages/Checkout';
 import { OrderTracking } from '@/pages/Orders';
 import { Account, AccountOrders, AccountWishlist } from '@/pages/Account';
 import { AccountCreatePreview } from '@/pages/AccountCreatePreview';
+import { AccountLoginPreview } from '@/pages/AccountLoginPreview';
 import { Search } from '@/pages/Search';
 
 import { Dashboard } from '@/pages/admin/Dashboard';
@@ -63,6 +64,7 @@ function Router() {
       <Route path="/checkout" component={Checkout} />
       <Route path="/orders/:ref" component={OrderTracking} />
       <Route path="/account/create" component={AccountCreatePreview} />
+      <Route path="/account/login" component={AccountLoginPreview} />
       <Route path="/account" component={Account} />
       <Route path="/account/orders" component={AccountOrders} />
       <Route path="/account/wishlist" component={AccountWishlist} />

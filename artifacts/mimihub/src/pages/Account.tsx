@@ -197,16 +197,26 @@ function ProfileView() {
                 >
                   Set a username to track orders
                 </button>
-                <Link
-                  href="/account/create"
-                  className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-foreground underline decoration-primary underline-offset-4 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
-                  data-testid="link-preview-signup"
-                >
-                  Preview sign-up
-                  <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
-                </Link>
               </>
             )}
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+              <Link
+                href="/account/create"
+                className="inline-flex items-center gap-1 text-xs font-semibold text-foreground underline decoration-primary underline-offset-4 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
+                data-testid="link-preview-signup"
+              >
+                Preview sign-up
+                <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+              </Link>
+              <Link
+                href="/account/login"
+                className="inline-flex items-center gap-1 text-xs font-semibold text-foreground underline decoration-primary underline-offset-4 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
+                data-testid="link-preview-login"
+              >
+                Preview login
+                <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+              </Link>
+            </div>
           </div>
         </div>
       </div>

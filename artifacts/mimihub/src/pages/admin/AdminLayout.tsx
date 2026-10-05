@@ -1,7 +1,7 @@
 import { ReactNode } from 'react';
 import { Link, useLocation } from 'wouter';
 import {
-  ChevronRight, Crown, ExternalLink, LayoutDashboard, Menu,
+  ArrowLeft, ChevronRight, Crown, ExternalLink, LayoutDashboard, Menu,
   Package, Settings, ShoppingBag, Users
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -134,6 +134,17 @@ export function AdminLayout({ children, title, eyebrow = 'MimiHub / merchant stu
               </div>
             </div>
             <div className="flex items-center gap-3">
+              <Link
+                href="/"
+                aria-label="Back to store"
+                title="Back to store"
+                data-testid="link-exit-admin"
+                className="inline-flex h-10 items-center gap-2 rounded-full border border-[hsl(var(--admin-deep)/.14)] px-3 text-xs font-bold text-[hsl(var(--admin-deep))] transition-colors hover:bg-[hsl(var(--admin-deep)/.06)] sm:px-4"
+              >
+                <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+                <span className="sm:hidden">Store</span>
+                <span className="hidden sm:inline">Back to store</span>
+              </Link>
               <div className="hidden text-right sm:block">
                  <p className="max-w-[140px] truncate text-xs font-bold text-[hsl(var(--admin-deep))]">{storeName}</p>
                  <p className="admin-mono text-[9px] uppercase text-[hsl(var(--admin-ink)/.45)]">Store</p>
