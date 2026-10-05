@@ -5,3 +5,4 @@
 - [MimiiHub Supabase-only backend](mimihub-supabase-only.md) — keep all backend data, uploads, and application APIs on Supabase; avoid Replit SDKs and services.
 - [Catalog data authenticity](catalog-data-authenticity.md) — keep product subcategories empty until real merchant product data is available; do not seed fake listings.
 - [Account preview styling](account-preview-style.md) — keep sign-in and sign-up previews aligned with the approved MimiiHub screen-only design.
+- [Workspace typecheck freshness](workspace-typecheck-freshness.md) — rebuild shared library declarations before treating missing artifact imports as contract defects.
