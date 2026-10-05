@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useLocation } from 'wouter';
+import { Link } from 'wouter';
 import { Layout } from '@/components/layout/Layout';
 import { useWishlist } from '@/contexts/WishlistContext';
 import { useCart } from '@/contexts/CartContext';
@@ -192,9 +193,18 @@ function ProfileView() {
                 <button
                   onClick={() => setShowModal(true)}
                   className="text-xs text-primary font-medium underline underline-offset-2 mt-0.5"
+                  data-testid="button-set-username"
                 >
                   Set a username to track orders
                 </button>
+                <Link
+                  href="/account/create"
+                  className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-foreground underline decoration-primary underline-offset-4 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
+                  data-testid="link-preview-signup"
+                >
+                  Preview sign-up
+                  <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+                </Link>
               </>
             )}
           </div>
