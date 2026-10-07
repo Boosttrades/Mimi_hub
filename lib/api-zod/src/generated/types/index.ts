@@ -43,6 +43,8 @@ export * from './paymentSettings';
 export * from './paymentSettingsUpdate';
 export * from './paymentStatus';
 export * from './product';
+export * from './productImageUpload';
+export * from './productImageUploadRequest';
 export * from './productInput';
 export * from './productSpec';
 export * from './productsSummary';

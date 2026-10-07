@@ -9,6 +9,16 @@ export interface HealthStatus {
   status: string;
 }
 
+export interface ProductImageUpload {
+  path: string;
+  url: string;
+}
+
+export interface ProductImageUploadRequest {
+  /** Image file sent as a multipart form-data part */
+  file: string;
+}
+
 export type AuthUserUserMetadata = { [key: string]: unknown };
 
 export interface AuthUser {

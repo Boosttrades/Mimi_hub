@@ -1,0 +1,24 @@
+kind = "mobile"
+previewPath = "/mimihub-admin/"
+title = "MimiiHub Admin"
+description = "A standalone Android-first admin app for the MimiiHub store website. It uses the existing MimiiHub API and Supabase-backed image storage to manage products, orders, categories, and store settings."
+version = "1.0.0"
+id = "artifacts/mimihub-admin"
+router = "expo-domain"
+
+[[services]]
+name = "expo"
+ensurePreviewReachable = "/status"
+paths = [ "/mimihub-admin/" ]
+localPort = 24536
+
+[services.development]
+run = "pnpm --filter @workspace/mimihub-admin run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/mimihub-admin", "run", "build" ]
+run = [ "pnpm", "--filter", "@workspace/mimihub-admin", "run", "serve" ]
+
+[services.env]
+PORT = "24536"
+BASE_PATH = "/mimihub-admin/"

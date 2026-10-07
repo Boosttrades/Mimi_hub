@@ -45,6 +45,8 @@ import type {
   PaymentSettings,
   PaymentSettingsUpdate,
   Product,
+  ProductImageUpload,
+  ProductImageUploadRequest,
   ProductInput,
   ProductUpdate,
   ProductsSummary,
@@ -158,6 +160,79 @@ export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, 
 
 
 
+
+export const getUploadProductImageUrl = () => {
+
+
+
+
+  return `/api/storage/upload`
+}
+
+/**
+ * @summary Upload a product image to Supabase Storage
+ */
+export const uploadProductImage = async (productImageUploadRequest: ProductImageUploadRequest, options?: Parameters<typeof customFetch>[1]): Promise<ProductImageUpload> => {
+    const formData = new FormData();
+formData.append(`file`, productImageUploadRequest.file);
+
+  return customFetch<ProductImageUpload>(getUploadProductImageUrl(),
+  {
+    ...options,
+    method: 'POST'
+    ,
+    body: formData
+  }
+);}
+
+
+
+
+
+export const getUploadProductImageMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadProductImage>>, TError,{data: BodyType<ProductImageUploadRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof uploadProductImage>>, TError,{data: BodyType<ProductImageUploadRequest>}, TContext> => {
+
+const mutationKey = ['uploadProductImage'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof uploadProductImage>>, {data: BodyType<ProductImageUploadRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  uploadProductImage(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UploadProductImageMutationResult = NonNullable<Awaited<ReturnType<typeof uploadProductImage>>>
+    export type UploadProductImageMutationBody = BodyType<ProductImageUploadRequest>
+    export type UploadProductImageMutationError = ErrorType<void>
+
+    /**
+ * @summary Upload a product image to Supabase Storage
+ */
+export const useUploadProductImage = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadProductImage>>, TError,{data: BodyType<ProductImageUploadRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof uploadProductImage>>,
+        TError,
+        {data: BodyType<ProductImageUploadRequest>},
+        TContext
+      > => {
+      return useMutation(getUploadProductImageMutationOptions(options));
+    }
 
 export const getSignUpUrl = () => {
 

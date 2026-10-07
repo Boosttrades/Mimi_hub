@@ -17,6 +17,19 @@ export const HealthCheckResponse = zod.object({
 
 
 /**
+ * @summary Upload a product image to Supabase Storage
+ */
+export const UploadProductImageBody = zod.object({
+  "file": zod.string().describe('Image file sent as a multipart form-data part')
+})
+
+export const UploadProductImageResponse = zod.object({
+  "path": zod.string(),
+  "url": zod.string().url()
+})
+
+
+/**
  * @summary Create an email account
  */
 export const signUpBodyPasswordMin = 8;
