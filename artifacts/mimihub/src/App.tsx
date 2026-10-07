@@ -40,15 +40,6 @@ import { AccountCreatePreview } from '@/pages/AccountCreatePreview';
 import { AccountLoginPreview } from '@/pages/AccountLoginPreview';
 import { Search } from '@/pages/Search';
 
-import { Dashboard } from '@/pages/admin/Dashboard';
-import { AdminProducts } from '@/pages/admin/Products';
-import { AdminProductForm } from '@/pages/admin/ProductForm';
-import { AdminCategories } from '@/pages/admin/Categories';
-import { AdminOrders } from '@/pages/admin/OrdersAdmin';
-import { AdminHomepage } from '@/pages/admin/Homepage';
-import { AdminSettings } from '@/pages/admin/Settings';
-import { AdminCustomers } from '@/pages/admin/Customers';
-
 const queryClient = new QueryClient();
 
 function Router() {
@@ -69,17 +60,6 @@ function Router() {
       <Route path="/account/orders" component={AccountOrders} />
       <Route path="/account/wishlist" component={AccountWishlist} />
       <Route path="/search" component={Search} />
-
-      {/* Admin Routes */}
-      <Route path="/admin" component={Dashboard} />
-      <Route path="/admin/products" component={AdminProducts} />
-      <Route path="/admin/products/new" component={AdminProductForm} />
-      <Route path="/admin/products/:id/edit" component={AdminProductForm} />
-      <Route path="/admin/categories" component={AdminCategories} />
-      <Route path="/admin/orders" component={AdminOrders} />
-      <Route path="/admin/customers" component={AdminCustomers} />
-      <Route path="/admin/homepage" component={AdminHomepage} />
-      <Route path="/admin/settings" component={AdminSettings} />
 
       <Route component={NotFound} />
     </Switch>
