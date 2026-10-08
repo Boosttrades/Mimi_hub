@@ -1,22 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'wouter';
 import { Award, Heart, ShieldCheck, Truck, Users } from 'lucide-react';
-import { useListProducts } from '@workspace/api-client-react';
+import { useListProducts, useListCategories } from '@workspace/api-client-react';
 import { Layout } from '@/components/layout/Layout';
 import { CategoryCard } from '@/components/product/CategoryCard';
 import { ProductCard } from '@/components/product/ProductCard';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
-import { staticCategories } from '@/data/categories';
-
-const categories = staticCategories;
-const collections = staticCategories.map((category) => ({
-  id: category.slug,
-  title: category.name,
-  description: category.description,
-  image: category.image,
-  href: `/category/${category.slug}`,
-}));
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 const trustItems = [
   { title: 'Premium Quality', subtitle: 'Carefully selected', icon: Award },
@@ -27,61 +18,80 @@ const trustItems = [
 
 export function Home() {
   const [currentSlide, setCurrentSlide] = useState(0);
+
+  const { data: categories = [], isLoading: loadingCategories } = useListCategories();
   const { data: featuredProducts = [] } = useListProducts({ featured: true, visible: true });
   const { data: favoriteProducts = [] } = useListProducts({ bestSeller: true, visible: true });
 
+  const collections = categories.map((category) => ({
+    id: category.slug,
+    title: category.name,
+    description: category.description ?? '',
+    image:
+      category.image ||
+      `https://placehold.co/1200x600/D4B483/FAF6F0?text=${encodeURIComponent(category.name)}`,
+    href: `/category/${category.slug}`,
+  }));
+
   useEffect(() => {
+    if (collections.length === 0) return;
+
     const interval = window.setInterval(() => {
       setCurrentSlide((slide) => (slide + 1) % collections.length);
     }, 5000);
 
     return () => window.clearInterval(interval);
-  }, []);
+  }, [collections.length]);
 
   return (
     <Layout>
       <section className="px-4 pb-8 pt-7 md:px-8 md:pb-12 md:pt-10">
         <div className="relative min-h-[430px] md:min-h-[500px]">
-          <div className="absolute right-4 top-4 z-20 flex gap-1.5" aria-label="Collection slides">
-            {collections.map((collection, index) => (
-              <button
-                key={collection.id}
-                type="button"
-                aria-label={`Show ${collection.title}`}
-                onClick={() => setCurrentSlide(index)}
-                className={`h-1.5 rounded-full transition-all ${
-                  currentSlide === index ? 'w-7 bg-primary' : 'w-1.5 bg-primary/30'
-                }`}
-              />
-            ))}
-          </div>
-          {collections.map((collection, index) => (
-            <article
-              key={collection.id}
-              className={`absolute inset-0 overflow-hidden rounded-2xl bg-secondary shadow-sm transition-opacity duration-700 ${
-                currentSlide === index ? 'z-10 opacity-100' : 'pointer-events-none opacity-0'
-              }`}
-            >
-              <img
-                src={collection.image}
-                alt=""
-                className="absolute inset-0 h-full w-full object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/30 to-black/5" />
-              <div className="relative flex h-full max-w-xl flex-col justify-center p-7 text-white md:p-12">
-                <p className="mb-3 text-xs uppercase tracking-[0.2em] text-white/80">MimiiHub edit</p>
-                <h2 className="font-serif text-4xl leading-tight md:text-6xl">{collection.title}</h2>
-                <p className="mt-4 max-w-sm text-sm leading-6 text-white/85 md:text-base">
-                  {collection.description}
-                </p>
-                <Link href={collection.href} className="mt-7 inline-flex">
-                  <Button className="rounded-md bg-background px-5 text-xs font-semibold uppercase tracking-widest text-foreground hover:bg-background/90">
-                    Shop now
-                  </Button>
-                </Link>
+          {collections.length > 0 && (
+            <>
+              <div className="absolute right-4 top-4 z-20 flex gap-1.5" aria-label="Collection slides">
+                {collections.map((collection, index) => (
+                  <button
+                    key={collection.id}
+                    type="button"
+                    aria-label={`Show ${collection.title}`}
+                    onClick={() => setCurrentSlide(index)}
+                    className={`h-1.5 rounded-full transition-all ${
+                      currentSlide === index ? 'w-7 bg-primary' : 'w-1.5 bg-primary/30'
+                    }`}
+                  />
+                ))}
               </div>
-            </article>
-          ))}
+
+              {collections.map((collection, index) => (
+                <article
+                  key={collection.id}
+                  className={`absolute inset-0 overflow-hidden rounded-2xl bg-secondary shadow-sm transition-opacity duration-700 ${
+                    currentSlide === index ? 'z-10 opacity-100' : 'pointer-events-none opacity-0'
+                  }`}
+                >
+                  <img
+                    src={collection.image}
+                    alt=""
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/30 to-black/5" />
+                  <div className="relative flex h-full max-w-xl flex-col justify-center p-7 text-white md:p-12">
+                    <p className="mb-3 text-xs uppercase tracking-[0.2em] text-white/80">MimiiHub edit</p>
+                    <h2 className="font-serif text-4xl leading-tight md:text-6xl">{collection.title}</h2>
+                    <p className="mt-4 max-w-sm text-sm leading-6 text-white/85 md:text-base">
+                      {collection.description}
+                    </p>
+                    <Link href={collection.href} className="mt-7 inline-flex">
+                      <Button className="rounded-md bg-background px-5 text-xs font-semibold uppercase tracking-widest text-foreground hover:bg-background/90">
+                        Shop now
+                      </Button>
+                    </Link>
+                  </div>
+                </article>
+              ))}
+            </>
+          )}
         </div>
       </section>
 
@@ -109,11 +119,22 @@ export function Home() {
             View all
           </Link>
         </div>
-        <div className="grid gap-5 md:grid-cols-2">
-          {categories.map((category) => (
-            <CategoryCard key={category.id} category={category} />
-          ))}
-        </div>
+
+        {loadingCategories ? (
+          <LoadingSpinner size="lg" />
+        ) : categories.length > 0 ? (
+          <div className="grid gap-5 md:grid-cols-2">
+            {categories.map((category) => (
+              <CategoryCard key={category.id} category={category} />
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            icon={<Award className="h-10 w-10" />}
+            title="Categories coming soon"
+            description="Categories will appear here once they are added in the admin panel."
+          />
+        )}
       </section>
 
       <section className="bg-secondary/25 px-4 py-10 md:px-8 md:py-14">
