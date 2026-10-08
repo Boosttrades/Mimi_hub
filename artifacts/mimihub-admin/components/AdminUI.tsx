@@ -1,4 +1,5 @@
 import { Feather } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ActivityIndicator,
@@ -24,6 +25,7 @@ type PageProps = {
   children: React.ReactNode;
   onRefresh?: () => void;
   refreshing?: boolean;
+  showBack?: boolean;
 };
 
 export function Page({
@@ -33,9 +35,11 @@ export function Page({
   children,
   onRefresh,
   refreshing = false,
+  showBack = false,
 }: PageProps) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const topInset = Platform.OS === 'web' ? Math.max(insets.top, 67) : insets.top;
   const bottomInset = Platform.OS === 'web' ? Math.max(insets.bottom, 34) : insets.bottom;
 
@@ -67,6 +71,17 @@ export function Page({
           <Text style={[styles.brandDivider, { color: colors.mutedForeground }]}>/</Text>
           <Text style={[styles.brandAdmin, { color: colors.mutedForeground }]}>ADMIN</Text>
         </View>
+        {showBack ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Back to store controls"
+            onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/manage')}
+            style={styles.backLink}
+          >
+            <Feather name="arrow-left" size={16} color={colors.adminTeal} />
+            <Text style={[styles.backLinkText, { color: colors.adminTeal }]}>Back to controls</Text>
+          </Pressable>
+        ) : null}
         <Text style={[styles.kicker, { color: colors.adminTeal }]}>{kicker}</Text>
         <Text style={[styles.title, { color: colors.foreground }]}>{title}</Text>
         {subtitle ? (
@@ -369,6 +384,8 @@ const styles = StyleSheet.create({
   brandName: { fontFamily: 'Manrope_700Bold', fontSize: 14, letterSpacing: -0.3 },
   brandDivider: { fontSize: 14 },
   brandAdmin: { fontFamily: 'Manrope_700Bold', fontSize: 10, letterSpacing: 1.4 },
+  backLink: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 7, paddingVertical: 7, marginBottom: 8 },
+  backLinkText: { fontFamily: 'Manrope_700Bold', fontSize: 11 },
   kicker: { fontFamily: 'Manrope_700Bold', fontSize: 10, letterSpacing: 1.5, marginBottom: 7 },
   title: { fontFamily: 'Fraunces_600SemiBold', fontSize: 32, lineHeight: 38, letterSpacing: -0.7 },
   subtitle: { fontFamily: 'Manrope_400Regular', fontSize: 13, lineHeight: 20, marginTop: 7 },

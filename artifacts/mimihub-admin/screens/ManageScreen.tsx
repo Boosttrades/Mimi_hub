@@ -6,8 +6,10 @@ import { useColors } from '@/hooks/useColors';
 
 const manageLinks = [
   { title: 'Categories', detail: 'Collections and subcategories', icon: 'grid' as const, href: '/manage/categories' as const },
+  { title: 'Customers', detail: 'Order history and returning shoppers', icon: 'users' as const, href: '/manage/customers' as const },
   { title: 'Store & delivery', detail: 'Shop identity, contact, delivery fees', icon: 'truck' as const, href: '/manage/store' as const },
   { title: 'Website homepage', detail: 'Hero banners shown on the store website', icon: 'image' as const, href: '/manage/homepage' as const },
+  { title: 'Payment settings', detail: 'Online payments and pay on delivery', icon: 'credit-card' as const, href: '/manage/payment' as const },
 ];
 
 export default function ManageScreen() {

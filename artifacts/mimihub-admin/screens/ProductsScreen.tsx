@@ -84,7 +84,7 @@ export default function ProductsScreen() {
                   <Text style={[styles.productPrice, { color: colors.adminDeep }]}>{formatNaira(product.price)}</Text>
                   <View style={styles.badges}>
                     <StatusBadge label={product.visible ? 'Visible' : 'Hidden'} />
-                    <StatusBadge label={product.stockQty > 0 ? `${product.stockQty} in stock` : 'Out of stock'} />
+                    <StatusBadge label={(product.stockQty ?? 0) > 0 ? `${product.stockQty ?? 0} in stock` : 'Out of stock'} />
                   </View>
                 </View>
                 <View style={styles.actions}>

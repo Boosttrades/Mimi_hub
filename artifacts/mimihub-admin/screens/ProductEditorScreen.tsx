@@ -69,7 +69,9 @@ export default function ProductEditorScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const editing = Boolean(id);
   const productId = Number(id);
-  const productQuery = useGetProduct(productId, { query: { enabled: editing } });
+  const productQuery = useGetProduct(productId, {
+    query: { enabled: editing, queryKey: getGetProductQueryKey(productId) },
+  });
 
   if (editing && productQuery.isLoading) {
     return <View style={styles.loadingScreen}><LoadingState label="Loading product…" /></View>;
