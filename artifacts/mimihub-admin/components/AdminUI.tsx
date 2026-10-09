@@ -300,12 +300,14 @@ export function ToggleRow({
   value,
   onValueChange,
   disabled = false,
+  testID,
 }: {
   title: string;
   description?: string;
   value: boolean;
   onValueChange: (value: boolean) => void;
   disabled?: boolean;
+  testID?: string;
 }) {
   const colors = useColors();
   return (
@@ -318,6 +320,7 @@ export function ToggleRow({
       </View>
       <Switch
         accessibilityLabel={title}
+        testID={testID}
         value={value}
         disabled={disabled}
         onValueChange={onValueChange}

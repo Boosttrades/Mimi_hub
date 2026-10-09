@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import { Alert, StyleSheet, Switch, Text, View } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   getListCategoriesQueryKey,
@@ -24,6 +24,7 @@ import {
   Page,
   SectionTitle,
   TextField,
+  ToggleRow,
 } from '@/components/AdminUI';
 import { getErrorMessage } from '@/lib/format';
 import { useColors } from '@/hooks/useColors';
@@ -39,7 +40,7 @@ function toSlug(value: string) {
 
 export default function CategoriesScreen() {
   const colors = useColors();
-  const categoriesQuery = useListCategories();
+  const categoriesQuery = useListCategories({ includeHidden: true });
   const queryClient = useQueryClient();
   const createCategory = useCreateCategory();
   const updateCategory = useUpdateCategory();
@@ -57,6 +58,26 @@ export default function CategoriesScreen() {
 
   const invalidateCategories = () =>
     queryClient.invalidateQueries({ queryKey: getListCategoriesQueryKey() });
+
+  async function setCategoryVisibility(category: Category, visible: boolean) {
+    try {
+      await updateCategory.mutateAsync({ id: category.id, data: { visible } });
+      await invalidateCategories();
+    } catch (error) {
+      await invalidateCategories();
+      Alert.alert('Could not update category visibility', getErrorMessage(error));
+    }
+  }
+
+  async function setSubcategoryVisibility(subcategory: Subcategory, visible: boolean) {
+    try {
+      await updateSubcategory.mutateAsync({ id: subcategory.id, data: { visible } });
+      await invalidateCategories();
+    } catch (error) {
+      await invalidateCategories();
+      Alert.alert('Could not update subcategory visibility', getErrorMessage(error));
+    }
+  }
 
   function beginCreateCategory() {
     setEditingCategoryId(null);
@@ -279,9 +300,22 @@ export default function CategoriesScreen() {
                     <Text style={[styles.categorySlug, { color: colors.mutedForeground }]}>/{category.slug}</Text>
                   </View>
                   <IconAction icon="edit-2" label={`Edit ${category.name}`} onPress={() => beginEditCategory(category)} />
-                  <IconAction icon="trash-2" label={`Delete ${category.name}`} onPress={() => confirmDeleteCategory(category)} />
+                  <IconAction
+                    icon="trash-2"
+                    label={`Delete ${category.name}`}
+                    onPress={() => confirmDeleteCategory(category)}
+                    testID={`category-delete-${category.id}`}
+                  />
                 </View>
                 {category.description ? <Text style={[styles.description, { color: colors.mutedForeground }]}>{category.description}</Text> : null}
+                <ToggleRow
+                  title={category.visible ? 'Visible on storefront' : 'Hidden from storefront'}
+                  description="Controls whether shoppers can see this category."
+                  value={category.visible}
+                  onValueChange={(visible) => void setCategoryVisibility(category, visible)}
+                  disabled={updateCategory.isPending}
+                  testID={`category-visibility-${category.id}`}
+                />
                 <View style={[styles.subcategoryHeading, { borderTopColor: colors.border }]}>
                   <Text style={[styles.subcategoryTitle, { color: colors.foreground }]}>Subcategories · {subcategories.length}</Text>
                   <IconAction
@@ -296,6 +330,24 @@ export default function CategoriesScreen() {
                       <Text style={[styles.subcategoryName, { color: colors.foreground }]}>{subcategory.name}</Text>
                       <Text style={[styles.categorySlug, { color: colors.mutedForeground }]}>/{subcategory.slug}</Text>
                     </View>
+                    <View style={styles.subcategoryVisibility}>
+                      <Text style={[styles.visibilityLabel, { color: colors.mutedForeground }]}>
+                        {subcategory.visible ? 'Visible' : 'Hidden'}
+                      </Text>
+                      <Switch
+                        accessibilityLabel={
+                          subcategory.visible
+                            ? `Hide ${subcategory.name} from storefront`
+                            : `Show ${subcategory.name} on storefront`
+                        }
+                        testID={`subcategory-visibility-${subcategory.id}`}
+                        value={subcategory.visible}
+                        onValueChange={(visible) => void setSubcategoryVisibility(subcategory, visible)}
+                        disabled={updateSubcategory.isPending}
+                        trackColor={{ false: colors.border, true: colors.adminTeal }}
+                        thumbColor={colors.card}
+                      />
+                    </View>
                     <IconAction
                       icon="edit-2"
                       label={`Edit ${subcategory.name}`}
@@ -305,6 +357,7 @@ export default function CategoriesScreen() {
                       icon="trash-2"
                       label={`Delete ${subcategory.name}`}
                       onPress={() => confirmDeleteSubcategory(subcategory)}
+                      testID={`subcategory-delete-${subcategory.id}`}
                     />
                   </View>
                 ))}
@@ -369,6 +422,8 @@ const styles = StyleSheet.create({
   subcategoryTitle: { fontFamily: 'Manrope_700Bold', fontSize: 11 },
   subcategoryRow: { minHeight: 42, flexDirection: 'row', alignItems: 'center', gap: 2 },
   subcategoryCopy: { flex: 1, gap: 2 },
+  subcategoryVisibility: { alignItems: 'center', justifyContent: 'center', minWidth: 54 },
+  visibilityLabel: { fontFamily: 'Manrope_500Medium', fontSize: 9 },
   subcategoryName: { fontFamily: 'Manrope_600SemiBold', fontSize: 12 },
   subcategoryForm: { gap: 10, borderTopWidth: 1, paddingTop: 11 },
 });
