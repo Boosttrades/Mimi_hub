@@ -9,4 +9,5 @@
 export interface SubcategoryInput {
   name: string;
   slug: string;
+  visible?: boolean;
 }

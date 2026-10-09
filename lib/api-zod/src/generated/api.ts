@@ -177,18 +177,26 @@ export const VerifyEmailResponse = zod.object({
 /**
  * @summary List all categories with subcategories
  */
+export const listCategoriesQueryIncludeHiddenDefault = false;
+
+export const ListCategoriesQueryParams = zod.object({
+  "includeHidden": zod.coerce.boolean().default(listCategoriesQueryIncludeHiddenDefault)
+})
+
 export const ListCategoriesResponseItem = zod.object({
   "id": zod.number(),
   "name": zod.string(),
   "slug": zod.string(),
   "description": zod.string().nullish(),
   "image": zod.string().nullish(),
+  "visible": zod.boolean(),
   "createdAt": zod.coerce.date(),
   "subcategories": zod.array(zod.object({
   "id": zod.number(),
   "categoryId": zod.number(),
   "name": zod.string(),
   "slug": zod.string(),
+  "visible": zod.boolean(),
   "createdAt": zod.coerce.date()
 })).optional()
 })
@@ -202,7 +210,8 @@ export const CreateCategoryBody = zod.object({
   "name": zod.string(),
   "slug": zod.string(),
   "description": zod.string().optional(),
-  "image": zod.string().optional()
+  "image": zod.string().optional(),
+  "visible": zod.boolean().optional()
 })
 
 export const CreateCategoryResponse = zod.object({
@@ -211,12 +220,14 @@ export const CreateCategoryResponse = zod.object({
   "slug": zod.string(),
   "description": zod.string().nullish(),
   "image": zod.string().nullish(),
+  "visible": zod.boolean(),
   "createdAt": zod.coerce.date(),
   "subcategories": zod.array(zod.object({
   "id": zod.number(),
   "categoryId": zod.number(),
   "name": zod.string(),
   "slug": zod.string(),
+  "visible": zod.boolean(),
   "createdAt": zod.coerce.date()
 })).optional()
 })
@@ -235,12 +246,14 @@ export const GetCategoryResponse = zod.object({
   "slug": zod.string(),
   "description": zod.string().nullish(),
   "image": zod.string().nullish(),
+  "visible": zod.boolean(),
   "createdAt": zod.coerce.date(),
   "subcategories": zod.array(zod.object({
   "id": zod.number(),
   "categoryId": zod.number(),
   "name": zod.string(),
   "slug": zod.string(),
+  "visible": zod.boolean(),
   "createdAt": zod.coerce.date()
 })).optional()
 })
@@ -257,7 +270,8 @@ export const UpdateCategoryBody = zod.object({
   "name": zod.string().optional(),
   "slug": zod.string().optional(),
   "description": zod.string().optional(),
-  "image": zod.string().optional()
+  "image": zod.string().optional(),
+  "visible": zod.boolean().optional()
 })
 
 export const UpdateCategoryResponse = zod.object({
@@ -266,12 +280,14 @@ export const UpdateCategoryResponse = zod.object({
   "slug": zod.string(),
   "description": zod.string().nullish(),
   "image": zod.string().nullish(),
+  "visible": zod.boolean(),
   "createdAt": zod.coerce.date(),
   "subcategories": zod.array(zod.object({
   "id": zod.number(),
   "categoryId": zod.number(),
   "name": zod.string(),
   "slug": zod.string(),
+  "visible": zod.boolean(),
   "createdAt": zod.coerce.date()
 })).optional()
 })
@@ -296,7 +312,8 @@ export const CreateSubcategoryParams = zod.object({
 
 export const CreateSubcategoryBody = zod.object({
   "name": zod.string(),
-  "slug": zod.string()
+  "slug": zod.string(),
+  "visible": zod.boolean().optional()
 })
 
 export const CreateSubcategoryResponse = zod.object({
@@ -304,6 +321,7 @@ export const CreateSubcategoryResponse = zod.object({
   "categoryId": zod.number(),
   "name": zod.string(),
   "slug": zod.string(),
+  "visible": zod.boolean(),
   "createdAt": zod.coerce.date()
 })
 
@@ -317,7 +335,8 @@ export const UpdateSubcategoryParams = zod.object({
 
 export const UpdateSubcategoryBody = zod.object({
   "name": zod.string().optional(),
-  "slug": zod.string().optional()
+  "slug": zod.string().optional(),
+  "visible": zod.boolean().optional()
 })
 
 export const UpdateSubcategoryResponse = zod.object({
@@ -325,6 +344,7 @@ export const UpdateSubcategoryResponse = zod.object({
   "categoryId": zod.number(),
   "name": zod.string(),
   "slug": zod.string(),
+  "visible": zod.boolean(),
   "createdAt": zod.coerce.date()
 })
 
@@ -370,12 +390,14 @@ export const ListProductsResponseItem = zod.object({
   "slug": zod.string(),
   "description": zod.string().nullish(),
   "image": zod.string().nullish(),
+  "visible": zod.boolean(),
   "createdAt": zod.coerce.date(),
   "subcategories": zod.array(zod.object({
   "id": zod.number(),
   "categoryId": zod.number(),
   "name": zod.string(),
   "slug": zod.string(),
+  "visible": zod.boolean(),
   "createdAt": zod.coerce.date()
 })).optional()
 }).nullish(),
@@ -384,6 +406,7 @@ export const ListProductsResponseItem = zod.object({
   "categoryId": zod.number(),
   "name": zod.string(),
   "slug": zod.string(),
+  "visible": zod.boolean(),
   "createdAt": zod.coerce.date()
 }).nullish(),
   "stockQty": zod.number().optional(),
@@ -454,12 +477,14 @@ export const CreateProductResponse = zod.object({
   "slug": zod.string(),
   "description": zod.string().nullish(),
   "image": zod.string().nullish(),
+  "visible": zod.boolean(),
   "createdAt": zod.coerce.date(),
   "subcategories": zod.array(zod.object({
   "id": zod.number(),
   "categoryId": zod.number(),
   "name": zod.string(),
   "slug": zod.string(),
+  "visible": zod.boolean(),
   "createdAt": zod.coerce.date()
 })).optional()
 }).nullish(),
@@ -468,6 +493,7 @@ export const CreateProductResponse = zod.object({
   "categoryId": zod.number(),
   "name": zod.string(),
   "slug": zod.string(),
+  "visible": zod.boolean(),
   "createdAt": zod.coerce.date()
 }).nullish(),
   "stockQty": zod.number().optional(),
@@ -528,12 +554,14 @@ export const GetProductResponse = zod.object({
   "slug": zod.string(),
   "description": zod.string().nullish(),
   "image": zod.string().nullish(),
+  "visible": zod.boolean(),
   "createdAt": zod.coerce.date(),
   "subcategories": zod.array(zod.object({
   "id": zod.number(),
   "categoryId": zod.number(),
   "name": zod.string(),
   "slug": zod.string(),
+  "visible": zod.boolean(),
   "createdAt": zod.coerce.date()
 })).optional()
 }).nullish(),
@@ -542,6 +570,7 @@ export const GetProductResponse = zod.object({
   "categoryId": zod.number(),
   "name": zod.string(),
   "slug": zod.string(),
+  "visible": zod.boolean(),
   "createdAt": zod.coerce.date()
 }).nullish(),
   "stockQty": zod.number().optional(),
@@ -615,12 +644,14 @@ export const UpdateProductResponse = zod.object({
   "slug": zod.string(),
   "description": zod.string().nullish(),
   "image": zod.string().nullish(),
+  "visible": zod.boolean(),
   "createdAt": zod.coerce.date(),
   "subcategories": zod.array(zod.object({
   "id": zod.number(),
   "categoryId": zod.number(),
   "name": zod.string(),
   "slug": zod.string(),
+  "visible": zod.boolean(),
   "createdAt": zod.coerce.date()
 })).optional()
 }).nullish(),
@@ -629,6 +660,7 @@ export const UpdateProductResponse = zod.object({
   "categoryId": zod.number(),
   "name": zod.string(),
   "slug": zod.string(),
+  "visible": zod.boolean(),
   "createdAt": zod.coerce.date()
 }).nullish(),
   "stockQty": zod.number().optional(),
@@ -685,12 +717,14 @@ export const GetRelatedProductsResponseItem = zod.object({
   "slug": zod.string(),
   "description": zod.string().nullish(),
   "image": zod.string().nullish(),
+  "visible": zod.boolean(),
   "createdAt": zod.coerce.date(),
   "subcategories": zod.array(zod.object({
   "id": zod.number(),
   "categoryId": zod.number(),
   "name": zod.string(),
   "slug": zod.string(),
+  "visible": zod.boolean(),
   "createdAt": zod.coerce.date()
 })).optional()
 }).nullish(),
@@ -699,6 +733,7 @@ export const GetRelatedProductsResponseItem = zod.object({
   "categoryId": zod.number(),
   "name": zod.string(),
   "slug": zod.string(),
+  "visible": zod.boolean(),
   "createdAt": zod.coerce.date()
 }).nullish(),
   "stockQty": zod.number().optional(),

@@ -11,5 +11,6 @@ export interface Subcategory {
   categoryId: number;
   name: string;
   slug: string;
+  visible: boolean;
   createdAt: Date;
 }

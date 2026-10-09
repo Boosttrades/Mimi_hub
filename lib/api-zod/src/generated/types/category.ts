@@ -15,6 +15,7 @@ export interface Category {
   description?: string | null;
   /** @nullable */
   image?: string | null;
+  visible: boolean;
   createdAt: Date;
   subcategories?: Subcategory[];
 }

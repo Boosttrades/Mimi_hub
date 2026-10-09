@@ -6,10 +6,6 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface CategoryInput {
-  name: string;
-  slug: string;
-  description?: string;
-  image?: string;
-  visible?: boolean;
-}
+export type ListCategoriesParams = {
+includeHidden?: boolean;
+};

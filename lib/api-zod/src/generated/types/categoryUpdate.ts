@@ -11,4 +11,5 @@ export interface CategoryUpdate {
   slug?: string;
   description?: string;
   image?: string;
+  visible?: boolean;
 }

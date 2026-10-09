@@ -9,4 +9,5 @@
 export interface SubcategoryUpdate {
   name?: string;
   slug?: string;
+  visible?: boolean;
 }

@@ -30,6 +30,7 @@ export * from './healthStatus';
 export * from './heroBanner';
 export * from './homepageSettings';
 export * from './homepageSettingsUpdate';
+export * from './listCategoriesParams';
 export * from './listOrdersParams';
 export * from './listProductsParams';
 export * from './order';

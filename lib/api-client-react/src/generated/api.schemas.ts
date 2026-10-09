@@ -103,6 +103,7 @@ export interface Subcategory {
   categoryId: number;
   name: string;
   slug: string;
+  visible: boolean;
   createdAt: string;
 }
 
@@ -114,6 +115,7 @@ export interface Category {
   description?: string | null;
   /** @nullable */
   image?: string | null;
+  visible: boolean;
   createdAt: string;
   subcategories?: Subcategory[];
 }
@@ -123,6 +125,7 @@ export interface CategoryInput {
   slug: string;
   description?: string;
   image?: string;
+  visible?: boolean;
 }
 
 export interface CategoryUpdate {
@@ -130,16 +133,19 @@ export interface CategoryUpdate {
   slug?: string;
   description?: string;
   image?: string;
+  visible?: boolean;
 }
 
 export interface SubcategoryInput {
   name: string;
   slug: string;
+  visible?: boolean;
 }
 
 export interface SubcategoryUpdate {
   name?: string;
   slug?: string;
+  visible?: boolean;
 }
 
 export interface ProductSpec {
@@ -451,6 +457,10 @@ export interface PaymentSettingsUpdate {
   flutterwaveEnabled?: boolean;
   payOnDeliveryEnabled?: boolean;
 }
+
+export type ListCategoriesParams = {
+includeHidden?: boolean;
+};
 
 export type ListProductsParams = {
 categoryId?: number;

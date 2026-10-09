@@ -211,6 +211,10 @@ paths:
       operationId: listCategories
       tags: [categories]
       summary: List all categories with subcategories
+      parameters:
+        - name: includeHidden
+          in: query
+          schema: { type: boolean, default: false }
       responses:
         "200":
           description: OK
@@ -766,13 +770,14 @@ components:
     # ── CATEGORY ────────────────────────────────────────────────
     Category:
       type: object
-      required: [id, name, slug, createdAt]
+      required: [id, name, slug, visible, createdAt]
       properties:
         id:          { type: number }
         name:        { type: string }
         slug:        { type: string }
         description: { type: ["string", "null"] }
         image:       { type: ["string", "null"] }
+        visible:     { type: boolean }
         createdAt:   { type: string, format: date-time }
         subcategories:
           type: array
@@ -787,6 +792,7 @@ components:
         slug:        { type: string }
         description: { type: string }
         image:       { type: string }
+        visible:     { type: boolean }
 
     CategoryUpdate:
       type: object
@@ -795,15 +801,17 @@ components:
         slug:        { type: string }
         description: { type: string }
         image:       { type: string }
+        visible:     { type: boolean }
 
     Subcategory:
       type: object
-      required: [id, categoryId, name, slug, createdAt]
+      required: [id, categoryId, name, slug, visible, createdAt]
       properties:
         id:         { type: number }
         categoryId: { type: number }
         name:       { type: string }
         slug:       { type: string }
+        visible:    { type: boolean }
         createdAt:  { type: string, format: date-time }
 
     SubcategoryInput:
@@ -812,12 +820,14 @@ components:
       properties:
         name: { type: string }
         slug: { type: string }
+        visible: { type: boolean }
 
     SubcategoryUpdate:
       type: object
       properties:
         name: { type: string }
         slug: { type: string }
+        visible: { type: boolean }
 
     # ── PRODUCT ─────────────────────────────────────────────────
     ProductSpec:

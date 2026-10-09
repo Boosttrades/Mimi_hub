@@ -68,9 +68,12 @@ function getCategoryWithSubsFromStatic(id: number) {
 router.get("/categories", async (_req, res): Promise<void> => {
   await ensureCategoriesSeeded();
 
-  const cats = await db.select().from(categoriesTable).orderBy(categoriesTable.createdAt);
+  const includeHidden = _req.query.includeHidden === "true";
+  const allCategories = await db.select().from(categoriesTable).orderBy(categoriesTable.createdAt);
+  const cats = includeHidden ? allCategories : allCategories.filter((cat) => cat.visible);
   const result = await Promise.all(cats.map(async (cat) => {
-    const subs = await db.select().from(subcategoriesTable).where(eq(subcategoriesTable.categoryId, cat.id));
+    const allSubs = await db.select().from(subcategoriesTable).where(eq(subcategoriesTable.categoryId, cat.id));
+    const subs = includeHidden ? allSubs : allSubs.filter((sub) => sub.visible);
     return { ...cat, subcategories: subs };
   }));
   res.json(result);
@@ -78,12 +81,12 @@ router.get("/categories", async (_req, res): Promise<void> => {
 
 // POST /categories
 router.post("/categories", async (req, res): Promise<void> => {
-  const { name, slug, description, image } = req.body;
+  const { name, slug, description, image, visible } = req.body;
   if (!name || !slug) {
     res.status(400).json({ error: "name and slug are required" });
     return;
   }
-  const [cat] = await db.insert(categoriesTable).values({ name, slug, description, image }).returning();
+  const [cat] = await db.insert(categoriesTable).values({ name, slug, description, image, visible }).returning();
   res.status(201).json({ ...cat, subcategories: [] });
 });
 
@@ -93,19 +96,24 @@ router.get("/categories/:id", async (req, res): Promise<void> => {
   await ensureCategoriesSeeded();
 
   const cat = await getCategoryWithSubsFromDb(id);
-  if (!cat) { res.status(404).json({ error: "Category not found" }); return; }
-  res.json(cat);
+  const includeHidden = req.query.includeHidden === "true";
+  if (!cat || (!includeHidden && !cat.visible)) {
+    res.status(404).json({ error: "Category not found" });
+    return;
+  }
+  res.json(includeHidden ? cat : { ...cat, subcategories: cat.subcategories.filter((sub) => sub.visible) });
 });
 
 // PATCH /categories/:id
 router.patch("/categories/:id", async (req, res): Promise<void> => {
   const id = parseId(req.params.id);
-  const { name, slug, description, image } = req.body;
+  const { name, slug, description, image, visible } = req.body;
   const updates: Record<string, unknown> = {};
   if (name !== undefined) updates.name = name;
   if (slug !== undefined) updates.slug = slug;
   if (description !== undefined) updates.description = description;
   if (image !== undefined) updates.image = image;
+  if (visible !== undefined) updates.visible = Boolean(visible);
   const [cat] = await db.update(categoriesTable).set(updates).where(eq(categoriesTable.id, id)).returning();
   if (!cat) { res.status(404).json({ error: "Category not found" }); return; }
   const result = await getCategoryWithSubsFromDb(id);
@@ -123,22 +131,23 @@ router.delete("/categories/:id", async (req, res): Promise<void> => {
 // POST /categories/:categoryId/subcategories
 router.post("/categories/:categoryId/subcategories", async (req, res): Promise<void> => {
   const categoryId = parseId(req.params.categoryId);
-  const { name, slug } = req.body;
+  const { name, slug, visible } = req.body;
   if (!name || !slug) {
     res.status(400).json({ error: "name and slug are required" });
     return;
   }
-  const [sub] = await db.insert(subcategoriesTable).values({ categoryId, name, slug }).returning();
+  const [sub] = await db.insert(subcategoriesTable).values({ categoryId, name, slug, visible }).returning();
   res.status(201).json(sub);
 });
 
 // PATCH /subcategories/:id
 router.patch("/subcategories/:id", async (req, res): Promise<void> => {
   const id = parseId(req.params.id);
-  const { name, slug } = req.body;
+  const { name, slug, visible } = req.body;
   const updates: Record<string, unknown> = {};
   if (name !== undefined) updates.name = name;
   if (slug !== undefined) updates.slug = slug;
+  if (visible !== undefined) updates.visible = Boolean(visible);
   const [sub] = await db.update(subcategoriesTable).set(updates).where(eq(subcategoriesTable.id, id)).returning();
   if (!sub) { res.status(404).json({ error: "Subcategory not found" }); return; }
   res.json(sub);
