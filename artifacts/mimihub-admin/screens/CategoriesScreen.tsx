@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, Modal, StyleSheet, Switch, Text, View } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   getListCategoriesQueryKey,
@@ -31,6 +31,9 @@ import { useColors } from '@/hooks/useColors';
 
 type CategoryDraft = { name: string; slug: string; description: string; image: string };
 type SubcategoryDraft = { name: string; slug: string };
+type PendingDelete =
+  | { kind: 'category'; category: Category }
+  | { kind: 'subcategory'; subcategory: Subcategory };
 
 const emptyCategory: CategoryDraft = { name: '', slug: '', description: '', image: '' };
 
@@ -55,6 +58,8 @@ export default function CategoriesScreen() {
   const [addingSubcategoryTo, setAddingSubcategoryTo] = useState<number | null>(null);
   const [subcategoryDraft, setSubcategoryDraft] = useState<SubcategoryDraft>({ name: '', slug: '' });
   const [editingSubcategoryId, setEditingSubcategoryId] = useState<number | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const invalidateCategories = () =>
     queryClient.invalidateQueries({ queryKey: getListCategoriesQueryKey() });
@@ -130,23 +135,8 @@ export default function CategoriesScreen() {
   }
 
   function confirmDeleteCategory(category: Category) {
-    Alert.alert(
-      `Delete ${category.name}?`,
-      'This removes the category and its subcategories. Products stay in the catalog but lose these category assignments.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            void deleteCategory
-              .mutateAsync({ id: category.id })
-              .then(invalidateCategories)
-              .catch((error: unknown) => Alert.alert('Could not delete category', getErrorMessage(error)));
-          },
-        },
-      ],
-    );
+    setDeleteError(null);
+    setPendingDelete({ kind: 'category', category });
   }
 
   function beginAddSubcategory(categoryId: number) {
@@ -188,23 +178,30 @@ export default function CategoriesScreen() {
   }
 
   function confirmDeleteSubcategory(subcategory: Subcategory) {
-    Alert.alert(
-      `Delete ${subcategory.name}?`,
-      'Products stay in the catalog but lose this subcategory assignment.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            void deleteSubcategory
-              .mutateAsync({ id: subcategory.id })
-              .then(invalidateCategories)
-              .catch((error: unknown) => Alert.alert('Could not delete subcategory', getErrorMessage(error)));
-          },
-        },
-      ],
-    );
+    setDeleteError(null);
+    setPendingDelete({ kind: 'subcategory', subcategory });
+  }
+
+  function closeDeleteConfirmation() {
+    if (deleteCategory.isPending || deleteSubcategory.isPending) return;
+    setPendingDelete(null);
+    setDeleteError(null);
+  }
+
+  async function executeDelete() {
+    if (!pendingDelete || deleteCategory.isPending || deleteSubcategory.isPending) return;
+    setDeleteError(null);
+    try {
+      if (pendingDelete.kind === 'category') {
+        await deleteCategory.mutateAsync({ id: pendingDelete.category.id });
+      } else {
+        await deleteSubcategory.mutateAsync({ id: pendingDelete.subcategory.id });
+      }
+      await invalidateCategories();
+      setPendingDelete(null);
+    } catch (error) {
+      setDeleteError(getErrorMessage(error));
+    }
   }
 
   if (categoriesQuery.isLoading) {
@@ -225,6 +222,7 @@ export default function CategoriesScreen() {
   const categories = categoriesQuery.data;
   const savingCategory = createCategory.isPending || updateCategory.isPending;
   const savingSubcategory = createSubcategory.isPending || updateSubcategory.isPending;
+  const deleting = deleteCategory.isPending || deleteSubcategory.isPending;
 
   return (
     <Page
@@ -406,6 +404,63 @@ export default function CategoriesScreen() {
           })}
         </View>
       )}
+      <Modal
+        visible={pendingDelete !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={closeDeleteConfirmation}
+      >
+        <View style={styles.confirmationBackdrop}>
+          {pendingDelete ? (
+            <View
+              accessibilityViewIsModal
+              style={[
+                styles.confirmationCard,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border,
+                  borderRadius: colors.radius,
+                },
+              ]}
+            >
+              <Text style={[styles.confirmationTitle, { color: colors.foreground }]}>
+                Delete {pendingDelete.kind === 'category'
+                  ? pendingDelete.category.name
+                  : pendingDelete.subcategory.name}?
+              </Text>
+              <Text style={[styles.confirmationMessage, { color: colors.mutedForeground }]}>
+                {pendingDelete.kind === 'category'
+                  ? 'This removes the category and its subcategories. Products stay in the catalog but lose these category assignments.'
+                  : 'Products stay in the catalog but lose this subcategory assignment.'}
+              </Text>
+              {deleteError ? (
+                <Text accessibilityRole="alert" style={[styles.confirmationError, { color: colors.destructive }]}>
+                  Could not delete: {deleteError}
+                </Text>
+              ) : null}
+              <View style={styles.confirmationActions}>
+                <ActionButton
+                  label="No, keep it"
+                  variant="secondary"
+                  compact
+                  disabled={deleting}
+                  onPress={closeDeleteConfirmation}
+                  testID="delete-confirm-no"
+                />
+                <ActionButton
+                  label="Yes, delete"
+                  variant="danger"
+                  compact
+                  loading={deleting}
+                  disabled={deleting}
+                  onPress={() => void executeDelete()}
+                  testID="delete-confirm-yes"
+                />
+              </View>
+            </View>
+          ) : null}
+        </View>
+      </Modal>
     </Page>
   );
 }
@@ -426,4 +481,16 @@ const styles = StyleSheet.create({
   visibilityLabel: { fontFamily: 'Manrope_500Medium', fontSize: 9 },
   subcategoryName: { fontFamily: 'Manrope_600SemiBold', fontSize: 12 },
   subcategoryForm: { gap: 10, borderTopWidth: 1, paddingTop: 11 },
+  confirmationBackdrop: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 22,
+    backgroundColor: 'rgba(25, 23, 20, 0.48)',
+  },
+  confirmationCard: { width: '100%', maxWidth: 440, borderWidth: 1, padding: 20, gap: 12 },
+  confirmationTitle: { fontFamily: 'Fraunces_600SemiBold', fontSize: 22, lineHeight: 28 },
+  confirmationMessage: { fontFamily: 'Manrope_400Regular', fontSize: 13, lineHeight: 19 },
+  confirmationError: { fontFamily: 'Manrope_600SemiBold', fontSize: 12, lineHeight: 18 },
+  confirmationActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 4 },
 });
