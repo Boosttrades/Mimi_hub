@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
-import { db, categoriesTable, subcategoriesTable } from "@workspace/db";
+import { db, categoriesTable, settingsTable, subcategoriesTable } from "@workspace/db";
 
 // Static categories (hardcoded) — permanent source of truth when present
 import { CATEGORIES } from "../static/categories";
@@ -13,10 +13,19 @@ function parseId(raw: string | string[]): number {
 }
 
 export async function ensureCategoriesSeeded() {
-  const existing = await db.select().from(categoriesTable).limit(1);
-  if (existing.length) return;
-
   await db.transaction(async (tx) => {
+    const [seedClaim] = await tx
+      .insert(settingsTable)
+      .values({ key: "category_seed_initialized", value: true })
+      .onConflictDoNothing()
+      .returning({ key: settingsTable.key });
+
+    // Persist completion so deleting every category does not restore starter data.
+    if (!seedClaim) return;
+
+    const existing = await tx.select().from(categoriesTable).limit(1);
+    if (existing.length) return;
+
     for (const category of CATEGORIES) {
       const [insertedCategory] = await tx
         .insert(categoriesTable)

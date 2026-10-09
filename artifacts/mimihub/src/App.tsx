@@ -39,6 +39,7 @@ import { Account, AccountOrders, AccountWishlist } from '@/pages/Account';
 import { AccountCreatePreview } from '@/pages/AccountCreatePreview';
 import { AccountLoginPreview } from '@/pages/AccountLoginPreview';
 import { Search } from '@/pages/Search';
+import { AdminCategories } from '@/pages/admin/Categories';
 
 const queryClient = new QueryClient();
 
@@ -60,6 +61,7 @@ function Router() {
       <Route path="/account/orders" component={AccountOrders} />
       <Route path="/account/wishlist" component={AccountWishlist} />
       <Route path="/search" component={Search} />
+      <Route path="/admin/categories" component={AdminCategories} />
 
       <Route component={NotFound} />
     </Switch>

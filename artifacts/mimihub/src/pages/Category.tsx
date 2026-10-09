@@ -30,7 +30,7 @@ export function Category() {
   const { data: products, isLoading: loadingProducts } = useListProducts(
     { categoryId: category?.id, subcategoryId: subcategory?.id },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    { query: { enabled: !!category?.id } as any }
+    { query: { enabled: !!category?.id && (!subSlug || !!subcategory) } as any }
   );
 
   if (loadingCategories) {
@@ -43,10 +43,10 @@ export function Category() {
     );
   }
 
-  if (!category) {
+  if (!category || (subSlug && !subcategory)) {
     return (
       <Layout>
-        <ErrorState title="Category Not Found" message="The category you're looking for doesn't exist." />
+        <ErrorState title="Category Not Found" message="The category or subcategory you're looking for doesn't exist." />
       </Layout>
     );
   }

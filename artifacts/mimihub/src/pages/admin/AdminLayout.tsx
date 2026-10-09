@@ -2,7 +2,7 @@ import { ReactNode } from 'react';
 import { Link, useLocation } from 'wouter';
 import {
   ArrowLeft, ChevronRight, Crown, ExternalLink, LayoutDashboard, Menu,
-  Package, Settings, ShoppingBag, Users
+  Package, Settings, ShoppingBag, Users, Tags
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
@@ -59,6 +59,15 @@ function NavLinks({ location, onNavigate }: { location: string; onNavigate?: () 
       <div>
         <p className="admin-label mb-3 px-3">Manage</p>
         <nav className="space-y-1" aria-label="Management navigation">
+          <Link
+            href="/admin/categories"
+            onClick={onNavigate}
+            data-testid="link-admin-categories"
+            className={cn('flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-bold transition-colors', location.startsWith('/admin/categories') ? 'bg-[hsl(var(--admin-gold)/.18)] text-[hsl(var(--admin-deep))]' : 'text-[hsl(var(--admin-ink)/.58)] hover:bg-[hsl(var(--admin-deep)/.07)]')}
+          >
+            <Tags className="h-[17px] w-[17px]" strokeWidth={1.8} />
+            Categories
+          </Link>
           <Link
             href="/admin/settings"
             onClick={onNavigate}
