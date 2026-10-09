@@ -3,6 +3,7 @@
 - [MimiiHub preview dependencies](mimihub-preview-dependencies.md) — the home page is hardcoded and API-independent; other storefront pages still use database-backed data.
 - [Category image fallbacks](category-image-fallbacks.md) — static placeholder URLs should yield to shared frontend category imagery.
 - [MimiiHub Supabase-only backend](mimihub-supabase-only.md) — keep all backend data, uploads, and application APIs on Supabase; avoid Replit SDKs and services.
+- [Expo DevTools library warning](expo-devtools-nspr.md) — missing `libnspr4.so` can disable the debugger subprocess without preventing Metro or the Expo web preview from working.
 - [Catalog data authenticity](catalog-data-authenticity.md) — keep product subcategories empty until real merchant product data is available; do not seed fake listings.
 - [Account preview styling](account-preview-style.md) — keep sign-in and sign-up previews aligned with the approved MimiiHub screen-only design.
 - [Workspace typecheck freshness](workspace-typecheck-freshness.md) — rebuild shared library declarations before treating missing artifact imports as contract defects.
