@@ -1,5 +1,8 @@
 import { useState } from 'react';
-import { Alert, Modal, StyleSheet, Switch, Text, View } from 'react-native';
+import { File } from 'expo-file-system';
+import * as ImagePicker from 'expo-image-picker';
+import { Image } from 'expo-image';
+import { Alert, Linking, Modal, Platform, StyleSheet, Switch, Text, View } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   getListCategoriesQueryKey,
@@ -10,6 +13,7 @@ import {
   useListCategories,
   useUpdateCategory,
   useUpdateSubcategory,
+  useUploadCategoryImage,
   type Category,
   type CategoryInput,
   type Subcategory,
@@ -34,8 +38,10 @@ type SubcategoryDraft = { name: string; slug: string };
 type PendingDelete =
   | { kind: 'category'; category: Category }
   | { kind: 'subcategory'; subcategory: Subcategory };
+type PendingCategoryImage = { uri: string };
 
 const emptyCategory: CategoryDraft = { name: '', slug: '', description: '', image: '' };
+const maxCategoryImageSize = 10 * 1024 * 1024;
 
 function toSlug(value: string) {
   return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
@@ -43,6 +49,7 @@ function toSlug(value: string) {
 
 export default function CategoriesScreen() {
   const colors = useColors();
+  const [permission, requestPermission] = ImagePicker.useMediaLibraryPermissions();
   const categoriesQuery = useListCategories({ includeHidden: true });
   const queryClient = useQueryClient();
   const createCategory = useCreateCategory();
@@ -51,6 +58,7 @@ export default function CategoriesScreen() {
   const createSubcategory = useCreateSubcategory();
   const updateSubcategory = useUpdateSubcategory();
   const deleteSubcategory = useDeleteSubcategory();
+  const uploadImage = useUploadCategoryImage();
 
   const [formOpen, setFormOpen] = useState(false);
   const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
@@ -60,6 +68,9 @@ export default function CategoriesScreen() {
   const [editingSubcategoryId, setEditingSubcategoryId] = useState<number | null>(null);
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [pendingCategoryImage, setPendingCategoryImage] = useState<PendingCategoryImage | null>(null);
+  const [categoryImageError, setCategoryImageError] = useState<string | null>(null);
+  const [categoryFormError, setCategoryFormError] = useState<string | null>(null);
 
   const invalidateCategories = () =>
     queryClient.invalidateQueries({ queryKey: getListCategoriesQueryKey() });
@@ -87,6 +98,9 @@ export default function CategoriesScreen() {
   function beginCreateCategory() {
     setEditingCategoryId(null);
     setCategoryDraft(emptyCategory);
+    setPendingCategoryImage(null);
+    setCategoryImageError(null);
+    setCategoryFormError(null);
     setFormOpen(true);
   }
 
@@ -98,6 +112,9 @@ export default function CategoriesScreen() {
       description: category.description ?? '',
       image: category.image ?? '',
     });
+    setPendingCategoryImage(null);
+    setCategoryImageError(null);
+    setCategoryFormError(null);
     setFormOpen(true);
   }
 
@@ -105,23 +122,35 @@ export default function CategoriesScreen() {
     setFormOpen(false);
     setEditingCategoryId(null);
     setCategoryDraft(emptyCategory);
+    setPendingCategoryImage(null);
+    setCategoryImageError(null);
+    setCategoryFormError(null);
   }
 
   async function saveCategory() {
     const name = categoryDraft.name.trim();
     const slug = categoryDraft.slug.trim();
     if (!name || !slug) {
-      Alert.alert('Complete the category', 'A category name and URL slug are required.');
+      setCategoryFormError('A category name and URL slug are required.');
       return;
     }
 
-    const data: CategoryInput = {
-      name,
-      slug,
-      description: categoryDraft.description.trim(),
-      image: categoryDraft.image.trim(),
-    };
+    setCategoryFormError(null);
     try {
+      let image = categoryDraft.image.trim();
+      if (pendingCategoryImage) {
+        const file = new File(pendingCategoryImage.uri);
+        const uploaded = await uploadImage.mutateAsync({
+          data: { file: file as unknown as string },
+        });
+        image = uploaded.url;
+      }
+      const data: CategoryInput = {
+        name,
+        slug,
+        description: categoryDraft.description.trim(),
+        image,
+      };
       if (editingCategoryId !== null) {
         await updateCategory.mutateAsync({ id: editingCategoryId, data });
       } else {
@@ -130,7 +159,46 @@ export default function CategoriesScreen() {
       await invalidateCategories();
       cancelCategoryForm();
     } catch (error) {
-      Alert.alert('Could not save category', getErrorMessage(error));
+      setCategoryFormError(getErrorMessage(error));
+    }
+  }
+
+  async function chooseCategoryImage() {
+    setCategoryImageError(null);
+    try {
+      if (Platform.OS !== 'web' && !permission?.granted) {
+        const requested = await requestPermission();
+        if (!requested.granted) {
+          setCategoryImageError('Allow photo access to choose a category image.');
+          return;
+        }
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        quality: 0.9,
+      });
+      if (result.canceled) return;
+      const asset = result.assets[0];
+      if (!asset) return;
+
+      const extension = asset.fileName?.split('.').pop()?.toLowerCase();
+      const mimeType = asset.mimeType?.toLowerCase()
+        ?? (extension === 'png' ? 'image/png' : ['jpg', 'jpeg'].includes(extension ?? '') ? 'image/jpeg' : '');
+      if (!['image/jpeg', 'image/png'].includes(mimeType)) {
+        setCategoryImageError('Choose a JPG or PNG image.');
+        return;
+      }
+      if (asset.fileSize && asset.fileSize > maxCategoryImageSize) {
+        setCategoryImageError('The image must be 10 MB or smaller.');
+        return;
+      }
+
+      setPendingCategoryImage({ uri: asset.uri });
+      setCategoryDraft((draft) => ({ ...draft, image: asset.uri }));
+      setCategoryFormError(null);
+    } catch (error) {
+      setCategoryImageError(getErrorMessage(error));
     }
   }
 
@@ -220,7 +288,7 @@ export default function CategoriesScreen() {
   }
 
   const categories = categoriesQuery.data;
-  const savingCategory = createCategory.isPending || updateCategory.isPending;
+  const savingCategory = createCategory.isPending || updateCategory.isPending || uploadImage.isPending;
   const savingSubcategory = createSubcategory.isPending || updateSubcategory.isPending;
   const deleting = deleteCategory.isPending || deleteSubcategory.isPending;
 
@@ -258,14 +326,50 @@ export default function CategoriesScreen() {
             autoCapitalize="none"
             autoCorrect={false}
           />
-          <TextField
-            label="Image URL (optional)"
-            value={categoryDraft.image}
-            onChangeText={(image) => setCategoryDraft((draft) => ({ ...draft, image }))}
-            placeholder="https://…"
-            autoCapitalize="none"
-            keyboardType="url"
-          />
+          <View style={styles.imageUploadGroup}>
+            <Text style={[styles.imageUploadLabel, { color: colors.foreground }]}>Category image (optional)</Text>
+            {categoryDraft.image ? (
+              <Image
+                source={{ uri: categoryDraft.image }}
+                contentFit="cover"
+                style={[styles.categoryImagePreview, { backgroundColor: colors.secondary }]}
+              />
+            ) : (
+              <View style={[styles.categoryImagePlaceholder, { borderColor: colors.border, backgroundColor: colors.secondary }]}>
+                <Text style={[styles.imageHelper, { color: colors.mutedForeground }]}>No image selected</Text>
+              </View>
+            )}
+            <ActionButton
+              label={categoryDraft.image ? 'Choose a different image' : 'Upload category image'}
+              icon="image"
+              onPress={() => void chooseCategoryImage()}
+              disabled={savingCategory}
+            />
+            {categoryDraft.image ? (
+              <ActionButton
+                label="Remove image"
+                icon="trash-2"
+                variant="secondary"
+                onPress={() => {
+                  setCategoryDraft((draft) => ({ ...draft, image: '' }));
+                  setPendingCategoryImage(null);
+                  setCategoryImageError(null);
+                }}
+                disabled={savingCategory}
+              />
+            ) : null}
+            <Text style={[styles.imageHelper, { color: colors.mutedForeground }]}>JPG or PNG, up to 10 MB. Stored in Supabase Storage.</Text>
+            {categoryImageError ? (
+              <Text accessibilityRole="alert" style={[styles.formError, { color: colors.destructive }]}>{categoryImageError}</Text>
+            ) : null}
+            {Platform.OS !== 'web' && permission && !permission.granted && !permission.canAskAgain ? (
+              <ActionButton
+                label="Open photo settings"
+                variant="secondary"
+                onPress={() => void Linking.openSettings().catch(() => setCategoryImageError('Could not open device settings.'))}
+              />
+            ) : null}
+          </View>
           <TextField
             label="Description (optional)"
             value={categoryDraft.description}
@@ -273,6 +377,9 @@ export default function CategoriesScreen() {
             placeholder="A short introduction for shoppers"
             multiline
           />
+          {categoryFormError ? (
+            <Text accessibilityRole="alert" style={[styles.formError, { color: colors.destructive }]}>{categoryFormError}</Text>
+          ) : null}
           <ActionButton
             label={editingCategoryId === null ? 'Create category' : 'Save category'}
             icon="check"
@@ -466,6 +573,12 @@ export default function CategoriesScreen() {
 }
 
 const styles = StyleSheet.create({
+  imageUploadGroup: { gap: 8 },
+  imageUploadLabel: { fontFamily: 'Manrope_700Bold', fontSize: 12 },
+  categoryImagePreview: { width: '100%', height: 160, borderRadius: 12 },
+  categoryImagePlaceholder: { height: 100, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderRadius: 12, borderStyle: 'dashed' },
+  imageHelper: { fontFamily: 'Manrope_400Regular', fontSize: 11, lineHeight: 16 },
+  formError: { fontFamily: 'Manrope_600SemiBold', fontSize: 12, lineHeight: 18 },
   categoryList: { gap: 12 },
   categoryCard: { gap: 11 },
   categoryHeading: { flexDirection: 'row', alignItems: 'center', gap: 2 },

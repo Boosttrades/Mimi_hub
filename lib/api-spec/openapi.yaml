@@ -61,6 +61,31 @@ paths:
         "502":
           description: Supabase Storage is unavailable
 
+  /storage/upload/category-image:
+    post:
+      operationId: uploadCategoryImage
+      tags: [categories]
+      summary: Upload a JPEG or PNG category image to Supabase Storage
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/ProductImageUploadRequest"
+      responses:
+        "201":
+          description: Category image uploaded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductImageUpload"
+        "400":
+          description: A valid JPEG or PNG image is required
+        "413":
+          description: Image exceeds the 10 MB limit
+        "502":
+          description: Supabase Storage is unavailable
+
   # ── AUTH ─────────────────────────────────────────────────────
   /auth/signup:
     post:

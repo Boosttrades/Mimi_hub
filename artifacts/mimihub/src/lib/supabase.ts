@@ -151,10 +151,10 @@ export async function getUserData(): Promise<MimiAccountData> {
   return toCamel(stored) as MimiAccountData;
 }
 
-export async function uploadProductImage(file: Blob, filename: string): Promise<string> {
+async function uploadImage(file: Blob, filename: string, endpoint: string): Promise<string> {
   const formData = new FormData();
   formData.append('file', file, filename);
-  const response = await fetch('/api/storage/upload', {
+  const response = await fetch(endpoint, {
     method: 'POST',
     body: formData,
     credentials: 'include',
@@ -163,4 +163,12 @@ export async function uploadProductImage(file: Blob, filename: string): Promise<
   const data = raw ? JSON.parse(raw) : null;
   if (!response.ok) throw new Error(data?.error || 'Supabase Storage upload failed');
   return data.url as string;
+}
+
+export function uploadProductImage(file: Blob, filename: string): Promise<string> {
+  return uploadImage(file, filename, '/api/storage/upload');
+}
+
+export function uploadCategoryImage(file: Blob, filename: string): Promise<string> {
+  return uploadImage(file, filename, '/api/storage/upload/category-image');
 }

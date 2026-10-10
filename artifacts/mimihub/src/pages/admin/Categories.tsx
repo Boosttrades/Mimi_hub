@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState, type ChangeEvent } from 'react';
 import { AdminLayout } from './AdminLayout';
 import {
   useListCategories,
@@ -38,6 +38,7 @@ import { Switch } from '@/components/ui/switch';
 import { Plus, Edit, Trash2, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
+import { uploadCategoryImage } from '@/lib/supabase';
 
 type DeleteTarget =
   | { kind: 'category'; id: number; name: string; subcategoryCount: number }
@@ -62,6 +63,8 @@ export function AdminCategories() {
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
   const [subcategoryDrafts, setSubcategoryDrafts] = useState<Record<number, string>>({});
   const [formData, setFormData] = useState({ name: '', slug: '', description: '', image: '' });
+  const [imageUploading, setImageUploading] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   const refreshCategoryViews = () => {
     void queryClient.invalidateQueries({ queryKey: getListCategoriesQueryKey() });
@@ -175,6 +178,32 @@ export function AdminCategories() {
     }
   };
 
+  const handleCategoryImageUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    if (!['image/jpeg', 'image/png'].includes(file.type)) {
+      toast.error('Choose a JPG or PNG image.');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('The image must be 10 MB or smaller.');
+      return;
+    }
+
+    setImageUploading(true);
+    try {
+      const imageUrl = await uploadCategoryImage(file, file.name);
+      setFormData((current) => ({ ...current, image: imageUrl }));
+      toast.success('Category image uploaded to Supabase');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not upload the category image.');
+    } finally {
+      setImageUploading(false);
+    }
+  };
+
   if (isLoading) return <AdminLayout title="Categories"><LoadingSpinner size="lg" /></AdminLayout>;
 
   return (
@@ -201,9 +230,31 @@ export function AdminCategories() {
                 <Label htmlFor="category-slug">Slug</Label>
                 <Input id="category-slug" value={formData.slug} onChange={(e) => setFormData((current) => ({ ...current, slug: e.target.value }))} required />
               </div>
-              <div>
-                <Label htmlFor="category-image">Image URL (Optional)</Label>
-                <Input id="category-image" value={formData.image} onChange={(e) => setFormData((current) => ({ ...current, image: e.target.value }))} placeholder="https://..." />
+              <div className="space-y-2">
+                <Label htmlFor="category-image">Category image (Optional)</Label>
+                <Input
+                  ref={imageInputRef}
+                  id="category-image"
+                  type="file"
+                  accept="image/jpeg,image/png"
+                  onChange={handleCategoryImageUpload}
+                  disabled={imageUploading}
+                />
+                <p className="text-xs text-muted-foreground">JPG or PNG, up to 10 MB. Stored in Supabase Storage.</p>
+                {imageUploading && <p role="status" className="text-sm text-muted-foreground">Uploading image…</p>}
+                {formData.image && (
+                  <div className="flex items-start gap-3">
+                    <img src={formData.image} alt={`${formData.name || 'Category'} preview`} className="h-24 w-24 rounded-lg bg-secondary object-cover" />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setFormData((current) => ({ ...current, image: '' }))}
+                      disabled={imageUploading}
+                    >
+                      Remove image
+                    </Button>
+                  </div>
+                )}
               </div>
               <div>
                 <Label htmlFor="category-description">Description (Optional)</Label>
@@ -211,7 +262,7 @@ export function AdminCategories() {
               </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={resetForm}>Cancel</Button>
-                <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
+                <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending || imageUploading}>
                   {updateMutation.isPending || createMutation.isPending ? 'Saving…' : isEditing ? 'Update' : 'Create'}
                 </Button>
               </DialogFooter>

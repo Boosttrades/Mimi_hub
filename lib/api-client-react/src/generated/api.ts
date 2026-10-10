@@ -235,6 +235,79 @@ export const useUploadProductImage = <TError = ErrorType<void>,
       return useMutation(getUploadProductImageMutationOptions(options));
     }
 
+export const getUploadCategoryImageUrl = () => {
+
+
+
+
+  return `/api/storage/upload/category-image`
+}
+
+/**
+ * @summary Upload a JPEG or PNG category image to Supabase Storage
+ */
+export const uploadCategoryImage = async (productImageUploadRequest: ProductImageUploadRequest, options?: Parameters<typeof customFetch>[1]): Promise<ProductImageUpload> => {
+    const formData = new FormData();
+formData.append(`file`, productImageUploadRequest.file);
+
+  return customFetch<ProductImageUpload>(getUploadCategoryImageUrl(),
+  {
+    ...options,
+    method: 'POST'
+    ,
+    body: formData
+  }
+);}
+
+
+
+
+
+export const getUploadCategoryImageMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadCategoryImage>>, TError,{data: BodyType<ProductImageUploadRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof uploadCategoryImage>>, TError,{data: BodyType<ProductImageUploadRequest>}, TContext> => {
+
+const mutationKey = ['uploadCategoryImage'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof uploadCategoryImage>>, {data: BodyType<ProductImageUploadRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  uploadCategoryImage(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UploadCategoryImageMutationResult = NonNullable<Awaited<ReturnType<typeof uploadCategoryImage>>>
+    export type UploadCategoryImageMutationBody = BodyType<ProductImageUploadRequest>
+    export type UploadCategoryImageMutationError = ErrorType<void>
+
+    /**
+ * @summary Upload a JPEG or PNG category image to Supabase Storage
+ */
+export const useUploadCategoryImage = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadCategoryImage>>, TError,{data: BodyType<ProductImageUploadRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof uploadCategoryImage>>,
+        TError,
+        {data: BodyType<ProductImageUploadRequest>},
+        TContext
+      > => {
+      return useMutation(getUploadCategoryImageMutationOptions(options));
+    }
+
 export const getSignUpUrl = () => {
 
 
