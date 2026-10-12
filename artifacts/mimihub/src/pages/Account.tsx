@@ -11,11 +11,11 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
-  Search, Heart, PackageSearch, Package, X,
-  User, ShoppingBag, Sun, Moon, Monitor, ChevronRight,
+  Search, Heart, PackageSearch, Package,
+  User, ShoppingBag, Sun, Moon, Monitor, ChevronRight, LogOut,
 } from 'lucide-react';
 import { formatNaira } from '@/lib/utils';
-import { createOrGetUser, getCurrentUser, listUserOrders, type MimiUser } from '@/lib/supabase';
+import { getCurrentUser, listUserOrders, signOutAccount, type MimiUser } from '@/lib/supabase';
 
 // ─── theme ────────────────────────────────────────────────────────────────────
 
@@ -91,53 +91,6 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-// ─── username modal ────────────────────────────────────────────────────────────
-
-function UsernameModal({ onSuccess, onClose }: { onSuccess: (u: MimiUser) => void; onClose: () => void }) {
-  const [username, setUsername] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmed = username.trim();
-    if (!trimmed) return;
-    setLoading(true);
-    setError('');
-    try {
-      onSuccess(await createOrGetUser(trimmed));
-    } catch {
-      setError('Network error. Check your connection.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
-      <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-sm p-6 relative">
-        <button onClick={onClose} className="absolute top-4 right-4 text-muted-foreground hover:text-foreground" aria-label="Close">
-          <X className="w-5 h-5" />
-        </button>
-        <div className="h-14 w-14 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto mb-4">
-          <User className="w-7 h-7" />
-        </div>
-        <h2 className="font-serif text-xl text-foreground text-center mb-1">Set a Username</h2>
-        <p className="text-muted-foreground text-sm text-center mb-6">
-          We will remember you on this device to track your orders.
-        </p>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-          <Input value={username} onChange={e => setUsername(e.target.value)} placeholder="Choose a username" autoFocus required disabled={loading} />
-          {error && <p className="text-sm text-red-600">{error}</p>}
-          <Button type="submit" className="w-full rounded-full" disabled={loading || !username.trim()}>
-            {loading ? 'Saving...' : 'Continue'}
-          </Button>
-        </form>
-      </div>
-    </div>
-  );
-}
-
 // ─── profile view ──────────────────────────────────────────────────────────────
 
 function ProfileView() {
@@ -148,7 +101,7 @@ function ProfileView() {
 
   const [user, setUser] = useState<MimiUser | null>(null);
   const [sessionChecked, setSessionChecked] = useState(false);
-  const [showModal, setShowModal] = useState(false);
+  const [authError, setAuthError] = useState('');
 
   useEffect(() => {
     getCurrentUser()
@@ -162,18 +115,20 @@ function ProfileView() {
     { value: 'system', label: 'System', Icon: Monitor },
   ];
 
+  const handleSignOut = async () => {
+    setAuthError('');
+    try {
+      await signOutAccount();
+      setUser(null);
+    } catch {
+      setAuthError('Could not sign out. Please try again.');
+    }
+  };
+
   if (!sessionChecked) return <LoadingSpinner size="lg" />;
 
   return (
     <div className="max-w-md mx-auto space-y-4">
-      {showModal && (
-        <UsernameModal
-          onSuccess={u => { setUser(u); setShowModal(false); }}
-          onClose={() => setShowModal(false)}
-        />
-      )}
-
-      {/* Username card */}
       <div className="bg-card border border-border rounded-2xl p-5">
         <div className="flex items-center gap-4">
           <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
@@ -182,44 +137,38 @@ function ProfileView() {
           <div className="flex-1 min-w-0">
             {user ? (
               <>
-                <p className="font-serif text-lg text-foreground truncate">{user.username}</p>
+                <p className="font-serif text-lg text-foreground truncate">{user.fullName || user.email}</p>
+                <p className="truncate text-xs text-muted-foreground">{user.email}</p>
                 <p className="text-xs text-muted-foreground">
                   Member since {new Date(user.createdAt).toLocaleDateString('en-NG', { month: 'long', year: 'numeric' })}
                 </p>
               </>
             ) : (
               <>
-                <p className="text-sm font-medium text-foreground">No username set</p>
-                <button
-                  onClick={() => setShowModal(true)}
-                  className="text-xs text-primary font-medium underline underline-offset-2 mt-0.5"
-                  data-testid="button-set-username"
-                >
-                  Set a username to track orders
-                </button>
+                <p className="text-sm font-medium text-foreground">Sign in to save your account data</p>
+                <p className="mt-1 text-xs text-muted-foreground">Keep your cart, wishlist, and orders across sessions.</p>
               </>
             )}
             <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
-              <Link
-                href="/account/create"
-                className="inline-flex items-center gap-1 text-xs font-semibold text-foreground underline decoration-primary underline-offset-4 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
-                data-testid="link-preview-signup"
-              >
-                Preview sign-up
-                <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
-              </Link>
-              <Link
-                href="/account/login"
-                className="inline-flex items-center gap-1 text-xs font-semibold text-foreground underline decoration-primary underline-offset-4 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
-                data-testid="link-preview-login"
-              >
-                Preview login
-                <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
-              </Link>
+              {user ? (
+                <button type="button" onClick={handleSignOut} className="inline-flex items-center gap-1 text-xs font-semibold text-foreground underline decoration-primary underline-offset-4 hover:text-primary">
+                  <LogOut className="h-3.5 w-3.5" aria-hidden="true" /> Sign out
+                </button>
+              ) : (
+                <>
+                  <Link href="/account/create" className="inline-flex items-center gap-1 text-xs font-semibold text-foreground underline decoration-primary underline-offset-4 hover:text-primary" data-testid="link-account-signup">
+                    Create account <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+                  </Link>
+                  <Link href="/account/login" className="inline-flex items-center gap-1 text-xs font-semibold text-foreground underline decoration-primary underline-offset-4 hover:text-primary" data-testid="link-account-login">
+                    Sign in <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>
       </div>
+      {authError && <p role="alert" className="text-sm text-destructive">{authError}</p>}
 
       {/* Orders + Cart quick links */}
       <div className="grid grid-cols-2 gap-3">
@@ -290,7 +239,6 @@ function OrdersView() {
   const [, setLocation] = useLocation();
   const [user, setUser] = useState<MimiUser | null>(null);
   const [sessionChecked, setSessionChecked] = useState(false);
-  const [showModal, setShowModal] = useState(false);
   const [orders, setOrders] = useState<UserOrder[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [ordersError, setOrdersError] = useState('');
@@ -325,20 +273,13 @@ function OrdersView() {
 
   if (!user) {
     return (
-      <>
-        {showModal && (
-          <UsernameModal
-            onSuccess={u => { setUser(u); setShowModal(false); }}
-            onClose={() => setShowModal(false)}
-          />
-        )}
         <div className="max-w-md mx-auto py-12 px-4 bg-card border border-border rounded-2xl text-center">
           <div className="h-16 w-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto mb-6">
             <PackageSearch className="w-8 h-8" />
           </div>
           <h2 className="font-serif text-2xl text-foreground mb-2">Track an Order</h2>
           <p className="text-muted-foreground mb-6 text-sm">
-            Enter your order reference, or set a username to see your full history.
+            Enter your order reference, or sign in to see your saved order history.
           </p>
           <form onSubmit={handleTrack} className="flex flex-col gap-4 mb-4">
             <Input
@@ -352,14 +293,11 @@ function OrdersView() {
               <Search className="w-4 h-4" /> Track Order
             </Button>
           </form>
-          <button
-            onClick={() => setShowModal(true)}
-            className="text-xs text-primary font-medium underline underline-offset-2"
-          >
-            Sign in with a username to see all orders
-          </button>
+          <div className="flex items-center justify-center gap-4">
+            <Link href="/account/login" className="text-xs font-semibold text-primary underline underline-offset-2">Sign in</Link>
+            <Link href="/account/create" className="text-xs font-semibold text-primary underline underline-offset-2">Create account</Link>
+          </div>
         </div>
-      </>
     );
   }
 
@@ -395,7 +333,7 @@ function OrdersView() {
         <div className="space-y-3">
           <p className="text-sm text-muted-foreground">
             {orders.length} order{orders.length !== 1 ? 's' : ''} for{' '}
-            <span className="font-medium text-foreground">{user.username}</span>
+            <span className="font-medium text-foreground">{user.email}</span>
           </p>
           {orders.map(order => (
             <button

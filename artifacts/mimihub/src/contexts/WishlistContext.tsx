@@ -8,6 +8,7 @@ interface WishlistContextType {
   toggleWishlist: (productId: number) => void;
   isInWishlist: (productId: number) => boolean;
   switchToAccount: (username: string, mergeGuest: boolean, accountItems?: number[]) => void;
+  switchToGuest: () => void;
 }
 
 const WishlistContext = createContext<WishlistContextType | undefined>(undefined);
@@ -54,9 +55,14 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
     setStorageScope(username);
   };
 
+  const switchToGuest = () => {
+    setStorageScope('guest');
+    setItems(readStored<number[]>('mimihub_wishlist', []));
+  };
+
   return (
     <WishlistContext.Provider
-      value={{ items, addToWishlist, removeFromWishlist, toggleWishlist, isInWishlist, switchToAccount }}
+      value={{ items, addToWishlist, removeFromWishlist, toggleWishlist, isInWishlist, switchToAccount, switchToGuest }}
     >
       {children}
     </WishlistContext.Provider>

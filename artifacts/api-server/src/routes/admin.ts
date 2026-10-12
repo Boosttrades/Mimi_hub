@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
 import { db, ordersTable, productsTable, settingsTable } from "@workspace/db";
+import { requireAdmin } from "../lib/request-auth";
 
 const router: IRouter = Router();
 const DEFAULT_LOW_STOCK_THRESHOLD = 5;
@@ -16,7 +17,7 @@ function startOfCurrentMonth(now: Date): Date {
 // GET /admin/summary
 // This is intentionally an aggregation of the same catalog and order data
 // used by the storefront. It does not seed or invent dashboard records.
-router.get("/admin/summary", async (_req, res): Promise<void> => {
+router.get("/admin/summary", requireAdmin, async (_req, res): Promise<void> => {
   const [orders, products] = await Promise.all([
     db.select().from(ordersTable),
     db.select().from(productsTable),

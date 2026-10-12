@@ -1,18 +1,33 @@
 import { useState, type FormEvent } from 'react';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import { KeyRound, LockKeyhole, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AccountPreviewShell } from './AccountPreviewShell';
+import { signInAccount } from '@/lib/supabase';
 
 export function AccountLoginPreview() {
+  const [, setLocation] = useLocation();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [notice, setNotice] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    event.currentTarget.reset();
-    setNotice('Preview only. No one was signed in and your information was not saved.');
+    setError('');
+    setNotice('');
+    setLoading(true);
+    try {
+      await signInAccount(email, password);
+      setLocation('/account');
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Could not sign in. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -22,14 +37,15 @@ export function AccountLoginPreview() {
       description="Pick up where you left off."
     >
       <div
-        role="status"
-        data-testid="status-login-preview-notice"
+        role="note"
+        data-testid="status-login-security"
         className="mb-6 flex gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4 text-sm leading-5 text-foreground"
       >
         <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
-        <p><strong className="font-semibold">Design preview only.</strong> Sign-in is not connected. Anything you enter will not be saved or sent.</p>
+        <p>Sign in to access your saved wishlist, cart, and order history.</p>
       </div>
 
+      {error && <p role="alert" className="mb-5 rounded-lg bg-destructive/10 px-4 py-3 text-sm leading-5 text-destructive">{error}</p>}
       {notice && (
         <p
           role="status"
@@ -40,15 +56,19 @@ export function AccountLoginPreview() {
         </p>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
+      <form onSubmit={handleSubmit} className="space-y-4" autoComplete="on">
         <div className="space-y-2">
           <Label htmlFor="preview-login-email">Email address</Label>
           <Input
             id="preview-login-email"
             name="email"
             type="email"
-            autoComplete="off"
+            autoComplete="email"
             placeholder="you@example.com"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            required
+            disabled={loading}
             data-testid="input-login-email"
             className="h-11 rounded-lg bg-background"
           />
@@ -58,7 +78,7 @@ export function AccountLoginPreview() {
             <Label htmlFor="preview-login-password">Password</Label>
             <button
               type="button"
-              onClick={() => setNotice('Password reset is not included in this preview. No email was sent.')}
+              onClick={() => setNotice('Password reset is not available yet. You can request one after email delivery is configured.')}
               className="text-xs font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
               data-testid="button-preview-forgot-password"
             >
@@ -69,26 +89,30 @@ export function AccountLoginPreview() {
             id="preview-login-password"
             name="password"
             type="password"
-            autoComplete="off"
+            autoComplete="current-password"
             placeholder="Enter your password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            required
+            disabled={loading}
             data-testid="input-login-password"
             className="h-11 rounded-lg bg-background"
           />
         </div>
-        <Button type="submit" className="mt-2 h-12 w-full rounded-full text-sm font-semibold" data-testid="button-preview-login">
+        <Button type="submit" disabled={loading} className="mt-2 h-12 w-full rounded-full text-sm font-semibold" data-testid="button-preview-login">
           <KeyRound className="h-4 w-4" aria-hidden="true" />
-          Preview sign-in
+          {loading ? 'Signing in...' : 'Sign in'}
         </Button>
       </form>
 
       <p className="mt-5 flex items-center justify-center gap-2 text-center text-xs leading-5 text-muted-foreground">
         <LockKeyhole className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-        Your entries stay in this page and are cleared when you submit.
+        Your password is sent securely to Supabase Auth and is never stored by MimiiHub.
       </p>
       <p className="mt-5 text-center text-sm text-muted-foreground">
         New to MimiiHub?{' '}
         <Link href="/account/create" className="font-semibold text-primary underline-offset-4 hover:underline" data-testid="link-preview-signup">
-          Preview sign-up
+          Create an account
         </Link>
       </p>
       <Link

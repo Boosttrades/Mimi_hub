@@ -1,8 +1,17 @@
 export interface MimiUser {
   id: number;
   username: string;
+  email: string;
+  fullName: string | null;
+  role: 'customer' | 'admin' | string;
   createdAt: string;
 }
+
+type AuthResult = {
+  authenticated: boolean;
+  requiresEmailVerification?: boolean;
+  profile?: MimiUser;
+};
 
 export interface MimiAccountData {
   userId: number;
@@ -27,7 +36,12 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const response = await fetch(`/api${path}`, { ...options, headers, credentials: 'include' });
   const raw = await response.text();
   const data = raw ? JSON.parse(raw) : null;
-  if (!response.ok) throw new Error(data?.error || data?.message || `API request failed (${response.status})`);
+  if (!response.ok) {
+    const message = typeof data?.error === 'string'
+      ? data.error
+      : data?.error?.message || data?.message || `API request failed (${response.status})`;
+    throw new Error(message);
+  }
   return data as T;
 }
 
@@ -42,24 +56,76 @@ function toCamel(value: unknown): any {
   );
 }
 
-export async function createOrGetUser(username: string): Promise<MimiUser> {
-  const user = await request<Record<string, unknown>>('/users', {
+function verificationRedirectUrl() {
+  const base = import.meta.env.BASE_URL.endsWith('/')
+    ? import.meta.env.BASE_URL
+    : `${import.meta.env.BASE_URL}/`;
+  return new URL(`${base}account/verify`, window.location.origin).toString();
+}
+
+export async function signUpAccount(input: {
+  email: string;
+  password: string;
+  fullName: string;
+}): Promise<AuthResult> {
+  const result = await request<AuthResult>('/auth/signup', {
     method: 'POST',
-    body: JSON.stringify({ username }),
+    body: JSON.stringify({ ...input, redirectTo: verificationRedirectUrl() }),
   });
-  const normalized = toCamel(user) as MimiUser;
-  localStorage.setItem('mimi_user_id', String(normalized.id));
+  if (result.authenticated) window.dispatchEvent(new Event('mimihub:user-session-changed'));
+  return result;
+}
+
+export async function signInAccount(email: string, password: string): Promise<MimiUser> {
+  const result = await request<AuthResult>('/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email, password }),
+  });
+  if (!result.profile) throw new Error('Your account profile could not be loaded.');
   window.dispatchEvent(new Event('mimihub:user-session-changed'));
-  return normalized;
+  return toCamel(result.profile) as MimiUser;
+}
+
+export async function signOutAccount(): Promise<void> {
+  await request<void>('/auth/logout', { method: 'POST', body: JSON.stringify({}) });
+  window.dispatchEvent(new Event('mimihub:user-session-changed'));
+}
+
+export async function resendVerificationEmail(email: string): Promise<void> {
+  await request('/auth/resend-verification', {
+    method: 'POST',
+    body: JSON.stringify({ email, redirectTo: verificationRedirectUrl() }),
+  });
+}
+
+export async function acceptSupabaseRedirectSession(
+  accessToken: string,
+  refreshToken: string,
+): Promise<MimiUser> {
+  const result = await request<AuthResult>('/auth/accept-session', {
+    method: 'POST',
+    body: JSON.stringify({ accessToken, refreshToken }),
+  });
+  if (!result.profile) throw new Error('Email verification succeeded, but your account profile was not returned.');
+  window.dispatchEvent(new Event('mimihub:user-session-changed'));
+  return toCamel(result.profile) as MimiUser;
+}
+
+export async function verifyEmailTokenHash(tokenHash: string): Promise<MimiUser | null> {
+  const result = await request<AuthResult>('/auth/verify-email', {
+    method: 'POST',
+    body: JSON.stringify({ tokenHash }),
+  });
+  if (!result.profile) return null;
+  window.dispatchEvent(new Event('mimihub:user-session-changed'));
+  return toCamel(result.profile) as MimiUser;
 }
 
 export async function getCurrentUser(): Promise<MimiUser | null> {
-  if (!localStorage.getItem('mimi_user_id')) return null;
   try {
     const user = await request<Record<string, unknown>>('/me');
     return toCamel(user) as MimiUser;
   } catch {
-    localStorage.removeItem('mimi_user_id');
     return null;
   }
 }

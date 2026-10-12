@@ -108,12 +108,16 @@ export function OrderTracking() {
 
             {/* Delivery Info */}
             <div className="bg-card border border-border rounded-2xl p-6">
-              <h2 className="font-serif text-xl mb-6">Delivery Details</h2>
-              <div className="flex flex-col gap-3 text-sm">
-                <p><span className="text-muted-foreground w-20 inline-block">Name:</span> <span className="font-medium">{order.fullName}</span></p>
-                <p><span className="text-muted-foreground w-20 inline-block">Phone:</span> <span className="font-medium">{order.phone}</span></p>
-                <p><span className="text-muted-foreground w-20 items-start inline-block">Address:</span> <span className="font-medium max-w-[200px]">{order.address}, {order.city}, {order.state}</span></p>
-              </div>
+              <h2 className="font-serif text-xl mb-3">Delivery Details</h2>
+              {order.fullName ? (
+                <div className="flex flex-col gap-3 text-sm">
+                  <p><span className="text-muted-foreground w-20 inline-block">Name:</span> <span className="font-medium">{order.fullName}</span></p>
+                  <p><span className="text-muted-foreground w-20 inline-block">Phone:</span> <span className="font-medium">{order.phone}</span></p>
+                  <p><span className="text-muted-foreground w-20 items-start inline-block">Address:</span> <span className="font-medium max-w-[200px]">{order.address}, {order.city}, {order.state}</span></p>
+                </div>
+              ) : (
+                <p className="text-sm leading-6 text-muted-foreground">Delivery details are private. Sign in to view your order history.</p>
+              )}
             </div>
           </div>
 

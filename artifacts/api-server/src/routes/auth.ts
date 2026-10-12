@@ -5,12 +5,16 @@ import {
   serializeAuthUser,
   serializeSession,
 } from "../lib/auth";
+import {
+  clearSessionCookies,
+  setSessionCookies,
+  ACCESS_COOKIE,
+  REFRESH_COOKIE,
+} from "../lib/auth-cookies";
+import { ensureAppUser, serializeAppUser } from "../lib/app-user";
 
 const router: IRouter = Router();
 
-const ACCESS_COOKIE = "mimi_auth_access";
-const REFRESH_COOKIE = "mimi_auth_refresh";
-const REFRESH_COOKIE_MAX_AGE = 30 * 24 * 60 * 60 * 1000;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type AuthRequest = {
@@ -18,39 +22,10 @@ type AuthRequest = {
   password?: unknown;
   fullName?: unknown;
   tokenHash?: unknown;
+  redirectTo?: unknown;
+  accessToken?: unknown;
+  refreshToken?: unknown;
 };
-
-function cookieOptions() {
-  return {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax" as const,
-    path: "/",
-  };
-}
-
-function setSessionCookies(
-  res: Parameters<Parameters<IRouter["post"]>[1]>[1],
-  session: Session,
-) {
-  const options = cookieOptions();
-  res.cookie(ACCESS_COOKIE, session.access_token, {
-    ...options,
-    maxAge: Math.max(session.expires_in * 1000, 60 * 1000),
-  });
-  res.cookie(REFRESH_COOKIE, session.refresh_token, {
-    ...options,
-    maxAge: REFRESH_COOKIE_MAX_AGE,
-  });
-}
-
-function clearSessionCookies(
-  res: Parameters<Parameters<IRouter["post"]>[1]>[1],
-) {
-  const options = cookieOptions();
-  res.clearCookie(ACCESS_COOKIE, options);
-  res.clearCookie(REFRESH_COOKIE, options);
-}
 
 function normalizeEmail(value: unknown): string | null {
   if (typeof value !== "string") return null;
@@ -60,6 +35,29 @@ function normalizeEmail(value: unknown): string | null {
 
 function readPassword(value: unknown): string | null {
   return typeof value === "string" && value.length >= 8 && value.length <= 72 ? value : null;
+}
+
+function authRedirect(req: Parameters<Parameters<IRouter["post"]>[1]>[0], value: unknown): string | undefined {
+  if (process.env.SUPABASE_AUTH_REDIRECT_URL) return process.env.SUPABASE_AUTH_REDIRECT_URL;
+  if (typeof value !== "string") return undefined;
+
+  const requestOrigin = req.get("origin");
+  if (!requestOrigin) return undefined;
+  try {
+    const origin = new URL(requestOrigin);
+    const target = new URL(value);
+    if (
+      target.origin !== origin.origin ||
+      !target.pathname.endsWith("/account/verify") ||
+      target.search ||
+      target.hash
+    ) {
+      return undefined;
+    }
+    return target.toString();
+  } catch {
+    return undefined;
+  }
 }
 
 function authErrorStatus(error: AuthError): number {
@@ -120,10 +118,11 @@ async function getCurrentUser(accessToken: string): Promise<{ user: User | null;
   return { user: data.user, error };
 }
 
-function authSuccess(user: User, session?: Session | null) {
+function authSuccess(user: User, session?: Session | null, appUser?: ReturnType<typeof serializeAppUser>) {
   return {
     user: serializeAuthUser(user),
     authenticated: Boolean(session),
+    ...(appUser ? { profile: appUser } : {}),
     ...(session ? { session: serializeSession(session) } : {}),
   };
 }
@@ -133,6 +132,7 @@ router.post("/auth/signup", async (req, res): Promise<void> => {
   const email = normalizeEmail(body.email);
   const password = readPassword(body.password);
   const fullName = body.fullName === undefined ? undefined : body.fullName;
+  const redirectTo = authRedirect(req, body.redirectTo);
 
   if (!email) {
     sendValidationError(res, "A valid email address is required.");
@@ -146,15 +146,17 @@ router.post("/auth/signup", async (req, res): Promise<void> => {
     sendValidationError(res, "Full name must be a string of 120 characters or fewer.");
     return;
   }
+  if (body.redirectTo !== undefined && !redirectTo) {
+    sendValidationError(res, "The verification link must point to this MimiiHub site.");
+    return;
+  }
 
   const { data, error } = await createAuthClient().auth.signUp({
     email,
     password,
     options: {
       ...(fullName ? { data: { full_name: fullName.trim() } } : {}),
-      ...(process.env.SUPABASE_AUTH_REDIRECT_URL
-        ? { emailRedirectTo: process.env.SUPABASE_AUTH_REDIRECT_URL }
-        : {}),
+      ...(redirectTo ? { emailRedirectTo: redirectTo } : {}),
     },
   });
 
@@ -184,10 +186,16 @@ router.post("/auth/signup", async (req, res): Promise<void> => {
     return;
   }
 
-  if (data.session) setSessionCookies(res, data.session);
+  const verified = Boolean(data.user.email_confirmed_at);
+  let profile: ReturnType<typeof serializeAppUser> | undefined;
+  if (data.session && verified) {
+    const appUser = await ensureAppUser(data.user);
+    profile = serializeAppUser(appUser, data.user);
+    setSessionCookies(res, data.session);
+  }
   res.status(201).json({
-    ...authSuccess(data.user, data.session),
-    requiresEmailVerification: !data.session,
+    ...authSuccess(data.user, data.session && verified ? data.session : null, profile),
+    requiresEmailVerification: !verified,
   });
 });
 
@@ -220,8 +228,19 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     return;
   }
 
+  if (!data.user.email_confirmed_at) {
+    res.status(403).json({
+      error: {
+        code: "EMAIL_NOT_VERIFIED",
+        message: "Please verify your email before signing in.",
+      },
+    });
+    return;
+  }
+
+  const appUser = await ensureAppUser(data.user);
   setSessionCookies(res, data.session);
-  res.json(authSuccess(data.user, data.session));
+  res.json(authSuccess(data.user, data.session, serializeAppUser(appUser, data.user)));
 });
 
 router.post("/auth/logout", (req, res): void => {
@@ -275,18 +294,21 @@ router.get("/auth/session", async (req, res): Promise<void> => {
 router.post("/auth/resend-verification", async (req, res): Promise<void> => {
   const body = (req.body ?? {}) as AuthRequest;
   const email = normalizeEmail(body.email);
+  const redirectTo = authRedirect(req, body.redirectTo);
 
   if (!email) {
     sendValidationError(res, "A valid email address is required.");
+    return;
+  }
+  if (body.redirectTo !== undefined && !redirectTo) {
+    sendValidationError(res, "The verification link must point to this MimiiHub site.");
     return;
   }
 
   const { error } = await createAuthClient().auth.resend({
     type: "signup",
     email,
-    ...(process.env.SUPABASE_AUTH_REDIRECT_URL
-      ? { options: { emailRedirectTo: process.env.SUPABASE_AUTH_REDIRECT_URL } }
-      : {}),
+    ...(redirectTo ? { options: { emailRedirectTo: redirectTo } } : {}),
   });
 
   if (error) {
@@ -325,12 +347,51 @@ router.post("/auth/verify-email", async (req, res): Promise<void> => {
     return;
   }
 
-  if (data.session) setSessionCookies(res, data.session);
+  let profile: ReturnType<typeof serializeAppUser> | undefined;
+  if (data.session && data.user.email_confirmed_at) {
+    const appUser = await ensureAppUser(data.user);
+    profile = serializeAppUser(appUser, data.user);
+    setSessionCookies(res, data.session);
+  }
   res.json({
-    ...authSuccess(data.user, data.session),
+    ...authSuccess(data.user, data.session, profile),
     verified: true,
-    requiresEmailVerification: false,
+    requiresEmailVerification: !data.user.email_confirmed_at,
   });
+});
+
+// Supabase's built-in confirmation link may redirect back with implicit-flow
+// tokens in the URL fragment. Exchange those once for server-only HttpOnly
+// cookies, then the browser removes the fragment immediately.
+router.post("/auth/accept-session", async (req, res): Promise<void> => {
+  const body = (req.body ?? {}) as AuthRequest;
+  if (
+    typeof body.accessToken !== "string" ||
+    typeof body.refreshToken !== "string" ||
+    body.accessToken.length > 8192 ||
+    body.refreshToken.length > 8192
+  ) {
+    sendValidationError(res, "The verification session is invalid or incomplete.");
+    return;
+  }
+
+  const { data, error } = await createAuthClient().auth.setSession({
+    access_token: body.accessToken,
+    refresh_token: body.refreshToken,
+  });
+  if (error || !data.user || !data.session || !data.user.email_confirmed_at) {
+    if (error) sendAuthError(req, res, error, "Could not complete email verification.");
+    else {
+      res.status(403).json({
+        error: { code: "EMAIL_NOT_VERIFIED", message: "Please verify your email before signing in." },
+      });
+    }
+    return;
+  }
+
+  const appUser = await ensureAppUser(data.user);
+  setSessionCookies(res, data.session);
+  res.json(authSuccess(data.user, data.session, serializeAppUser(appUser, data.user)));
 });
 
 export default router;

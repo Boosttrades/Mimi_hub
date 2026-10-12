@@ -18,6 +18,7 @@ interface CartContextType {
   updateQuantity: (productId: number, quantity: number) => void;
   clearCart: () => void;
   switchToAccount: (username: string, mergeGuest: boolean, accountItems?: CartItem[]) => void;
+  switchToGuest: () => void;
   totalItems: number;
   subtotal: number;
 }
@@ -95,12 +96,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setStorageScope(username);
   };
 
+  const switchToGuest = () => {
+    setStorageScope('guest');
+    setItems(readStored<CartItem[]>('mimihub_cart', []));
+  };
+
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
   const subtotal = items.reduce((sum, item) => sum + item.totalPrice, 0);
 
   return (
     <CartContext.Provider
-      value={{ items, addToCart, removeFromCart, updateQuantity, clearCart, switchToAccount, totalItems, subtotal }}
+      value={{ items, addToCart, removeFromCart, updateQuantity, clearCart, switchToAccount, switchToGuest, totalItems, subtotal }}
     >
       {children}
     </CartContext.Provider>

@@ -27,7 +27,7 @@ export function AccountPreviewShell({
               <div className="mb-10 inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-primary/30 bg-background text-primary shadow-sm">
                 <Crown className="h-6 w-6" aria-hidden="true" />
               </div>
-              <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.24em] text-primary">MimiiHub / Preview</p>
+              <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.24em] text-primary">MimiiHub / Account</p>
               <h1 className="max-w-sm font-serif text-4xl leading-[1.08] text-foreground sm:text-5xl">
                 A little more lovely, all in one place.
               </h1>

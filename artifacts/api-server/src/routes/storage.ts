@@ -3,6 +3,7 @@ import multer from "multer";
 import path from "node:path";
 import crypto from "node:crypto";
 import { supabaseAdmin, PRODUCT_IMAGES_BUCKET } from "../lib/supabase";
+import { requireAdmin } from "../lib/request-auth";
 
 const router: IRouter = Router();
 const upload = multer({
@@ -35,7 +36,7 @@ async function ensureProductImagesBucket() {
   return bucketReady;
 }
 
-router.post("/storage/upload", upload.single("file"), async (req, res): Promise<void> => {
+router.post("/storage/upload", requireAdmin, upload.single("file"), async (req, res): Promise<void> => {
   const file = req.file;
   if (!file) {
     res.status(400).json({ error: "An image file is required" });

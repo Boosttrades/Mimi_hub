@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { eq, and, ilike, or } from "drizzle-orm";
 import { db, productsTable, categoriesTable, subcategoriesTable } from "@workspace/db";
 import { ensureCategoriesSeeded } from "./categories";
+import { requireAdmin, resolveOptionalAppUser } from "../lib/request-auth";
 
 const router: IRouter = Router();
 
@@ -49,7 +50,10 @@ async function enrichProduct(product: typeof productsTable.$inferSelect) {
 }
 
 // GET /products
-router.get("/products", async (req, res): Promise<void> => {
+router.get("/products", async (req, res, next) => {
+  if (req.query.visible === "true" && req.query.includeHidden !== "true") return next();
+  return requireAdmin(req, res, next);
+}, async (req, res): Promise<void> => {
   const { categoryId, subcategoryId, featured, newArrival, bestSeller, search, visible } = req.query;
 
   let rows = await db.select().from(productsTable).orderBy(productsTable.createdAt);
@@ -70,7 +74,7 @@ router.get("/products", async (req, res): Promise<void> => {
 });
 
 // GET /products/summary
-router.get("/products/summary", async (_req, res): Promise<void> => {
+router.get("/products/summary", requireAdmin, async (_req, res): Promise<void> => {
   const all = await db.select().from(productsTable);
   res.json({
     total: all.length,
@@ -84,7 +88,7 @@ router.get("/products/summary", async (_req, res): Promise<void> => {
 });
 
 // POST /products
-router.post("/products", async (req, res): Promise<void> => {
+router.post("/products", requireAdmin, async (req, res): Promise<void> => {
   const {
     name, slug, description, price, discountPct, images, coverImage,
     categoryId, subcategoryId, stockQty, inStock, visible,
@@ -123,11 +127,15 @@ router.get("/products/:id", async (req, res): Promise<void> => {
   const id = parseId(req.params.id);
   const [product] = await db.select().from(productsTable).where(eq(productsTable.id, id));
   if (!product) { res.status(404).json({ error: "Product not found" }); return; }
+  if (!product.visible) {
+    const appUser = await resolveOptionalAppUser(req, res);
+    if (appUser?.role !== "admin") { res.status(404).json({ error: "Product not found" }); return; }
+  }
   res.json(await enrichProduct(product));
 });
 
 // PATCH /products/:id
-router.patch("/products/:id", async (req, res): Promise<void> => {
+router.patch("/products/:id", requireAdmin, async (req, res): Promise<void> => {
   const id = parseId(req.params.id);
   const body = req.body;
 
@@ -155,7 +163,7 @@ router.patch("/products/:id", async (req, res): Promise<void> => {
 });
 
 // DELETE /products/:id
-router.delete("/products/:id", async (req, res): Promise<void> => {
+router.delete("/products/:id", requireAdmin, async (req, res): Promise<void> => {
   const id = parseId(req.params.id);
   const [product] = await db.delete(productsTable).where(eq(productsTable.id, id)).returning();
   if (!product) { res.status(404).json({ error: "Product not found" }); return; }

@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { and, eq, gte, sql } from "drizzle-orm";
 import { db, ordersTable, productsTable } from "@workspace/db";
+import { requireAdmin, resolveOptionalAppUser } from "../lib/request-auth";
 
 const router: IRouter = Router();
 
@@ -136,7 +137,7 @@ async function generateOrderRef(): Promise<string> {
 }
 
 // GET /orders
-router.get("/orders", async (req, res): Promise<void> => {
+router.get("/orders", requireAdmin, async (req, res): Promise<void> => {
   const { status } = req.query;
   let rows = (await db.select().from(ordersTable).orderBy(ordersTable.createdAt)).map(normalizeOrder);
   if (status) rows = rows.filter(o => o.orderStatus === status);
@@ -144,7 +145,7 @@ router.get("/orders", async (req, res): Promise<void> => {
 });
 
 // GET /orders/stats
-router.get("/orders/stats", async (_req, res): Promise<void> => {
+router.get("/orders/stats", requireAdmin, async (_req, res): Promise<void> => {
   const all = await db.select().from(ordersTable);
   const normalized = all.map(normalizeOrder);
   const realized = normalized.filter(isRevenueRealized);
@@ -175,13 +176,9 @@ router.post("/orders", async (req, res): Promise<void> => {
     return;
   }
 
-  // Attach userId from HttpOnly cookie if present (preferred over body for security)
-  let userId: number | null = null;
-  const rawCookieId = req.cookies?.["mimi_user_id"];
-  if (rawCookieId) {
-    const parsed = parseInt(rawCookieId, 10);
-    if (!isNaN(parsed)) userId = parsed;
-  }
+  // Guests may check out, but signed-in orders are attached to the verified
+  // Supabase profile resolved from the HttpOnly session cookie.
+  const appUser = await resolveOptionalAppUser(req, res);
 
   const orderRef = await generateOrderRef();
   const subtotal = (items as { totalPrice: number }[]).reduce((sum, item) => sum + item.totalPrice, 0);
@@ -199,7 +196,7 @@ router.post("/orders", async (req, res): Promise<void> => {
     orderStatus,
     flutterwaveRef: flutterwaveRef ?? null,
     timeline,
-    ...(userId !== null ? { userId } : {}),
+    ...(appUser ? { userId: appUser.id } : {}),
   }).returning();
 
   res.status(201).json(normalizeOrder(order));
@@ -210,11 +207,15 @@ router.get("/orders/ref/:orderRef", async (req, res): Promise<void> => {
   const orderRef = Array.isArray(req.params.orderRef) ? req.params.orderRef[0] : req.params.orderRef;
   const [order] = await db.select().from(ordersTable).where(eq(ordersTable.orderRef, orderRef));
   if (!order) { res.status(404).json({ error: "Order not found" }); return; }
-  res.json(normalizeOrder(order));
+  const normalized = normalizeOrder(order);
+  // Order references are visible on receipts. Do not expose delivery address
+  // or phone number through the public tracking endpoint.
+  const { fullName: _fullName, phone: _phone, state: _state, city: _city, address: _address, flutterwaveRef: _flutterwaveRef, userId: _userId, ...trackingOrder } = normalized;
+  res.json(trackingOrder);
 });
 
 // GET /orders/:id
-router.get("/orders/:id", async (req, res): Promise<void> => {
+router.get("/orders/:id", requireAdmin, async (req, res): Promise<void> => {
   const id = parseId(req.params.id);
   const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, id));
   if (!order) { res.status(404).json({ error: "Order not found" }); return; }
@@ -222,7 +223,7 @@ router.get("/orders/:id", async (req, res): Promise<void> => {
 });
 
 // PATCH /orders/:id
-router.patch("/orders/:id", async (req, res): Promise<void> => {
+router.patch("/orders/:id", requireAdmin, async (req, res): Promise<void> => {
   const id = parseId(req.params.id);
   const { orderStatus, paymentStatus, note } = req.body;
 

@@ -1,11 +1,10 @@
 import { Router, type IRouter, type Request } from "express";
 import { eq } from "drizzle-orm";
-import { db, usersTable, userDataTable, ordersTable } from "@workspace/db";
+import { db, userDataTable, ordersTable } from "@workspace/db";
+import { requireAuth, type MimiAuthenticatedRequest } from "../lib/request-auth";
+import { serializeAppUser } from "../lib/app-user";
 
 const router: IRouter = Router();
-
-const COOKIE_NAME = "mimi_user_id";
-const COOKIE_MAX_AGE = 30 * 24 * 60 * 60 * 1000; // 30 days in ms
 
 type CartItem = {
   productId: number;
@@ -22,11 +21,8 @@ type UserDataPayload = {
   checkout: Record<string, string>;
 };
 
-function getSessionUserId(req: Request): number | null {
-  const rawId = req.cookies?.[COOKIE_NAME];
-  if (!rawId) return null;
-  const id = parseInt(rawId, 10);
-  return Number.isInteger(id) && id > 0 ? id : null;
+function currentUser(req: Request) {
+  return (req as MimiAuthenticatedRequest).mimiUser!;
 }
 
 function normalizeCart(value: unknown): CartItem[] {
@@ -43,28 +39,26 @@ function normalizeCart(value: unknown): CartItem[] {
       !Number.isInteger(quantity) ||
       quantity <= 0 ||
       !Number.isFinite(unitPrice) ||
+      unitPrice < 0 ||
       typeof record.productName !== "string"
     ) {
       return [];
     }
+    const safeQuantity = Math.min(quantity, 999);
     return [{
       productId,
       productName: record.productName.slice(0, 240),
       productImage: typeof record.productImage === "string" ? record.productImage.slice(0, 1000) : "",
-      quantity: Math.min(quantity, 999),
+      quantity: safeQuantity,
       unitPrice,
-      totalPrice: unitPrice * Math.min(quantity, 999),
+      totalPrice: unitPrice * safeQuantity,
     }];
   });
 }
 
 function normalizeWishlist(value: unknown): number[] {
   if (!Array.isArray(value)) return [];
-  return [...new Set(
-    value
-      .map(Number)
-      .filter((id) => Number.isInteger(id) && id > 0),
-  )];
+  return [...new Set(value.map(Number).filter((id) => Number.isInteger(id) && id > 0))];
 }
 
 function normalizeCheckout(value: unknown): Record<string, string> {
@@ -77,6 +71,15 @@ function normalizeCheckout(value: unknown): Record<string, string> {
       return typeof item === "string" && item.length <= 500 ? [[key, item]] : [];
     }),
   );
+}
+
+function parseUserData(value: unknown): UserDataPayload {
+  const record = value && typeof value === "object" ? value as Record<string, unknown> : {};
+  return {
+    cart: normalizeCart(record.cart),
+    wishlist: normalizeWishlist(record.wishlist),
+    checkout: normalizeCheckout(record.checkout),
+  };
 }
 
 function mergeCartItems(existing: CartItem[], incoming: CartItem[]) {
@@ -95,98 +98,28 @@ function mergeCartItems(existing: CartItem[], incoming: CartItem[]) {
   }, [...existing]);
 }
 
-function parseUserData(value: unknown): UserDataPayload {
-  const record = value && typeof value === "object" ? value as Record<string, unknown> : {};
+function mergeData(current: UserDataPayload, incoming: UserDataPayload, replace: boolean) {
   return {
-    cart: normalizeCart(record.cart),
-    wishlist: normalizeWishlist(record.wishlist),
-    checkout: normalizeCheckout(record.checkout),
+    cart: replace ? incoming.cart : mergeCartItems(current.cart, incoming.cart),
+    wishlist: replace ? incoming.wishlist : [...new Set([...current.wishlist, ...incoming.wishlist])],
+    checkout: replace ? incoming.checkout : { ...current.checkout, ...incoming.checkout },
   };
 }
 
-function mergeCheckout(existing: Record<string, string>, incoming: Record<string, string>) {
-  return { ...existing, ...incoming };
-}
-
-// POST /users — create or return existing user by username, set HttpOnly cookie
-router.post("/users", async (req, res): Promise<void> => {
-  const { username } = req.body;
-
-  if (!username || typeof username !== "string" || !username.trim()) {
-    res.status(400).json({ error: "username is required" });
-    return;
-  }
-
-  const trimmed = username.trim();
-
-  // Return existing user if username already taken (idempotent)
-  const [existing] = await db
-    .select()
-    .from(usersTable)
-    .where(eq(usersTable.username, trimmed));
-
-  if (existing) {
-    res.cookie(COOKIE_NAME, String(existing.id), {
-      httpOnly: true,
-      secure: true,
-      sameSite: "lax",
-      maxAge: COOKIE_MAX_AGE,
-    });
-    res.json(existing);
-    return;
-  }
-
-  const [user] = await db
-    .insert(usersTable)
-    .values({ username: trimmed })
-    .returning();
-
-  res.cookie(COOKIE_NAME, String(user.id), {
-    httpOnly: true,
-    secure: true,
-    sameSite: "lax",
-    maxAge: COOKIE_MAX_AGE,
-  });
-
-  res.status(201).json(user);
+router.get("/me", requireAuth, (req, res): void => {
+  const user = currentUser(req);
+  res.json(serializeAppUser(user));
 });
 
-// GET /me — read mimi_user_id cookie and return the user
-router.get("/me", async (req, res): Promise<void> => {
-  const id = getSessionUserId(req);
-  if (id === null) {
-    res.status(401).json({ error: "Not authenticated" });
-    return;
-  }
-
-  const [user] = await db
-    .select()
-    .from(usersTable)
-    .where(eq(usersTable.id, id));
-
-  if (!user) {
-    res.status(401).json({ error: "User not found" });
-    return;
-  }
-
-  res.json(user);
-});
-
-// GET /users/data — return the account's merged browser data.
-router.get("/users/data", async (req, res): Promise<void> => {
-  const userId = getSessionUserId(req);
-  if (userId === null) {
-    res.status(401).json({ error: "Not authenticated" });
-    return;
-  }
-
+router.get("/users/data", requireAuth, async (req, res): Promise<void> => {
+  const user = currentUser(req);
   const [stored] = await db
     .select()
     .from(userDataTable)
-    .where(eq(userDataTable.userId, userId));
+    .where(eq(userDataTable.userId, user.id));
 
   res.json(stored ?? {
-    userId,
+    userId: user.id,
     cart: [],
     wishlist: [],
     checkout: {},
@@ -194,74 +127,49 @@ router.get("/users/data", async (req, res): Promise<void> => {
   });
 });
 
-// POST /users/data — merge guest browser data into the account.
-// Account creation is optional; this endpoint is only used after a username session exists.
-router.post("/users/data", async (req, res): Promise<void> => {
-  const userId = getSessionUserId(req);
-  if (userId === null) {
-    res.status(401).json({ error: "Not authenticated" });
-    return;
-  }
-
+router.post("/users/data", requireAuth, async (req, res): Promise<void> => {
+  const user = currentUser(req);
   const incoming = parseUserData(req.body);
   const replace = req.body?.mode === "replace";
   const [existing] = await db
     .select()
     .from(userDataTable)
-    .where(eq(userDataTable.userId, userId));
-  const current = parseUserData(existing);
+    .where(eq(userDataTable.userId, user.id));
+  const mergedData = mergeData(parseUserData(existing), incoming, replace);
 
-  const [merged] = await db
+  const [stored] = await db
     .insert(userDataTable)
     .values({
-      userId,
-      cart: replace ? incoming.cart : mergeCartItems(current.cart, incoming.cart),
-      wishlist: replace ? incoming.wishlist : [...new Set([...current.wishlist, ...incoming.wishlist])],
-      checkout: replace ? incoming.checkout : mergeCheckout(current.checkout, incoming.checkout),
+      userId: user.id,
+      ...mergedData,
       updatedAt: new Date(),
     })
     .onConflictDoUpdate({
       target: userDataTable.userId,
       set: {
-        cart: replace ? incoming.cart : mergeCartItems(current.cart, incoming.cart),
-        wishlist: replace ? incoming.wishlist : [...new Set([...current.wishlist, ...incoming.wishlist])],
-        checkout: replace ? incoming.checkout : mergeCheckout(current.checkout, incoming.checkout),
+        ...mergedData,
         updatedAt: new Date(),
       },
     })
     .returning();
 
-  res.json(merged);
+  res.json(stored);
 });
 
-// GET /users/:id/orders — return orders for the authenticated user only
-// The session cookie is the sole authority; the path :id must match it.
-router.get("/users/:id/orders", async (req, res): Promise<void> => {
-  // Resolve and verify session from cookie
-  const sessionUserId = getSessionUserId(req);
-  if (sessionUserId === null) {
-    res.status(401).json({ error: "Not authenticated" });
-    return;
-  }
-
-  // Verify path id matches the authenticated session — prevents ID enumeration
-  const pathId = parseInt(
-    Array.isArray(req.params.id) ? req.params.id[0] : req.params.id,
-    10,
-  );
-
-  if (isNaN(pathId) || pathId !== sessionUserId) {
-    res.status(403).json({ error: "Forbidden" });
+router.get("/users/:id/orders", requireAuth, async (req, res): Promise<void> => {
+  const user = currentUser(req);
+  const pathId = Number(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id);
+  if (!Number.isInteger(pathId) || pathId !== user.id) {
+    res.status(403).json({ error: { code: "FORBIDDEN", message: "You can only view your own orders." } });
     return;
   }
 
   const orders = await db
     .select()
     .from(ordersTable)
-    .where(eq(ordersTable.userId, sessionUserId))
+    .where(eq(ordersTable.userId, user.id))
     .orderBy(ordersTable.createdAt);
 
-  // Newest first
   res.json(orders.reverse());
 });
 

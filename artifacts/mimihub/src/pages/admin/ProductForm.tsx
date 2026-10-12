@@ -18,30 +18,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { uploadProductImage } from '@/lib/supabase';
 
 type ImageItem = { id: string; src: string; name: string; local?: boolean; file?: File };
-const fallbackCategories = [
-  {
-    id: 1,
-    name: 'Beauty/Personal Care',
-    subcategories: [
-      { id: 1, name: 'Perfumes' },
-      { id: 2, name: 'Feminine Wash' },
-      { id: 3, name: 'Creams' },
-      { id: 4, name: 'Wellness Products' },
-      { id: 5, name: 'Toothpaste' },
-      { id: 6, name: 'Body Oils' },
-    ],
-  },
-  {
-    id: 2,
-    name: 'Home',
-    subcategories: [
-      { id: 7, name: 'Curtains' },
-      { id: 8, name: 'Bedsheets and Duvets' },
-      { id: 9, name: 'Rugs' },
-      { id: 10, name: 'Poles and Hangers' },
-    ],
-  },
-];
 const measurementUnits = ['ml', 'cl', 'L', 'g', 'kg', 'oz', 'lb', 'mm', 'cm', 'm'];
 const clothingSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
 
@@ -51,12 +27,17 @@ export function AdminProductForm() {
   const productId = isEditing ? Number(params?.id) : 0;
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
-  const { data: remoteCategories } = useListCategories();
+  const {
+    data: remoteCategories,
+    isLoading: categoriesLoading,
+    isError: categoriesError,
+    refetch: refetchCategories,
+  } = useListCategories();
   const { data: product, isLoading } = useGetProduct(productId, { query: { enabled: isEditing, queryKey: getGetProductQueryKey(productId) } });
   const createMutation = useCreateProduct();
   const updateMutation = useUpdateProduct();
   const fileRef = useRef<HTMLInputElement>(null);
-  const listedCategories: any[] = remoteCategories?.length ? remoteCategories : fallbackCategories;
+  const listedCategories = remoteCategories ?? [];
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [images, setImages] = useState<ImageItem[]>([]);
   const [saved, setSaved] = useState(false);
@@ -235,8 +216,32 @@ export function AdminProductForm() {
               <div><Label htmlFor="product-description" className="text-xs font-bold">Description</Label><Textarea id="product-description" data-testid="input-product-description" value={form.description} onChange={(e) => setField('description', e.target.value)} placeholder="What makes this piece worth bringing home?" rows={5} className="mt-2 resize-none rounded-xl border-[hsl(var(--admin-deep)/.15)] bg-[hsl(var(--background)/.55)] leading-6" /><p className="mt-1.5 text-right text-[10px] text-[hsl(var(--admin-ink)/.4)]">{form.description.length}/500</p></div>
             </div></section>
             <section className="admin-card rounded-[26px] p-6 sm:p-8"><div className="mb-7"><p className="admin-label">The details</p><h2 className="mt-1 font-serif text-2xl font-semibold text-[hsl(var(--admin-deep))]">Give it shape</h2></div><div className="grid gap-5 sm:grid-cols-2">
-              <div><Label className="text-xs font-bold">Category <span className="text-[hsl(var(--admin-coral))]">*</span></Label><Select value={categoryId} onValueChange={(v) => { setField('categoryId', v); setField('subcategoryId', ''); }}><SelectTrigger data-testid="select-product-category" className="mt-2 h-12 rounded-xl border-[hsl(var(--admin-deep)/.15)] bg-[hsl(var(--background)/.55)]"><SelectValue placeholder="Choose a collection">{selectedCategory?.name}</SelectValue></SelectTrigger><SelectContent>{categories.map((category) => <SelectItem key={category.id} value={String(category.id)}>{category.name}</SelectItem>)}</SelectContent></Select>{errors.categoryId && <p className="mt-1.5 text-xs text-[hsl(var(--admin-coral))]">{errors.categoryId}</p>}</div>
-              <div><Label className="text-xs font-bold">Subcategory</Label><Select value={subcategoryId} onValueChange={(v) => setField('subcategoryId', v)} disabled={!subcategories.length}><SelectTrigger data-testid="select-product-subcategory" className="mt-2 h-12 rounded-xl border-[hsl(var(--admin-deep)/.15)] bg-[hsl(var(--background)/.55)]"><SelectValue placeholder={subcategories.length ? 'Choose a subcategory' : 'Select a category first'}>{selectedSubcategory?.name}</SelectValue></SelectTrigger><SelectContent>{subcategories.map((subcategory: any) => <SelectItem key={subcategory.id} value={String(subcategory.id)}>{subcategory.name}</SelectItem>)}</SelectContent></Select></div>
+              <div>
+                <Label className="text-xs font-bold">Category <span className="text-[hsl(var(--admin-coral))]">*</span></Label>
+                <Select value={categoryId} onValueChange={(v) => { setField('categoryId', v); setField('subcategoryId', ''); }} disabled={categoriesLoading || categoriesError || categories.length === 0}>
+                  <SelectTrigger data-testid="select-product-category" className="mt-2 h-12 rounded-xl border-[hsl(var(--admin-deep)/.15)] bg-[hsl(var(--background)/.55)]">
+                    <SelectValue placeholder={categoriesLoading ? 'Loading store categories…' : 'Choose a collection'}>{selectedCategory?.name}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>{categories.map((category) => <SelectItem key={category.id} value={String(category.id)}>{category.name}</SelectItem>)}</SelectContent>
+                </Select>
+                {categoriesError ? (
+                  <p role="alert" className="mt-1.5 text-xs text-[hsl(var(--admin-coral))]">
+                    Could not load the store categories. <button type="button" onClick={() => void refetchCategories()} className="underline">Try again</button>
+                  </p>
+                ) : !categoriesLoading && categories.length === 0 ? (
+                  <p className="mt-1.5 text-xs text-muted-foreground">No categories are set up yet. Add them under Manage categories.</p>
+                ) : null}
+                {errors.categoryId && <p className="mt-1.5 text-xs text-[hsl(var(--admin-coral))]">{errors.categoryId}</p>}
+              </div>
+              <div>
+                <Label className="text-xs font-bold">Subcategory</Label>
+                <Select value={subcategoryId} onValueChange={(v) => setField('subcategoryId', v)} disabled={!subcategories.length}>
+                  <SelectTrigger data-testid="select-product-subcategory" className="mt-2 h-12 rounded-xl border-[hsl(var(--admin-deep)/.15)] bg-[hsl(var(--background)/.55)]">
+                    <SelectValue placeholder={subcategories.length ? 'Choose a subcategory' : 'Select a category first'}>{selectedSubcategory?.name}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>{subcategories.map((subcategory: any) => <SelectItem key={subcategory.id} value={String(subcategory.id)}>{subcategory.name}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
                <div className="sm:col-span-2"><div className="flex flex-wrap items-end justify-between gap-3"><div><Label htmlFor="product-size" className="text-xs font-bold">Size / capacity</Label><p className="mt-1 text-[11px] text-[hsl(var(--admin-ink)/.48)]">Choose measurements for products like perfume or rugs, or clothing sizes for apparel.</p></div><Select value={form.sizeType} onValueChange={(value) => setForm((current) => ({ ...current, sizeType: value, sizeUnit: value === 'clothing' ? 'S' : 'ml' }))}><SelectTrigger data-testid="select-product-size-type" className="h-10 w-[150px] rounded-xl border-[hsl(var(--admin-deep)/.15)] bg-[hsl(var(--background)/.55)]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="measurement">Measurement</SelectItem><SelectItem value="clothing">Clothing size</SelectItem></SelectContent></Select></div><div className="mt-2 flex gap-2"><Input id="product-size" data-testid="input-product-size" value={form.sizeValue} onChange={(e) => setField('sizeValue', e.target.value)} placeholder={form.sizeType === 'clothing' ? 'e.g. XL' : 'e.g. 500'} className="h-12 rounded-xl border-[hsl(var(--admin-deep)/.15)] bg-[hsl(var(--background)/.55)]" /><Select value={form.sizeUnit} onValueChange={(v) => setField('sizeUnit', v)}><SelectTrigger data-testid="select-product-size-unit" className="h-12 w-[120px] rounded-xl border-[hsl(var(--admin-deep)/.15)] bg-[hsl(var(--background)/.55)]"><SelectValue /></SelectTrigger><SelectContent>{(form.sizeType === 'clothing' ? clothingSizes : measurementUnits).map((unit) => <SelectItem key={unit} value={unit}>{unit}</SelectItem>)}</SelectContent></Select></div></div>
               <div><Label htmlFor="product-dimensions" className="text-xs font-bold">Dimensions</Label><Input id="product-dimensions" data-testid="input-product-dimensions" value={form.dimensions} onChange={(e) => setField('dimensions', e.target.value)} placeholder="e.g. 18 × 10 × 10 cm" className="mt-2 h-12 rounded-xl border-[hsl(var(--admin-deep)/.15)] bg-[hsl(var(--background)/.55)]" /></div>
             </div></section>

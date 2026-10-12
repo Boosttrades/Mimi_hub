@@ -1,9 +1,13 @@
 import { createClient, type Session, type User } from "@supabase/supabase-js";
+import WebSocket from "ws";
 import { supabaseAdmin } from "./supabase";
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const authApiKey = process.env.SUPABASE_ANON_KEY ?? serviceRoleKey;
+const authApiKey =
+  process.env.SUPABASE_ANON_KEY ??
+  process.env.VITE_SUPABASE_ANON_KEY ??
+  serviceRoleKey;
 
 if (!supabaseUrl || !authApiKey) {
   throw new Error(
@@ -15,6 +19,9 @@ const authClientOptions = {
   auth: {
     autoRefreshToken: false,
     persistSession: false,
+  },
+  realtime: {
+    transport: WebSocket as never,
   },
 };
 

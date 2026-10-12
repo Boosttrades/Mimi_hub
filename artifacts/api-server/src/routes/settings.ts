@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
 import { db, settingsTable } from "@workspace/db";
+import { requireAdmin } from "../lib/request-auth";
 
 const router: IRouter = Router();
 const DEFAULT_LOW_STOCK_THRESHOLD = 5;
@@ -106,7 +107,7 @@ router.get("/settings/store", async (_req, res): Promise<void> => {
 });
 
 // PATCH /settings/store
-router.patch("/settings/store", async (req, res): Promise<void> => {
+router.patch("/settings/store", requireAdmin, async (req, res): Promise<void> => {
   const body = req.body as Record<string, unknown>;
   if (body.lowStockThreshold !== undefined && normalizeLowStockThreshold(body.lowStockThreshold) !== Number(body.lowStockThreshold)) {
     res.status(400).json({ error: "lowStockThreshold must be a whole number between 1 and 100000" });
@@ -125,7 +126,7 @@ router.get("/settings/homepage", async (_req, res): Promise<void> => {
 });
 
 // PATCH /settings/homepage
-router.patch("/settings/homepage", async (req, res): Promise<void> => {
+router.patch("/settings/homepage", requireAdmin, async (req, res): Promise<void> => {
   const existing = (await getSetting("homepage") as Record<string, unknown>) ?? DEFAULT_HOMEPAGE as Record<string, unknown>;
   const updated = { ...(existing as object), ...req.body };
   await upsertSetting("homepage", updated);
@@ -139,7 +140,7 @@ router.get("/settings/payment", async (_req, res): Promise<void> => {
 });
 
 // PATCH /settings/payment
-router.patch("/settings/payment", async (req, res): Promise<void> => {
+router.patch("/settings/payment", requireAdmin, async (req, res): Promise<void> => {
   const existing = (await getSetting("payment") as Record<string, unknown>) ?? DEFAULT_PAYMENT as Record<string, unknown>;
   const updated = { ...(existing as object), ...req.body };
   await upsertSetting("payment", updated);

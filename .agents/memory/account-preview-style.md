@@ -1,10 +1,10 @@
 ---
 name: Account preview styling
-description: The MimiiHub account sign-up and sign-in preview screens should share the approved visual style and remain screen-only.
+description: Keep MimiiHub account screens in the approved visual style while using Supabase Auth for real sign-up and sign-in.
 ---
 
-Keep MimiiHub sign-up and sign-in previews in the shared branded frame. They are visual previews only: never send or persist entered account details.
+Keep MimiiHub sign-up, sign-in, and verification screens in the shared branded frame. They are functional account screens backed by Supabase Auth; do not turn them back into local-only previews.
 
-**Why:** The user said they like the sign-up preview and chose a screen-only design.
+**Why:** The user approved the account screen design, then requested optional email/password accounts with email verification and Supabase-persisted customer data.
 
-**How to apply:** Reuse the shared account-preview shell for future visual changes, and keep preview forms local-only with a clear notice.
+**How to apply:** Reuse the shared account shell when changing account visuals, and keep authentication, verification, and account data flows connected to Supabase.

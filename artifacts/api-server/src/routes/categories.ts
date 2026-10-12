@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
 import { db, categoriesTable, settingsTable, subcategoriesTable } from "@workspace/db";
+import { requireAdmin } from "../lib/request-auth";
 
 // Static categories (hardcoded) — permanent source of truth when present
 import { CATEGORIES } from "../static/categories";
@@ -74,7 +75,10 @@ function getCategoryWithSubsFromStatic(id: number) {
 }
 
 // GET /categories
-router.get("/categories", async (_req, res): Promise<void> => {
+router.get("/categories", async (req, res, next) => {
+  if (req.query.includeHidden === "true") return requireAdmin(req, res, next);
+  next();
+}, async (_req, res): Promise<void> => {
   await ensureCategoriesSeeded();
 
   const includeHidden = _req.query.includeHidden === "true";
@@ -89,7 +93,7 @@ router.get("/categories", async (_req, res): Promise<void> => {
 });
 
 // POST /categories
-router.post("/categories", async (req, res): Promise<void> => {
+router.post("/categories", requireAdmin, async (req, res): Promise<void> => {
   const { name, slug, description, image, visible } = req.body;
   if (!name || !slug) {
     res.status(400).json({ error: "name and slug are required" });
@@ -100,7 +104,10 @@ router.post("/categories", async (req, res): Promise<void> => {
 });
 
 // GET /categories/:id
-router.get("/categories/:id", async (req, res): Promise<void> => {
+router.get("/categories/:id", async (req, res, next) => {
+  if (req.query.includeHidden === "true") return requireAdmin(req, res, next);
+  next();
+}, async (req, res): Promise<void> => {
   const id = parseId(req.params.id);
   await ensureCategoriesSeeded();
 
@@ -114,7 +121,7 @@ router.get("/categories/:id", async (req, res): Promise<void> => {
 });
 
 // PATCH /categories/:id
-router.patch("/categories/:id", async (req, res): Promise<void> => {
+router.patch("/categories/:id", requireAdmin, async (req, res): Promise<void> => {
   const id = parseId(req.params.id);
   const { name, slug, description, image, visible } = req.body;
   const updates: Record<string, unknown> = {};
@@ -130,7 +137,7 @@ router.patch("/categories/:id", async (req, res): Promise<void> => {
 });
 
 // DELETE /categories/:id
-router.delete("/categories/:id", async (req, res): Promise<void> => {
+router.delete("/categories/:id", requireAdmin, async (req, res): Promise<void> => {
   const id = parseId(req.params.id);
   const [cat] = await db.delete(categoriesTable).where(eq(categoriesTable.id, id)).returning();
   if (!cat) { res.status(404).json({ error: "Category not found" }); return; }
@@ -138,7 +145,7 @@ router.delete("/categories/:id", async (req, res): Promise<void> => {
 });
 
 // POST /categories/:categoryId/subcategories
-router.post("/categories/:categoryId/subcategories", async (req, res): Promise<void> => {
+router.post("/categories/:categoryId/subcategories", requireAdmin, async (req, res): Promise<void> => {
   const categoryId = parseId(req.params.categoryId);
   const { name, slug, visible } = req.body;
   if (!name || !slug) {
@@ -150,7 +157,7 @@ router.post("/categories/:categoryId/subcategories", async (req, res): Promise<v
 });
 
 // PATCH /subcategories/:id
-router.patch("/subcategories/:id", async (req, res): Promise<void> => {
+router.patch("/subcategories/:id", requireAdmin, async (req, res): Promise<void> => {
   const id = parseId(req.params.id);
   const { name, slug, visible } = req.body;
   const updates: Record<string, unknown> = {};
@@ -163,7 +170,7 @@ router.patch("/subcategories/:id", async (req, res): Promise<void> => {
 });
 
 // DELETE /subcategories/:id
-router.delete("/subcategories/:id", async (req, res): Promise<void> => {
+router.delete("/subcategories/:id", requireAdmin, async (req, res): Promise<void> => {
   const id = parseId(req.params.id);
   const [sub] = await db.delete(subcategoriesTable).where(eq(subcategoriesTable.id, id)).returning();
   if (!sub) { res.status(404).json({ error: "Subcategory not found" }); return; }
@@ -172,7 +179,7 @@ router.delete("/subcategories/:id", async (req, res): Promise<void> => {
 
 // DEBUG endpoint: GET /_debug/categories
 // Returns whether static mode is active and what the server is serving
-router.get("/_debug/categories", async (_req, res): Promise<void> => {
+router.get("/_debug/categories", requireAdmin, async (_req, res): Promise<void> => {
   await ensureCategoriesSeeded();
   const cats = await db.select().from(categoriesTable);
   res.json({ staticMode: false, dbCount: cats.length });
