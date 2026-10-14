@@ -1,8 +1,9 @@
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Card, Page } from '@/components/AdminUI';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActionButton, Card, Page } from '@/components/AdminUI';
 import { useColors } from '@/hooks/useColors';
+import { supabase } from '@/lib/supabase';
 
 const manageLinks = [
   { title: 'Categories', detail: 'Collections and subcategories', icon: 'grid' as const, href: '/manage/categories' as const },
@@ -14,6 +15,11 @@ const manageLinks = [
 export default function ManageScreen() {
   const colors = useColors();
   const router = useRouter();
+  const signOut = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) Alert.alert('Could not sign out', error.message);
+  };
+
   return (
     <Page title="Store controls" subtitle="The MimiiHub website stays online; these controls update its shared store data.">
       <View style={styles.list}>
@@ -44,6 +50,13 @@ export default function ManageScreen() {
           Product, order, and settings updates go through the existing MimiiHub API and Supabase project. No duplicate store database is created.
         </Text>
       </Card>
+      <ActionButton
+        label="Sign out"
+        icon="log-out"
+        variant="secondary"
+        onPress={() => void signOut()}
+        testID="admin-sign-out"
+      />
     </Page>
   );
 }

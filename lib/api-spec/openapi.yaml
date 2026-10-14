@@ -40,6 +40,9 @@ paths:
       operationId: uploadProductImage
       tags: [products]
       summary: Upload a product image to Supabase Storage
+      security:
+        - BearerAuth: []
+        - SessionCookieAuth: []
       requestBody:
         required: true
         content:
@@ -228,6 +231,9 @@ paths:
       operationId: createCategory
       tags: [categories]
       summary: Create a category
+      security:
+        - BearerAuth: []
+        - SessionCookieAuth: []
       requestBody:
         required: true
         content:
@@ -260,6 +266,9 @@ paths:
       operationId: updateCategory
       tags: [categories]
       summary: Update a category
+      security:
+        - BearerAuth: []
+        - SessionCookieAuth: []
       parameters:
         - { name: id, in: path, required: true, schema: { type: number } }
       requestBody:
@@ -279,6 +288,9 @@ paths:
       operationId: deleteCategory
       tags: [categories]
       summary: Delete a category
+      security:
+        - BearerAuth: []
+        - SessionCookieAuth: []
       parameters:
         - { name: id, in: path, required: true, schema: { type: number } }
       responses:
@@ -290,6 +302,9 @@ paths:
       operationId: createSubcategory
       tags: [categories]
       summary: Create a subcategory
+      security:
+        - BearerAuth: []
+        - SessionCookieAuth: []
       parameters:
         - { name: categoryId, in: path, required: true, schema: { type: number } }
       requestBody:
@@ -311,6 +326,9 @@ paths:
       operationId: updateSubcategory
       tags: [categories]
       summary: Update a subcategory
+      security:
+        - BearerAuth: []
+        - SessionCookieAuth: []
       parameters:
         - { name: id, in: path, required: true, schema: { type: number } }
       requestBody:
@@ -330,6 +348,9 @@ paths:
       operationId: deleteSubcategory
       tags: [categories]
       summary: Delete a subcategory
+      security:
+        - BearerAuth: []
+        - SessionCookieAuth: []
       parameters:
         - { name: id, in: path, required: true, schema: { type: number } }
       responses:
@@ -363,6 +384,9 @@ paths:
       operationId: createProduct
       tags: [products]
       summary: Create a product
+      security:
+        - BearerAuth: []
+        - SessionCookieAuth: []
       requestBody:
         required: true
         content:
@@ -382,6 +406,9 @@ paths:
       operationId: getProductsSummary
       tags: [products]
       summary: Get product counts by category and flags
+      security:
+        - BearerAuth: []
+        - SessionCookieAuth: []
       responses:
         "200":
           description: OK
@@ -408,6 +435,9 @@ paths:
       operationId: updateProduct
       tags: [products]
       summary: Update a product
+      security:
+        - BearerAuth: []
+        - SessionCookieAuth: []
       parameters:
         - { name: id, in: path, required: true, schema: { type: number } }
       requestBody:
@@ -427,6 +457,9 @@ paths:
       operationId: deleteProduct
       tags: [products]
       summary: Delete a product
+      security:
+        - BearerAuth: []
+        - SessionCookieAuth: []
       parameters:
         - { name: id, in: path, required: true, schema: { type: number } }
       responses:
@@ -456,6 +489,9 @@ paths:
       operationId: listOrders
       tags: [orders]
       summary: List all orders (admin)
+      security:
+        - BearerAuth: []
+        - SessionCookieAuth: []
       parameters:
         - { name: status, in: query, schema: { type: string } }
       responses:
@@ -490,6 +526,9 @@ paths:
       operationId: getOrderStats
       tags: [orders]
       summary: Get order statistics for admin dashboard
+      security:
+        - BearerAuth: []
+        - SessionCookieAuth: []
       responses:
         "200":
           description: OK
@@ -503,6 +542,9 @@ paths:
       operationId: getAdminSummary
       tags: [admin]
       summary: Get live admin dashboard and customer summary
+      security:
+        - BearerAuth: []
+        - SessionCookieAuth: []
       responses:
         "200":
           description: OK
@@ -516,6 +558,9 @@ paths:
       operationId: getOrder
       tags: [orders]
       summary: Get an order by ID
+      security:
+        - BearerAuth: []
+        - SessionCookieAuth: []
       parameters:
         - { name: id, in: path, required: true, schema: { type: number } }
       responses:
@@ -529,6 +574,9 @@ paths:
       operationId: updateOrderStatus
       tags: [orders]
       summary: Update order status (admin)
+      security:
+        - BearerAuth: []
+        - SessionCookieAuth: []
       parameters:
         - { name: id, in: path, required: true, schema: { type: number } }
       requestBody:
@@ -577,6 +625,9 @@ paths:
       operationId: updateStoreSettings
       tags: [settings]
       summary: Update store settings
+      security:
+        - BearerAuth: []
+        - SessionCookieAuth: []
       requestBody:
         required: true
         content:
@@ -607,6 +658,9 @@ paths:
       operationId: updateHomepageSettings
       tags: [settings]
       summary: Update homepage settings
+      security:
+        - BearerAuth: []
+        - SessionCookieAuth: []
       requestBody:
         required: true
         content:
@@ -637,6 +691,9 @@ paths:
       operationId: updatePaymentSettings
       tags: [settings]
       summary: Update payment settings
+      security:
+        - BearerAuth: []
+        - SessionCookieAuth: []
       requestBody:
         required: true
         content:
@@ -652,6 +709,15 @@ paths:
                 $ref: "#/components/schemas/PaymentSettings"
 
 components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    SessionCookieAuth:
+      type: apiKey
+      in: cookie
+      name: mimi_auth_access
   schemas:
     HealthStatus:
       type: object

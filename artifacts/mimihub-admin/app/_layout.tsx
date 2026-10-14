@@ -20,17 +20,34 @@ import {
 import { Fraunces_600SemiBold } from '@expo-google-fonts/fraunces';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import { setAuthTokenGetter, setBaseUrl } from '@workspace/api-client-react';
+import { AdminAuthGate } from '@/components/AdminAuthGate';
+import { supabase } from '@/lib/supabase';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
+const apiDomain = process.env.EXPO_PUBLIC_DOMAIN;
+
+if (!apiDomain) {
+  throw new Error('EXPO_PUBLIC_DOMAIN must be set for the MimiiHub admin API.');
+}
+
+setBaseUrl(`https://${apiDomain}`);
+setAuthTokenGetter(async () => {
+  const { data, error } = await supabase.auth.getSession();
+  if (error) throw error;
+  return data.session?.access_token ?? null;
+});
 
 function RootLayoutNav() {
   return (
-    <Stack screenOptions={{ headerShown: false, headerBackTitle: 'Back' }}>
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-    </Stack>
+    <AdminAuthGate>
+      <Stack screenOptions={{ headerShown: false, headerBackTitle: 'Back' }}>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      </Stack>
+    </AdminAuthGate>
   );
 }
 

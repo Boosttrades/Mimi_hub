@@ -39,19 +39,6 @@ export default function DashboardScreen() {
       onRefresh={refresh}
       refreshing={refreshing}
     >
-      <Card style={{ backgroundColor: colors.adminDeep, borderColor: colors.adminDeep, padding: 18 }}>
-        <View style={styles.openAccessHeading}>
-          <View style={[styles.accessIcon, { backgroundColor: `${colors.adminGold}26` }]}>
-            <Feather name="unlock" size={15} color={colors.adminGold} />
-          </View>
-          <Text style={[styles.accessLabel, { color: colors.adminGold }]}>TEMPORARY ACCESS</Text>
-        </View>
-        <Text style={[styles.accessTitle, { color: colors.primaryForeground }]}>Admin access is open</Text>
-        <Text style={[styles.accessCopy, { color: `${colors.primaryForeground}CC` }]}>
-          Add an admin allowlist before sharing the app beyond your trusted team.
-        </Text>
-      </Card>
-
       <View style={styles.metrics}>
         <Metric label="This month" value={formatNaira(summary.data.thisMonthRevenue)} icon="trending-up" />
         <Metric label="Orders" value={String(summary.data.totalOrders)} icon="shopping-bag" />
@@ -144,11 +131,6 @@ function CountRow({
 
 const styles = StyleSheet.create({
   loading: { paddingVertical: 80, alignItems: 'center' },
-  openAccessHeading: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  accessIcon: { width: 27, height: 27, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
-  accessLabel: { fontFamily: 'Manrope_700Bold', fontSize: 9, letterSpacing: 1.2 },
-  accessTitle: { fontFamily: 'Fraunces_600SemiBold', fontSize: 20, marginTop: 2 },
-  accessCopy: { fontFamily: 'Manrope_400Regular', fontSize: 11, lineHeight: 17 },
   metrics: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   metricCard: { width: '48%', flexGrow: 1, padding: 14, gap: 4 },
   metricHeader: { height: 19, justifyContent: 'center' },

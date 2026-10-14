@@ -7,9 +7,18 @@ import type { User as AppUser } from "@workspace/db";
 
 export type MimiAuthenticatedRequest = Request & { mimiUser?: AppUser };
 
+function readBearerAccessToken(req: Request): string | undefined {
+  const authorization = req.get("authorization")?.trim();
+  const match = authorization?.match(/^Bearer\s+(\S+)$/i);
+  return match?.[1];
+}
+
 async function getVerifiedAuthUser(req: Request, res: Response): Promise<AuthUser | null> {
-  const accessToken = req.cookies?.[ACCESS_COOKIE];
+  const cookieAccessToken = req.cookies?.[ACCESS_COOKIE];
   const refreshToken = req.cookies?.[REFRESH_COOKIE];
+  const accessToken = readBearerAccessToken(req) ?? cookieAccessToken;
+  if (!accessToken && !refreshToken) return null;
+
   const auth = createAuthClient();
 
   if (accessToken) {
@@ -25,7 +34,7 @@ async function getVerifiedAuthUser(req: Request, res: Response): Promise<AuthUse
     }
   }
 
-  if (accessToken || refreshToken) clearSessionCookies(res);
+  if (cookieAccessToken || refreshToken) clearSessionCookies(res);
   return null;
 }
 

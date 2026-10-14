@@ -9,3 +9,4 @@
 - [Account screens and Supabase Auth](account-preview-style.md) — preserve the approved account-screen style and keep sign-up, sign-in, and verification functional through Supabase Auth.
 - [Workspace typecheck freshness](workspace-typecheck-freshness.md) — rebuild shared library declarations before treating missing artifact imports as contract defects.
 - [Orval/Zod generation](orval-zod-generation.md) — pin Orval to Zod v3; its default can emit v4-only APIs with this workspace's Zod 3 package.
+- [MimiiHub mobile auth](mimihub-mobile-auth.md) — Expo admin sends Supabase access tokens as Bearer; keep cookie auth for storefront sessions.

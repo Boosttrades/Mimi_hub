@@ -142,6 +142,8 @@ async function startMetro(expoPublicDomain, expoPublicReplId) {
     ...process.env,
     EXPO_PUBLIC_DOMAIN: expoPublicDomain,
     EXPO_PUBLIC_REPL_ID: expoPublicReplId,
+    EXPO_PUBLIC_SUPABASE_URL: process.env.SUPABASE_URL,
+    EXPO_PUBLIC_SUPABASE_ANON_KEY: process.env.VITE_SUPABASE_ANON_KEY,
   };
 
   if (expoPublicReplId) {
@@ -525,6 +527,10 @@ async function main() {
   console.log('Building static Expo Go deployment...');
 
   setupSignalHandlers();
+
+  if (!process.env.SUPABASE_URL || !process.env.VITE_SUPABASE_ANON_KEY) {
+    throw new Error('Set SUPABASE_URL and VITE_SUPABASE_ANON_KEY before building the admin app.');
+  }
 
   const domain = getDeploymentDomain();
   const expoPublicReplId = getExpoPublicReplId();
