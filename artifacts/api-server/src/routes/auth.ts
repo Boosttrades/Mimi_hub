@@ -144,8 +144,12 @@ router.post("/auth/signup", async (req, res): Promise<void> => {
   const fullName = body.fullName === undefined ? undefined : body.fullName;
   const redirectTo = authRedirect(req, body.redirectTo);
 
-  if (!phone) {
-    sendValidationError(res, "Enter a valid phone number in international format, such as +2348012345678.");
+  if (!email) {
+    sendValidationError(res, "A valid email address is required.");
+    return;
+  }
+  if (body.phone !== undefined && body.phone !== null && body.phone !== "" && !phone) {
+    sendValidationError(res, "Enter a valid phone number with country code.");
     return;
   }
   if (!password) {
@@ -166,10 +170,11 @@ router.post("/auth/signup", async (req, res): Promise<void> => {
     return;
   }
   const { data, error } = await createAuthClient().auth.signUp({
-    phone,
+    email,
     password,
     options: {
-      data: { ...(fullName ? { full_name: fullName.trim() } : {}), ...(email ? { contact_email: email } : {}) },
+      ...(redirectTo ? { emailRedirectTo: redirectTo } : {}),
+      data: { ...(fullName ? { full_name: fullName.trim() } : {}), ...(phone ? { phone } : {}) },
     },
   });
 
@@ -199,7 +204,7 @@ router.post("/auth/signup", async (req, res): Promise<void> => {
     return;
   }
 
-  const verified = Boolean(data.user.phone_confirmed_at);
+  const verified = Boolean(data.user.email_confirmed_at);
   let profile: ReturnType<typeof serializeAppUser> | undefined;
   if (data.session && verified) {
     const appUser = await ensureAppUser(data.user);
@@ -208,7 +213,7 @@ router.post("/auth/signup", async (req, res): Promise<void> => {
   }
   res.status(201).json({
     ...authSuccess(data.user, data.session && verified ? data.session : null, profile),
-    requiresPhoneVerification: !verified,
+    requiresEmailVerification: !verified,
   });
 });
 
@@ -253,28 +258,6 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     return;
   }
 
-  const appUser = await ensureAppUser(data.user);
-  setSessionCookies(res, data.session);
-  res.json(authSuccess(data.user, data.session, serializeAppUser(appUser, data.user)));
-});
-
-router.post("/auth/verify-phone", async (req, res): Promise<void> => {
-  const body = (req.body ?? {}) as AuthRequest;
-  const phone = normalizePhone(body.phone);
-  const token = typeof body.token === "string" ? body.token.trim() : "";
-  if (!phone || !/^\d{4,8}$/.test(token)) {
-    sendValidationError(res, "Enter a valid phone number and SMS verification code.");
-    return;
-  }
-  const { data, error } = await createAuthClient().auth.verifyOtp({ phone, token, type: "sms" });
-  if (error) {
-    sendAuthError(req, res, error, "Could not verify your phone number.");
-    return;
-  }
-  if (!data.user || !data.session || !data.user.phone_confirmed_at) {
-    res.status(403).json({ error: { code: "PHONE_NOT_VERIFIED", message: "Phone verification was not completed." } });
-    return;
-  }
   const appUser = await ensureAppUser(data.user);
   setSessionCookies(res, data.session);
   res.json(authSuccess(data.user, data.session, serializeAppUser(appUser, data.user)));

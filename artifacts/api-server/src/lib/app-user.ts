@@ -28,8 +28,8 @@ export function serializeAppUser(user: AppUser, authUser?: AuthUser): PublicAppU
 export async function ensureAppUser(authUser: AuthUser): Promise<AppUser> {
   const emailFromMetadata = authUser.user_metadata?.contact_email;
   const email = authUser.email?.trim().toLowerCase() || (typeof emailFromMetadata === "string" ? emailFromMetadata.trim().toLowerCase() : null);
-  const phone = authUser.phone?.trim() || null;
-  const verified = Boolean(authUser.phone_confirmed_at || authUser.email_confirmed_at);
+  const phone = (typeof authUser.user_metadata?.phone === 'string' ? authUser.user_metadata.phone : authUser.phone)?.trim() || null;
+  const verified = Boolean(authUser.email_confirmed_at);
   const metadataName = authUser.user_metadata?.full_name;
   const fullName = typeof metadataName === "string" && metadataName.trim()
     ? metadataName.trim().slice(0, 120)
