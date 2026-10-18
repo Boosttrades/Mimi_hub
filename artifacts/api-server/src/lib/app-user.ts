@@ -34,10 +34,10 @@ export async function ensureAppUser(authUser: AuthUser): Promise<AppUser> {
   const fullName = typeof metadataName === "string" && metadataName.trim()
     ? metadataName.trim().slice(0, 120)
     : null;
-  if (!verified || !phone) {
-    throw new Error("A verified Supabase phone number is required.");
+  if (!verified || (!phone && !email)) {
+    throw new Error("A verified phone number or email is required.");
   }
-  const username = email || phone;
+  const username = email || phone!;
 
   const [byAuthId] = await db
     .select()
