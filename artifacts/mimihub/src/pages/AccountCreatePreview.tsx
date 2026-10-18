@@ -5,18 +5,21 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AccountPreviewShell } from './AccountPreviewShell';
-import { resendVerificationEmail, signUpAccount } from '@/lib/supabase';
+import { signUpAccount, verifyPhoneOtp } from '@/lib/supabase';
 
 export function AccountCreatePreview() {
   const [, setLocation] = useLocation();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [verificationPhone, setVerificationPhone] = useState('');
+  const [otp, setOtp] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [verificationEmail, setVerificationEmail] = useState('');
+  
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -28,12 +31,12 @@ export function AccountCreatePreview() {
     }
     setLoading(true);
     try {
-      const result = await signUpAccount({ fullName, email, password });
+      const result = await signUpAccount({ fullName, phone, email: email.trim() || undefined, password });
       if (result.authenticated) {
         setLocation('/account');
-      } else if (result.requiresEmailVerification) {
-        setVerificationEmail(email);
-        setNotice('Check your inbox for a verification email from Supabase. After verifying, return here and sign in.');
+      } else if (result.requiresPhoneVerification) {
+        setVerificationPhone(phone);
+        setNotice('Enter the SMS verification code sent to your phone number.');
       } else {
         setNotice('Your account is ready. You can sign in now.');
       }
@@ -44,15 +47,15 @@ export function AccountCreatePreview() {
     }
   };
 
-  const handleResend = async () => {
+  const handleVerifyPhone = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     setError('');
-    setNotice('');
     setLoading(true);
     try {
-      await resendVerificationEmail(verificationEmail);
-      setNotice('If this email needs verification, Supabase has sent a new message.');
+      await verifyPhoneOtp(verificationPhone, otp.trim());
+      setLocation('/account');
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Could not resend the verification email.');
+      setError(reason instanceof Error ? reason.message : 'Could not verify your phone number. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -62,7 +65,7 @@ export function AccountCreatePreview() {
     <AccountPreviewShell
       eyebrow="Join MimiiHub"
       title="Create your account"
-      description="Set up your little corner of MimiiHub."
+      description="Create an account with your phone number and a password."
     >
       <div
         role="note"
@@ -84,20 +87,29 @@ export function AccountCreatePreview() {
         </p>
       )}
 
-      {verificationEmail && (
-        <Button type="button" variant="outline" className="mb-5 w-full rounded-full" onClick={handleResend} disabled={loading}>
-          Resend verification email
-        </Button>
-      )}
-
-      <form onSubmit={handleSubmit} className="space-y-4" autoComplete="on">
+      {verificationPhone ? (
+        <form onSubmit={handleVerifyPhone} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="signup-otp">SMS verification code</Label>
+            <Input id="signup-otp" name="otp" inputMode="numeric" autoComplete="one-time-code" placeholder="Enter the code sent to your phone" value={otp} onChange={(event) => setOtp(event.target.value)} required disabled={loading} data-testid="input-phone-otp" className="h-11 rounded-lg bg-background" />
+          </div>
+          <Button type="submit" disabled={loading} className="h-12 w-full rounded-full text-sm font-semibold">
+            {loading ? 'Verifying...' : 'Verify phone number'}
+          </Button>
+        </form>
+      ) : <form onSubmit={handleSubmit} className="space-y-4" autoComplete="on">
         <div className="space-y-2">
           <Label htmlFor="preview-name">Full name</Label>
           <Input id="preview-name" name="name" type="text" autoComplete="name" placeholder="e.g. Ada Okafor" value={fullName} onChange={(event) => setFullName(event.target.value)} required disabled={loading} data-testid="input-name" className="h-11 rounded-lg bg-background" />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="preview-email">Email address</Label>
-          <Input id="preview-email" name="email" type="email" autoComplete="email" placeholder="you@example.com" value={email} onChange={(event) => setEmail(event.target.value)} required disabled={loading} data-testid="input-email" className="h-11 rounded-lg bg-background" />
+          <Label htmlFor="preview-phone">Phone number</Label>
+          <Input id="preview-phone" name="phone" type="tel" autoComplete="tel" inputMode="tel" placeholder="+2348012345678" value={phone} onChange={(event) => setPhone(event.target.value)} required disabled={loading} data-testid="input-phone" className="h-11 rounded-lg bg-background" />
+          <p className="text-xs text-muted-foreground">Include your country code, for example +2348012345678.</p>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="preview-email">Email address <span className="font-normal text-muted-foreground">(optional)</span></Label>
+          <Input id="preview-email" name="email" type="email" autoComplete="email" placeholder="you@example.com" value={email} onChange={(event) => setEmail(event.target.value)} disabled={loading} data-testid="input-email" className="h-11 rounded-lg bg-background" />
         </div>
         <div className="space-y-2">
           <Label htmlFor="preview-password">Password</Label>
@@ -110,7 +122,7 @@ export function AccountCreatePreview() {
         <Button type="submit" disabled={loading} className="mt-2 h-12 w-full rounded-full text-sm font-semibold" data-testid="button-preview-submit">
           {loading ? 'Creating account...' : 'Create account'}
         </Button>
-      </form>
+      </form>}
 
       <p className="mt-5 text-center text-sm text-muted-foreground">
         Already have an account?{' '}
@@ -120,7 +132,7 @@ export function AccountCreatePreview() {
       </p>
       <p className="mt-5 flex items-center justify-center gap-2 text-center text-xs leading-5 text-muted-foreground">
         <LockKeyhole className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-        Supabase manages your password and verification email. MimiiHub does not store your password.
+        Supabase manages your password and SMS verification. MimiiHub does not store your password.
       </p>
       <Link href="/account" className="mt-6 flex min-h-10 items-center justify-center gap-2 text-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm" data-testid="link-return-account">
         <Check className="h-4 w-4" aria-hidden="true" />

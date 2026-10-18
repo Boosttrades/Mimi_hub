@@ -9,7 +9,7 @@ import { signInAccount } from '@/lib/supabase';
 
 export function AccountLoginPreview() {
   const [, setLocation] = useLocation();
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
@@ -21,7 +21,7 @@ export function AccountLoginPreview() {
     setNotice('');
     setLoading(true);
     try {
-      await signInAccount(email, password);
+      await signInAccount(identifier, password);
       setLocation('/account');
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Could not sign in. Please try again.');
@@ -34,7 +34,7 @@ export function AccountLoginPreview() {
     <AccountPreviewShell
       eyebrow="Welcome back"
       title="Sign in to MimiiHub"
-      description="Pick up where you left off."
+      description="Sign in with your phone number or email and password."
     >
       <div
         role="note"
@@ -58,15 +58,15 @@ export function AccountLoginPreview() {
 
       <form onSubmit={handleSubmit} className="space-y-4" autoComplete="on">
         <div className="space-y-2">
-          <Label htmlFor="preview-login-email">Email address</Label>
+          <Label htmlFor="preview-login-email">Phone number or email address</Label>
           <Input
             id="preview-login-email"
-            name="email"
-            type="email"
-            autoComplete="email"
-            placeholder="you@example.com"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
+            name="identifier"
+            type="text"
+            autoComplete="username"
+            placeholder="+2348012345678 or you@example.com"
+            value={identifier}
+            onChange={(event) => setIdentifier(event.target.value)}
             required
             disabled={loading}
             data-testid="input-login-email"
@@ -107,7 +107,7 @@ export function AccountLoginPreview() {
 
       <p className="mt-5 flex items-center justify-center gap-2 text-center text-xs leading-5 text-muted-foreground">
         <LockKeyhole className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-        Your password is sent securely to Supabase Auth and is never stored by MimiiHub.
+        Your password is checked securely by Supabase Auth and is never stored by MimiiHub.
       </p>
       <p className="mt-5 text-center text-sm text-muted-foreground">
         New to MimiiHub?{' '}

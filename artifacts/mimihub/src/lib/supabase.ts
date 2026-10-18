@@ -10,6 +10,7 @@ export interface MimiUser {
 type AuthResult = {
   authenticated: boolean;
   requiresEmailVerification?: boolean;
+  requiresPhoneVerification?: boolean;
   profile?: MimiUser;
 };
 
@@ -64,7 +65,8 @@ function verificationRedirectUrl() {
 }
 
 export async function signUpAccount(input: {
-  email: string;
+  phone: string;
+  email?: string;
   password: string;
   fullName: string;
 }): Promise<AuthResult> {
@@ -76,12 +78,22 @@ export async function signUpAccount(input: {
   return result;
 }
 
-export async function signInAccount(email: string, password: string): Promise<MimiUser> {
+export async function signInAccount(identifier: string, password: string): Promise<MimiUser> {
   const result = await request<AuthResult>('/auth/login', {
     method: 'POST',
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ identifier, password }),
   });
   if (!result.profile) throw new Error('Your account profile could not be loaded.');
+  window.dispatchEvent(new Event('mimihub:user-session-changed'));
+  return toCamel(result.profile) as MimiUser;
+}
+
+export async function verifyPhoneOtp(phone: string, token: string): Promise<MimiUser> {
+  const result = await request<AuthResult>('/auth/verify-phone', {
+    method: 'POST',
+    body: JSON.stringify({ phone, token }),
+  });
+  if (!result.profile) throw new Error('Phone verified, but your account profile could not be loaded.');
   window.dispatchEvent(new Event('mimihub:user-session-changed'));
   return toCamel(result.profile) as MimiUser;
 }

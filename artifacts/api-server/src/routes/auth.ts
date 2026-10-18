@@ -19,6 +19,9 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type AuthRequest = {
   email?: unknown;
+  phone?: unknown;
+  identifier?: unknown;
+  token?: unknown;
   password?: unknown;
   fullName?: unknown;
   tokenHash?: unknown;
@@ -31,6 +34,12 @@ function normalizeEmail(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const email = value.trim().toLowerCase();
   return email && email.length <= 254 && EMAIL_PATTERN.test(email) ? email : null;
+}
+
+function normalizePhone(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const phone = value.trim().replace(/[\\s().-]/g, '');
+  return /^\\+[1-9]\\d{7,14}$/.test(phone) ? phone : null;
 }
 
 function readPassword(value: unknown): string | null {
@@ -129,13 +138,14 @@ function authSuccess(user: User, session?: Session | null, appUser?: ReturnType<
 
 router.post("/auth/signup", async (req, res): Promise<void> => {
   const body = (req.body ?? {}) as AuthRequest;
-  const email = normalizeEmail(body.email);
+  const email = body.email === undefined || body.email === null || body.email === "" ? null : normalizeEmail(body.email);
+  const phone = normalizePhone(body.phone);
   const password = readPassword(body.password);
   const fullName = body.fullName === undefined ? undefined : body.fullName;
   const redirectTo = authRedirect(req, body.redirectTo);
 
-  if (!email) {
-    sendValidationError(res, "A valid email address is required.");
+  if (!phone) {
+    sendValidationError(res, "Enter a valid phone number in international format, such as +2348012345678.");
     return;
   }
   if (!password) {
@@ -151,12 +161,15 @@ router.post("/auth/signup", async (req, res): Promise<void> => {
     return;
   }
 
+  if (body.email !== undefined && body.email !== null && body.email !== "" && !email) {
+    sendValidationError(res, "Enter a valid email address or leave it blank.");
+    return;
+  }
   const { data, error } = await createAuthClient().auth.signUp({
-    email,
+    phone,
     password,
     options: {
-      ...(fullName ? { data: { full_name: fullName.trim() } } : {}),
-      ...(redirectTo ? { emailRedirectTo: redirectTo } : {}),
+      data: { ...(fullName ? { full_name: fullName.trim() } : {}), ...(email ? { contact_email: email } : {}) },
     },
   });
 
@@ -186,7 +199,7 @@ router.post("/auth/signup", async (req, res): Promise<void> => {
     return;
   }
 
-  const verified = Boolean(data.user.email_confirmed_at);
+  const verified = Boolean(data.user.phone_confirmed_at);
   let profile: ReturnType<typeof serializeAppUser> | undefined;
   if (data.session && verified) {
     const appUser = await ensureAppUser(data.user);
@@ -195,22 +208,24 @@ router.post("/auth/signup", async (req, res): Promise<void> => {
   }
   res.status(201).json({
     ...authSuccess(data.user, data.session && verified ? data.session : null, profile),
-    requiresEmailVerification: !verified,
+    requiresPhoneVerification: !verified,
   });
 });
 
 router.post("/auth/login", async (req, res): Promise<void> => {
   const body = (req.body ?? {}) as AuthRequest;
-  const email = normalizeEmail(body.email);
+  const identifier = typeof body.identifier === "string" ? body.identifier.trim() : "";
+  const email = normalizeEmail(identifier);
+  const phone = normalizePhone(identifier);
   const password = readPassword(body.password);
 
-  if (!email || !password) {
-    sendValidationError(res, "A valid email and password are required.");
+  if ((!email && !phone) || !password) {
+    sendValidationError(res, "Enter a valid phone number or email address and your password.");
     return;
   }
 
   const { data, error } = await createAuthClient().auth.signInWithPassword({
-    email,
+    ...(email ? { email } : { phone: phone! }),
     password,
   });
 
@@ -238,6 +253,28 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     return;
   }
 
+  const appUser = await ensureAppUser(data.user);
+  setSessionCookies(res, data.session);
+  res.json(authSuccess(data.user, data.session, serializeAppUser(appUser, data.user)));
+});
+
+router.post("/auth/verify-phone", async (req, res): Promise<void> => {
+  const body = (req.body ?? {}) as AuthRequest;
+  const phone = normalizePhone(body.phone);
+  const token = typeof body.token === "string" ? body.token.trim() : "";
+  if (!phone || !/^\\d{4,8}$/.test(token)) {
+    sendValidationError(res, "Enter a valid phone number and SMS verification code.");
+    return;
+  }
+  const { data, error } = await createAuthClient().auth.verifyOtp({ phone, token, type: "sms" });
+  if (error) {
+    sendAuthError(req, res, error, "Could not verify your phone number.");
+    return;
+  }
+  if (!data.user || !data.session || !data.user.phone_confirmed_at) {
+    res.status(403).json({ error: { code: "PHONE_NOT_VERIFIED", message: "Phone verification was not completed." } });
+    return;
+  }
   const appUser = await ensureAppUser(data.user);
   setSessionCookies(res, data.session);
   res.json(authSuccess(data.user, data.session, serializeAppUser(appUser, data.user)));

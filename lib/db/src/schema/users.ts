@@ -7,6 +7,7 @@ export const usersTable = pgTable("users", {
   username: text("username").notNull().unique(),
   authUserId: uuid("auth_user_id").unique(),
   email: text("email").unique(),
+  phone: text("phone").unique(),
   fullName: text("full_name"),
   role: text("role").notNull().default("customer"),
   // Kept nullable for compatibility with legacy username-based rows.
