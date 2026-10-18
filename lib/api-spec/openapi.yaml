@@ -1,0 +1,1261 @@
+openapi: 3.1.0
+info:
+  title: Api
+  version: 0.1.0
+  description: MimiiHub e-commerce API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: categories
+    description: Category and subcategory management
+  - name: products
+    description: Product management
+  - name: orders
+    description: Order management
+  - name: admin
+    description: Live admin dashboard data
+  - name: settings
+    description: Store and homepage settings
+  - name: auth
+    description: Supabase email authentication and sessions
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /storage/upload:
+    post:
+      operationId: uploadProductImage
+      tags: [products]
+      summary: Upload a product image to Supabase Storage
+      security:
+        - BearerAuth: []
+        - SessionCookieAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/ProductImageUploadRequest"
+      responses:
+        "201":
+          description: Image uploaded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductImageUpload"
+        "400":
+          description: An image file is required
+        "502":
+          description: Supabase Storage is unavailable
+
+  /storage/upload/category-image:
+    post:
+      operationId: uploadCategoryImage
+      tags: [categories]
+      summary: Upload a JPEG or PNG category image to Supabase Storage
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/ProductImageUploadRequest"
+      responses:
+        "201":
+          description: Category image uploaded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductImageUpload"
+        "400":
+          description: A valid JPEG or PNG image is required
+        "413":
+          description: Image exceeds the 10 MB limit
+        "502":
+          description: Supabase Storage is unavailable
+
+  # ── AUTH ─────────────────────────────────────────────────────
+  /auth/signup:
+    post:
+      operationId: signUp
+      tags: [auth]
+      summary: Create an email account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthSignupInput"
+      responses:
+        "201":
+          description: Account created; email verification may be required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSignupResponse"
+        "400":
+          description: Invalid account details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
+        "409":
+          description: Email already registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
+
+  /auth/login:
+    post:
+      operationId: signIn
+      tags: [auth]
+      summary: Sign in with email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthCredentials"
+      responses:
+        "200":
+          description: Authenticated session established in HttpOnly cookies
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSessionResponse"
+        "400":
+          description: Invalid credentials format
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
+        "403":
+          description: Email has not been verified
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
+
+  /auth/logout:
+    post:
+      operationId: signOut
+      tags: [auth]
+      summary: Clear the current authentication session
+      responses:
+        "204":
+          description: Session cleared
+
+  /auth/session:
+    get:
+      operationId: getAuthSession
+      tags: [auth]
+      summary: Get the current user session
+      responses:
+        "200":
+          description: Current authenticated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSessionResponse"
+        "401":
+          description: No active or refreshable session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
+
+  /auth/resend-verification:
+    post:
+      operationId: resendEmailVerification
+      tags: [auth]
+      summary: Resend an email verification message
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthEmailInput"
+      responses:
+        "202":
+          description: Verification request accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthMessageResponse"
+        "400":
+          description: Invalid email
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
+
+  /auth/verify-email:
+    post:
+      operationId: verifyEmail
+      tags: [auth]
+      summary: Verify an email using a Supabase token hash
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthVerifyEmailInput"
+      responses:
+        "200":
+          description: Email verified
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthVerificationResponse"
+        "400":
+          description: Invalid verification token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
+
+  # ── CATEGORIES ────────────────────────────────────────────────
+  /categories:
+    get:
+      operationId: listCategories
+      tags: [categories]
+      summary: List all categories with subcategories
+      parameters:
+        - name: includeHidden
+          in: query
+          schema: { type: boolean, default: false }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Category"
+    post:
+      operationId: createCategory
+      tags: [categories]
+      summary: Create a category
+      security:
+        - BearerAuth: []
+        - SessionCookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategoryInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Category"
+
+  /categories/{id}:
+    get:
+      operationId: getCategory
+      tags: [categories]
+      summary: Get a category
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: number } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Category"
+    patch:
+      operationId: updateCategory
+      tags: [categories]
+      summary: Update a category
+      security:
+        - BearerAuth: []
+        - SessionCookieAuth: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: number } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategoryUpdate"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Category"
+    delete:
+      operationId: deleteCategory
+      tags: [categories]
+      summary: Delete a category
+      security:
+        - BearerAuth: []
+        - SessionCookieAuth: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: number } }
+      responses:
+        "204":
+          description: Deleted
+
+  /categories/{categoryId}/subcategories:
+    post:
+      operationId: createSubcategory
+      tags: [categories]
+      summary: Create a subcategory
+      security:
+        - BearerAuth: []
+        - SessionCookieAuth: []
+      parameters:
+        - { name: categoryId, in: path, required: true, schema: { type: number } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubcategoryInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subcategory"
+
+  /subcategories/{id}:
+    patch:
+      operationId: updateSubcategory
+      tags: [categories]
+      summary: Update a subcategory
+      security:
+        - BearerAuth: []
+        - SessionCookieAuth: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: number } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubcategoryUpdate"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subcategory"
+    delete:
+      operationId: deleteSubcategory
+      tags: [categories]
+      summary: Delete a subcategory
+      security:
+        - BearerAuth: []
+        - SessionCookieAuth: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: number } }
+      responses:
+        "204":
+          description: Deleted
+
+  # ── PRODUCTS ──────────────────────────────────────────────────
+  /products:
+    get:
+      operationId: listProducts
+      tags: [products]
+      summary: List products with optional filters
+      parameters:
+        - { name: categoryId, in: query, schema: { type: number } }
+        - { name: subcategoryId, in: query, schema: { type: number } }
+        - { name: featured, in: query, schema: { type: boolean } }
+        - { name: newArrival, in: query, schema: { type: boolean } }
+        - { name: bestSeller, in: query, schema: { type: boolean } }
+        - { name: search, in: query, schema: { type: string } }
+        - { name: visible, in: query, schema: { type: boolean } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Product"
+    post:
+      operationId: createProduct
+      tags: [products]
+      summary: Create a product
+      security:
+        - BearerAuth: []
+        - SessionCookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+
+  /products/summary:
+    get:
+      operationId: getProductsSummary
+      tags: [products]
+      summary: Get product counts by category and flags
+      security:
+        - BearerAuth: []
+        - SessionCookieAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductsSummary"
+
+  /products/{id}:
+    get:
+      operationId: getProduct
+      tags: [products]
+      summary: Get a product
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: number } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+    patch:
+      operationId: updateProduct
+      tags: [products]
+      summary: Update a product
+      security:
+        - BearerAuth: []
+        - SessionCookieAuth: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: number } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductUpdate"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+    delete:
+      operationId: deleteProduct
+      tags: [products]
+      summary: Delete a product
+      security:
+        - BearerAuth: []
+        - SessionCookieAuth: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: number } }
+      responses:
+        "204":
+          description: Deleted
+
+  /products/{id}/related:
+    get:
+      operationId: getRelatedProducts
+      tags: [products]
+      summary: Get related products (same category)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: number } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Product"
+
+  # ── ORDERS ────────────────────────────────────────────────────
+  /orders:
+    get:
+      operationId: listOrders
+      tags: [orders]
+      summary: List all orders (admin)
+      security:
+        - BearerAuth: []
+        - SessionCookieAuth: []
+      parameters:
+        - { name: status, in: query, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Order"
+    post:
+      operationId: createOrder
+      tags: [orders]
+      summary: Create an order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrderInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+
+  /orders/stats:
+    get:
+      operationId: getOrderStats
+      tags: [orders]
+      summary: Get order statistics for admin dashboard
+      security:
+        - BearerAuth: []
+        - SessionCookieAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderStats"
+
+  /admin/summary:
+    get:
+      operationId: getAdminSummary
+      tags: [admin]
+      summary: Get live admin dashboard and customer summary
+      security:
+        - BearerAuth: []
+        - SessionCookieAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminSummary"
+
+  /orders/{id}:
+    get:
+      operationId: getOrder
+      tags: [orders]
+      summary: Get an order by ID
+      security:
+        - BearerAuth: []
+        - SessionCookieAuth: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: number } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+    patch:
+      operationId: updateOrderStatus
+      tags: [orders]
+      summary: Update order status (admin)
+      security:
+        - BearerAuth: []
+        - SessionCookieAuth: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: number } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrderStatusUpdate"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+
+  /orders/ref/{orderRef}:
+    get:
+      operationId: getOrderByRef
+      tags: [orders]
+      summary: Get an order by reference number (e.g. MH-000001)
+      parameters:
+        - { name: orderRef, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+
+  # ── SETTINGS ──────────────────────────────────────────────────
+  /settings/store:
+    get:
+      operationId: getStoreSettings
+      tags: [settings]
+      summary: Get store settings
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StoreSettings"
+    patch:
+      operationId: updateStoreSettings
+      tags: [settings]
+      summary: Update store settings
+      security:
+        - BearerAuth: []
+        - SessionCookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StoreSettingsUpdate"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StoreSettings"
+
+  /settings/homepage:
+    get:
+      operationId: getHomepageSettings
+      tags: [settings]
+      summary: Get homepage settings (banners, trust bar, collections)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HomepageSettings"
+    patch:
+      operationId: updateHomepageSettings
+      tags: [settings]
+      summary: Update homepage settings
+      security:
+        - BearerAuth: []
+        - SessionCookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HomepageSettingsUpdate"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HomepageSettings"
+
+  /settings/payment:
+    get:
+      operationId: getPaymentSettings
+      tags: [settings]
+      summary: Get payment settings
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentSettings"
+    patch:
+      operationId: updatePaymentSettings
+      tags: [settings]
+      summary: Update payment settings
+      security:
+        - BearerAuth: []
+        - SessionCookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentSettingsUpdate"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentSettings"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    SessionCookieAuth:
+      type: apiKey
+      in: cookie
+      name: mimi_auth_access
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required: [status]
+
+    ProductImageUpload:
+      type: object
+      required: [path, url]
+      properties:
+        path: { type: string }
+        url: { type: string, format: uri }
+
+    ProductImageUploadRequest:
+      type: object
+      required: [file]
+      properties:
+        file:
+          type: string
+          description: Image file sent as a multipart form-data part
+
+    AuthUser:
+      type: object
+      required: [id, email, role, aud, createdAt, emailConfirmedAt, userMetadata]
+      properties:
+        id: { type: string }
+        email: { type: ["string", "null"], format: email }
+        phone: { type: string }
+        role: { type: string }
+        aud: { type: string }
+        createdAt: { type: string, format: date-time }
+        emailConfirmedAt: { type: ["string", "null"], format: date-time }
+        userMetadata: { type: object, additionalProperties: true }
+
+    AuthSession:
+      type: object
+      required: [expiresIn, tokenType]
+      properties:
+        expiresAt: { type: ["number", "null"] }
+        expiresIn: { type: number }
+        tokenType: { type: string }
+
+    AuthSignupInput:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, minLength: 8, maxLength: 72 }
+        fullName: { type: string, maxLength: 120 }
+
+    AuthCredentials:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, minLength: 8, maxLength: 72 }
+
+    AuthEmailInput:
+      type: object
+      required: [email]
+      properties:
+        email: { type: string, format: email }
+
+    AuthVerifyEmailInput:
+      type: object
+      required: [tokenHash]
+      properties:
+        tokenHash: { type: string, minLength: 1 }
+
+    AuthError:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: string }
+        message: { type: string }
+
+    AuthErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error: { $ref: "#/components/schemas/AuthError" }
+
+    AuthSessionResponse:
+      type: object
+      required: [user, authenticated]
+      properties:
+        user: { $ref: "#/components/schemas/AuthUser" }
+        authenticated: { type: boolean }
+        session: { $ref: "#/components/schemas/AuthSession" }
+
+    AuthSignupResponse:
+      allOf:
+        - $ref: "#/components/schemas/AuthSessionResponse"
+        - type: object
+          required: [requiresEmailVerification]
+          properties:
+            requiresEmailVerification: { type: boolean }
+
+    AuthVerificationResponse:
+      allOf:
+        - $ref: "#/components/schemas/AuthSessionResponse"
+        - type: object
+          required: [verified, requiresEmailVerification]
+          properties:
+            verified: { type: boolean }
+            requiresEmailVerification: { type: boolean }
+
+    AuthMessageResponse:
+      type: object
+      required: [message]
+      properties:
+        message: { type: string }
+
+    # ── CATEGORY ────────────────────────────────────────────────
+    Category:
+      type: object
+      required: [id, name, slug, visible, createdAt]
+      properties:
+        id:          { type: number }
+        name:        { type: string }
+        slug:        { type: string }
+        description: { type: ["string", "null"] }
+        image:       { type: ["string", "null"] }
+        visible:     { type: boolean }
+        createdAt:   { type: string, format: date-time }
+        subcategories:
+          type: array
+          items:
+            $ref: "#/components/schemas/Subcategory"
+
+    CategoryInput:
+      type: object
+      required: [name, slug]
+      properties:
+        name:        { type: string }
+        slug:        { type: string }
+        description: { type: string }
+        image:       { type: string }
+        visible:     { type: boolean }
+
+    CategoryUpdate:
+      type: object
+      properties:
+        name:        { type: string }
+        slug:        { type: string }
+        description: { type: string }
+        image:       { type: string }
+        visible:     { type: boolean }
+
+    Subcategory:
+      type: object
+      required: [id, categoryId, name, slug, visible, createdAt]
+      properties:
+        id:         { type: number }
+        categoryId: { type: number }
+        name:       { type: string }
+        slug:       { type: string }
+        visible:    { type: boolean }
+        createdAt:  { type: string, format: date-time }
+
+    SubcategoryInput:
+      type: object
+      required: [name, slug]
+      properties:
+        name: { type: string }
+        slug: { type: string }
+        visible: { type: boolean }
+
+    SubcategoryUpdate:
+      type: object
+      properties:
+        name: { type: string }
+        slug: { type: string }
+        visible: { type: boolean }
+
+    # ── PRODUCT ─────────────────────────────────────────────────
+    ProductSpec:
+      type: object
+      properties:
+        capacity:   { type: ["string", "null"] }
+        weight:     { type: ["string", "null"] }
+        dimensions: { type: ["string", "null"] }
+        unit:       { type: ["string", "null"] }
+        size:       { type: ["string", "null"] }
+        color:      { type: ["string", "null"] }
+        material:   { type: ["string", "null"] }
+
+    Product:
+      type: object
+      required: [id, name, slug, price, images, visible, inStock, featured, newArrival, bestSeller, createdAt]
+      properties:
+        id:            { type: number }
+        name:          { type: string }
+        slug:          { type: string }
+        description:   { type: ["string", "null"] }
+        price:         { type: number }
+        discountPct:   { type: ["number", "null"] }
+        discountedPrice: { type: ["number", "null"] }
+        images:
+          type: array
+          items: { type: string }
+        coverImage:    { type: ["string", "null"] }
+        categoryId:    { type: ["number", "null"] }
+        subcategoryId: { type: ["number", "null"] }
+        category:      { $ref: "#/components/schemas/Category", nullable: true }
+        subcategory:   { $ref: "#/components/schemas/Subcategory", nullable: true }
+        stockQty:      { type: number }
+        inStock:       { type: boolean }
+        visible:       { type: boolean }
+        featured:      { type: boolean }
+        newArrival:    { type: boolean }
+        bestSeller:    { type: boolean }
+        specs:         { $ref: "#/components/schemas/ProductSpec" }
+        createdAt:     { type: string, format: date-time }
+
+    ProductInput:
+      type: object
+      required: [name, slug, price, images]
+      properties:
+        name:          { type: string }
+        slug:          { type: string }
+        description:   { type: string }
+        price:         { type: number }
+        discountPct:   { type: number }
+        images:        { type: array, items: { type: string } }
+        coverImage:    { type: string }
+        categoryId:    { type: number }
+        subcategoryId: { type: number }
+        stockQty:      { type: number }
+        inStock:       { type: boolean }
+        visible:       { type: boolean }
+        featured:      { type: boolean }
+        newArrival:    { type: boolean }
+        bestSeller:    { type: boolean }
+        specs:         { $ref: "#/components/schemas/ProductSpec" }
+
+    ProductUpdate:
+      type: object
+      properties:
+        name:          { type: string }
+        slug:          { type: string }
+        description:   { type: string }
+        price:         { type: number }
+        discountPct:   { type: ["number", "null"] }
+        images:        { type: array, items: { type: string } }
+        coverImage:    { type: ["string", "null"] }
+        categoryId:    { type: ["number", "null"] }
+        subcategoryId: { type: ["number", "null"] }
+        stockQty:      { type: number }
+        inStock:       { type: boolean }
+        visible:       { type: boolean }
+        featured:      { type: boolean }
+        newArrival:    { type: boolean }
+        bestSeller:    { type: boolean }
+        specs:         { $ref: "#/components/schemas/ProductSpec" }
+
+    ProductsSummary:
+      type: object
+      required: [total, visible, hidden, featured, newArrivals, bestSellers, outOfStock]
+      properties:
+        total:       { type: number }
+        visible:     { type: number }
+        hidden:      { type: number }
+        featured:    { type: number }
+        newArrivals: { type: number }
+        bestSellers: { type: number }
+        outOfStock:  { type: number }
+
+    # ── ORDER ───────────────────────────────────────────────────
+    OrderItem:
+      type: object
+      required: [productId, productName, productImage, quantity, unitPrice, totalPrice]
+      properties:
+        productId:    { type: number }
+        productName:  { type: string }
+        productImage: { type: string }
+        quantity:     { type: number }
+        unitPrice:    { type: number }
+        totalPrice:   { type: number }
+
+    OrderTimeline:
+      type: object
+      required: [status, timestamp]
+      properties:
+        status:    { type: string }
+        timestamp: { type: string, format: date-time }
+        note:      { type: ["string", "null"] }
+
+    Order:
+      type: object
+      required: [id, orderRef, fullName, phone, state, city, address, items, subtotal, paymentMethod, paymentStatus, orderStatus, timeline, createdAt]
+      properties:
+        id:             { type: number }
+        orderRef:       { type: string }
+        fullName:       { type: string }
+        phone:          { type: string }
+        state:          { type: string }
+        city:           { type: string }
+        address:        { type: string }
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderItem"
+        subtotal:       { type: number }
+        paymentMethod:  { type: string }
+        paymentStatus:  { $ref: "#/components/schemas/PaymentStatus" }
+        orderStatus:    { $ref: "#/components/schemas/OrderStatus" }
+        flutterwaveRef: { type: ["string", "null"] }
+        timeline:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderTimeline"
+        createdAt:      { type: string, format: date-time }
+
+    OrderInput:
+      type: object
+      required: [fullName, phone, state, city, address, items, paymentMethod]
+      properties:
+        fullName:       { type: string }
+        phone:          { type: string }
+        state:          { type: string }
+        city:           { type: string }
+        address:        { type: string }
+        paymentMethod:  { type: string }
+        flutterwaveRef: { type: string }
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderItem"
+
+    OrderStatusUpdate:
+      type: object
+      properties:
+        orderStatus:   { $ref: "#/components/schemas/OrderStatus" }
+        paymentStatus: { $ref: "#/components/schemas/PaymentStatus" }
+        note:          { type: string }
+
+    OrderStatus:
+      type: string
+      enum: [Confirming, Preparing, Shipping, Delivered, Cancelled]
+
+    PaymentStatus:
+      type: string
+      enum: [Paid, "Payment on delivery"]
+
+    OrderStats:
+      type: object
+      required: [totalOrders, pendingOrders, totalRevenue, paidOrders, preparingOrders]
+      properties:
+        totalOrders:     { type: number }
+        pendingOrders:   { type: number }
+        paidOrders:      { type: number }
+        preparingOrders: { type: number }
+        deliveredOrders: { type: number }
+        cancelledOrders: { type: number }
+        totalRevenue:    { type: number }
+
+    AdminCustomer:
+      type: object
+      required: [id, name, phone, location, orders, spend, firstOrderAt, lastOrderAt, returning]
+      properties:
+        id:           { type: string }
+        name:         { type: string }
+        phone:        { type: string }
+        location:     { type: string }
+        orders:       { type: number }
+        spend:        { type: number }
+        firstOrderAt: { type: string, format: date-time }
+        lastOrderAt:  { type: string, format: date-time }
+        returning:    { type: boolean }
+
+    AdminSummary:
+      type: object
+      required: [totalRevenue, thisMonthRevenue, totalOrders, thisMonthOrders, pendingOrders, paidOrders, preparingOrders, deliveredOrders, cancelledOrders, totalProducts, visibleProducts, hiddenProducts, lowStockProducts, lowStockThreshold, outOfStockProducts, totalCustomers, returningCustomers, customers]
+      properties:
+        totalRevenue:       { type: number }
+        thisMonthRevenue:   { type: number }
+        totalOrders:        { type: number }
+        thisMonthOrders:    { type: number }
+        pendingOrders:      { type: number }
+        paidOrders:         { type: number }
+        preparingOrders:    { type: number }
+        deliveredOrders:    { type: number }
+        cancelledOrders:    { type: number }
+        totalProducts:      { type: number }
+        visibleProducts:    { type: number }
+        hiddenProducts:     { type: number }
+        lowStockProducts:   { type: number }
+        lowStockThreshold:  { type: number }
+        outOfStockProducts: { type: number }
+        totalCustomers:     { type: number }
+        returningCustomers: { type: number }
+        customers:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminCustomer"
+
+    # ── SETTINGS ────────────────────────────────────────────────
+    TrustItem:
+      type: object
+      required: [id, title, subtitle, icon]
+      properties:
+        id:       { type: string }
+        title:    { type: string }
+        subtitle: { type: string }
+        icon:     { type: string }
+
+    HeroBanner:
+      type: object
+      required: [id, title, subtitle, image]
+      properties:
+        id:         { type: string }
+        title:      { type: string }
+        subtitle:   { type: string }
+        image:      { type: string }
+        buttonText: { type: ["string", "null"] }
+        buttonLink: { type: ["string", "null"] }
+
+    FeaturedCollection:
+      type: object
+      required: [id, title, description, image, link]
+      properties:
+        id:          { type: string }
+        title:       { type: string }
+        description: { type: string }
+        image:       { type: string }
+        link:        { type: string }
+
+    HomepageSettings:
+      type: object
+      required: [heroBanners, trustItems, featuredCollections]
+      properties:
+        heroBanners:
+          type: array
+          items:
+            $ref: "#/components/schemas/HeroBanner"
+        trustItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrustItem"
+        featuredCollections:
+          type: array
+          items:
+            $ref: "#/components/schemas/FeaturedCollection"
+
+    HomepageSettingsUpdate:
+      type: object
+      properties:
+        heroBanners:
+          type: array
+          items:
+            $ref: "#/components/schemas/HeroBanner"
+        trustItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrustItem"
+        featuredCollections:
+          type: array
+          items:
+            $ref: "#/components/schemas/FeaturedCollection"
+
+    SocialLinks:
+      type: object
+      properties:
+        instagram: { type: ["string", "null"] }
+        facebook:  { type: ["string", "null"] }
+        twitter:   { type: ["string", "null"] }
+        tiktok:    { type: ["string", "null"] }
+
+    DeliverySettings:
+      type: object
+      properties:
+        freeDeliveryThreshold: { type: ["number", "null"] }
+        deliveryFee:           { type: number }
+        deliveryNote:          { type: ["string", "null"] }
+
+    StoreSettings:
+      type: object
+      required: [storeName, email]
+      properties:
+        storeName:        { type: string }
+        logo:             { type: ["string", "null"] }
+        contactPhone:     { type: ["string", "null"] }
+        whatsapp:         { type: ["string", "null"] }
+        email:            { type: string }
+        lowStockThreshold: { type: number }
+        socialLinks:      { $ref: "#/components/schemas/SocialLinks" }
+        deliverySettings: { $ref: "#/components/schemas/DeliverySettings" }
+
+    StoreSettingsUpdate:
+      type: object
+      properties:
+        storeName:        { type: string }
+        logo:             { type: ["string", "null"] }
+        contactPhone:     { type: ["string", "null"] }
+        whatsapp:         { type: ["string", "null"] }
+        email:            { type: string }
+        lowStockThreshold: { type: number }
+        socialLinks:      { $ref: "#/components/schemas/SocialLinks" }
+        deliverySettings: { $ref: "#/components/schemas/DeliverySettings" }
+
+    PaymentSettings:
+      type: object
+      required: [flutterwaveEnabled, payOnDeliveryEnabled]
+      properties:
+        flutterwaveEnabled:    { type: boolean }
+        payOnDeliveryEnabled:  { type: boolean }
+        flutterwavePublicKey:  { type: ["string", "null"] }
+
+    PaymentSettingsUpdate:
+      type: object
+      properties:
+        flutterwaveEnabled:   { type: boolean }
+        payOnDeliveryEnabled: { type: boolean }
