@@ -9,7 +9,7 @@ import { signInAccount } from '@/lib/supabase';
 
 export function AccountLoginPreview() {
   const [, setLocation] = useLocation();
-  const [identifier, setIdentifier] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
@@ -21,7 +21,7 @@ export function AccountLoginPreview() {
     setNotice('');
     setLoading(true);
     try {
-      await signInAccount(identifier, password);
+      await signInAccount(email, password);
       setLocation('/account');
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Could not sign in. Please try again.');
@@ -34,7 +34,7 @@ export function AccountLoginPreview() {
     <AccountPreviewShell
       eyebrow="Welcome back"
       title="Sign in to MimiiHub"
-      description="Sign in with your phone number or email and password."
+      description="Sign in with your email and password."
     >
       <div
         role="note"
@@ -58,15 +58,15 @@ export function AccountLoginPreview() {
 
       <form onSubmit={handleSubmit} className="space-y-4" autoComplete="on">
         <div className="space-y-2">
-          <Label htmlFor="preview-login-email">Phone number or email address</Label>
+          <Label htmlFor="preview-login-email">Email address</Label>
           <Input
             id="preview-login-email"
-            name="identifier"
-            type="text"
-            autoComplete="username"
-            placeholder="+2348012345678 or you@example.com"
-            value={identifier}
-            onChange={(event) => setIdentifier(event.target.value)}
+            name="email"
+            type="email"
+            autoComplete="email"
+            placeholder="you@example.com"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
             required
             disabled={loading}
             data-testid="input-login-email"
