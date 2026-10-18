@@ -21,8 +21,8 @@ export function serializeAppUser(user: AppUser, authUser?: AuthUser): PublicAppU
 }
 
 /**
- * Create a profile only after Supabase confirms the account's phone or email.
- * Phone is the primary sign-in identifier; email is optional contact information.
+ * Create a profile only after Supabase confirms the account email.
+ * Phone is optional contact information and never required for authentication.
  */
 
 export async function ensureAppUser(authUser: AuthUser): Promise<AppUser> {
@@ -34,10 +34,10 @@ export async function ensureAppUser(authUser: AuthUser): Promise<AppUser> {
   const fullName = typeof metadataName === "string" && metadataName.trim()
     ? metadataName.trim().slice(0, 120)
     : null;
-  if (!verified || (!phone && !email)) {
-    throw new Error("A verified phone number or email is required.");
+  if (!verified || !email) {
+    throw new Error("A verified Supabase email is required.");
   }
-  const username = email || phone!;
+  const username = email;
 
   const [byAuthId] = await db
     .select()
