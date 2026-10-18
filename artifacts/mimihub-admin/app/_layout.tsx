@@ -1,0 +1,88 @@
+import React, { useEffect } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import {
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+  useFonts,
+} from '@expo-google-fonts/inter';
+import {
+  Manrope_400Regular,
+  Manrope_500Medium,
+  Manrope_600SemiBold,
+  Manrope_700Bold,
+} from '@expo-google-fonts/manrope';
+import { Fraunces_600SemiBold } from '@expo-google-fonts/fraunces';
+import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
+import { setAuthTokenGetter, setBaseUrl } from '@workspace/api-client-react';
+import { AdminAuthGate } from '@/components/AdminAuthGate';
+import { supabase } from '@/lib/supabase';
+
+// Prevent the splash screen from auto-hiding before asset loading is complete.
+SplashScreen.preventAutoHideAsync();
+
+const queryClient = new QueryClient();
+const apiDomain = process.env.EXPO_PUBLIC_DOMAIN;
+
+if (!apiDomain) {
+  throw new Error('EXPO_PUBLIC_DOMAIN must be set for the MimiiHub admin API.');
+}
+
+setBaseUrl(`https://${apiDomain}`);
+setAuthTokenGetter(async () => {
+  const { data, error } = await supabase.auth.getSession();
+  if (error) throw error;
+  return data.session?.access_token ?? null;
+});
+
+function RootLayoutNav() {
+  return (
+    <AdminAuthGate>
+      <Stack screenOptions={{ headerShown: false, headerBackTitle: 'Back' }}>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      </Stack>
+    </AdminAuthGate>
+  );
+}
+
+export default function RootLayout() {
+  const [fontsLoaded, fontError] = useFonts({
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+    Manrope_400Regular,
+    Manrope_500Medium,
+    Manrope_600SemiBold,
+    Manrope_700Bold,
+    Fraunces_600SemiBold,
+  });
+
+  useEffect(() => {
+    if (fontsLoaded || fontError) {
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded, fontError]);
+
+  if (!fontsLoaded && !fontError) return null;
+
+  return (
+    <SafeAreaProvider>
+      <ErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <GestureHandlerRootView>
+            <KeyboardProvider>
+              <RootLayoutNav />
+            </KeyboardProvider>
+          </GestureHandlerRootView>
+        </QueryClientProvider>
+      </ErrorBoundary>
+    </SafeAreaProvider>
+  );
+}

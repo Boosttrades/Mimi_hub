@@ -1,0 +1,121 @@
+import { Router, type IRouter } from "express";
+import { eq } from "drizzle-orm";
+import { db, ordersTable, productsTable, settingsTable } from "@workspace/db";
+import { requireAdmin } from "../lib/request-auth";
+
+const router: IRouter = Router();
+const DEFAULT_LOW_STOCK_THRESHOLD = 5;
+
+function asDate(value: Date | string): Date {
+  return value instanceof Date ? value : new Date(value);
+}
+
+function startOfCurrentMonth(now: Date): Date {
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+}
+
+// GET /admin/summary
+// This is intentionally an aggregation of the same catalog and order data
+// used by the storefront. It does not seed or invent dashboard records.
+router.get("/admin/summary", requireAdmin, async (_req, res): Promise<void> => {
+  const [orders, products] = await Promise.all([
+    db.select().from(ordersTable),
+    db.select().from(productsTable),
+  ]);
+  const [storeSettings] = await db.select().from(settingsTable).where(eq(settingsTable.key, "store"));
+  const configuredThreshold = storeSettings?.value && typeof storeSettings.value === "object"
+    ? (storeSettings.value as Record<string, unknown>).lowStockThreshold
+    : undefined;
+  const lowStockThreshold = Number.isInteger(Number(configuredThreshold)) && Number(configuredThreshold) >= 1
+    ? Number(configuredThreshold)
+    : DEFAULT_LOW_STOCK_THRESHOLD;
+
+  const now = new Date();
+  const monthStart = startOfCurrentMonth(now);
+  const paidOrders = orders.filter((order) => order.paymentStatus === "Paid");
+  const realizedRevenueOrders = orders.filter(
+    (order) => order.paymentStatus === "Paid" || order.orderStatus === "Delivered",
+  );
+  const currentMonthOrders = orders.filter((order) => asDate(order.createdAt) >= monthStart);
+  const currentMonthPaidOrders = currentMonthOrders.filter(
+    (order) => order.paymentStatus === "Paid" || order.orderStatus === "Delivered",
+  );
+
+  const customerMap = new Map<string, {
+    id: string;
+    name: string;
+    phone: string;
+    location: string;
+    orders: number;
+    spend: number;
+    firstOrderAt: Date;
+    lastOrderAt: Date;
+  }>();
+
+  for (const order of orders) {
+    const key = order.userId !== null
+      ? `user:${order.userId}`
+      : `phone:${order.phone.trim().replace(/\s+/g, "").toLowerCase()}`;
+    const orderDate = asDate(order.createdAt);
+    const existing = customerMap.get(key);
+    const paidSpend = order.paymentStatus === "Paid" || order.orderStatus === "Delivered"
+      ? order.subtotal
+      : 0;
+
+    if (!existing) {
+      customerMap.set(key, {
+        id: key,
+        name: order.fullName,
+        phone: order.phone,
+        location: `${order.city}, ${order.state}`,
+        orders: 1,
+        spend: paidSpend,
+        firstOrderAt: orderDate,
+        lastOrderAt: orderDate,
+      });
+      continue;
+    }
+
+    existing.orders += 1;
+    existing.spend += paidSpend;
+    if (orderDate < existing.firstOrderAt) existing.firstOrderAt = orderDate;
+    if (orderDate > existing.lastOrderAt) {
+      existing.lastOrderAt = orderDate;
+      existing.name = order.fullName;
+      existing.phone = order.phone;
+      existing.location = `${order.city}, ${order.state}`;
+    }
+  }
+
+  const customers = [...customerMap.values()]
+    .sort((a, b) => b.lastOrderAt.getTime() - a.lastOrderAt.getTime())
+    .map((customer) => ({
+      ...customer,
+      returning: customer.orders > 1,
+    }));
+
+  res.json({
+    totalRevenue: realizedRevenueOrders.reduce((sum, order) => sum + order.subtotal, 0),
+    thisMonthRevenue: currentMonthPaidOrders.reduce((sum, order) => sum + order.subtotal, 0),
+    totalOrders: orders.length,
+    thisMonthOrders: currentMonthOrders.length,
+    pendingOrders: orders.filter((order) => !["Delivered", "Cancelled"].includes(order.orderStatus)).length,
+    paidOrders: paidOrders.length,
+    preparingOrders: orders.filter((order) => order.orderStatus === "Preparing").length,
+    deliveredOrders: orders.filter((order) => order.orderStatus === "Delivered").length,
+    cancelledOrders: orders.filter((order) => order.orderStatus === "Cancelled").length,
+    totalProducts: products.length,
+    visibleProducts: products.filter((product) => product.visible).length,
+    hiddenProducts: products.filter((product) => !product.visible).length,
+    lowStockProducts: products.filter(
+      (product) => product.inStock && (product.stockQty ?? 0) > 0 && (product.stockQty ?? 0) < lowStockThreshold,
+    ).length,
+    outOfStockProducts: products.filter((product) => !product.inStock || (product.stockQty ?? 0) <= 0).length,
+    lowStockThreshold,
+    totalCustomers: customers.length,
+    returningCustomers: customers.filter((customer) => customer.returning).length,
+    customers,
+  });
+});
+
+export default router;
