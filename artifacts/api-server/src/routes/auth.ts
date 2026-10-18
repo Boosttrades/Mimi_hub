@@ -38,8 +38,8 @@ function normalizeEmail(value: unknown): string | null {
 
 function normalizePhone(value: unknown): string | null {
   if (typeof value !== 'string') return null;
-  const phone = value.trim().replace(/[\\s().-]/g, '');
-  return /^\\+[1-9]\\d{7,14}$/.test(phone) ? phone : null;
+  const phone = value.trim().replace(/[\s().-]/g, '');
+  return /^\+[1-9]\d{7,14}$/.test(phone) ? phone : null;
 }
 
 function readPassword(value: unknown): string | null {
@@ -262,7 +262,7 @@ router.post("/auth/verify-phone", async (req, res): Promise<void> => {
   const body = (req.body ?? {}) as AuthRequest;
   const phone = normalizePhone(body.phone);
   const token = typeof body.token === "string" ? body.token.trim() : "";
-  if (!phone || !/^\\d{4,8}$/.test(token)) {
+  if (!phone || !/^\d{4,8}$/.test(token)) {
     sendValidationError(res, "Enter a valid phone number and SMS verification code.");
     return;
   }
