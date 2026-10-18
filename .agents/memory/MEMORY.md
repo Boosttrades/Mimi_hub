@@ -1,0 +1,12 @@
+- [Imported artifact preview registration](imported-artifact-preview.md) — imported artifact metadata may exist without a registered workflow or artifact preview.
+- [Express 5 wildcard routes](express-5-wildcard-routes.md) — bare `*` route patterns fail at startup; use catch-all middleware for SPA fallbacks.
+- [MimiiHub preview dependencies](mimihub-preview-dependencies.md) — the home page is hardcoded and API-independent; other storefront pages still use database-backed data.
+- [Category image fallbacks](category-image-fallbacks.md) — static placeholder URLs should yield to shared frontend category imagery.
+- [MimiiHub Supabase-only backend](mimihub-supabase-only.md) — keep all backend data, uploads, and application APIs on Supabase; avoid Replit SDKs and services.
+- [Expo DevTools library warning](expo-devtools-nspr.md) — missing `libnspr4.so` can disable the debugger subprocess without preventing Metro or the Expo web preview from working.
+- [Expo web confirmation dialogs](expo-web-confirmations.md) — use an in-app modal instead of multi-button `Alert.alert` for destructive actions in the browser preview.
+- [Catalog data authenticity](catalog-data-authenticity.md) — keep product subcategories empty until real merchant product data is available; do not seed fake listings.
+- [Account screens and Supabase Auth](account-preview-style.md) — preserve the approved account-screen style and keep sign-up, sign-in, and verification functional through Supabase Auth.
+- [Workspace typecheck freshness](workspace-typecheck-freshness.md) — rebuild shared library declarations before treating missing artifact imports as contract defects.
+- [Orval/Zod generation](orval-zod-generation.md) — pin Orval to Zod v3; its default can emit v4-only APIs with this workspace's Zod 3 package.
+- [MimiiHub mobile auth](mimihub-mobile-auth.md) — Expo admin sends Supabase access tokens as Bearer; keep cookie auth for storefront sessions.
