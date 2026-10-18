@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "MimiiHub"
+description = "A premium luxury e-commerce website with cream and gold theme for MimiiHub, a Nigerian lifestyle and home goods store. Features product browsing, cart, checkout with Flutterwave integration, order tracking, wishlists, and a full admin dashboard for managing products, categories, orders, homepage content, and store settings."
+version = "1.0.0"
+id = "artifacts/mimihub"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 22040
+
+[services.development]
+run = "pnpm --filter @workspace/mimihub run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/mimihub", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/mimihub/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "22040"
+BASE_PATH = "/"
