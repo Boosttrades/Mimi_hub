@@ -1,8 +1,7 @@
--- Email remains the required login; phone is optional contact information.
+-- Email remains required for authentication; phone is optional profile information.
 begin;
 
 alter table public.users
-  alter column email drop not null,
   add column if not exists phone text;
 
 create index if not exists users_phone_idx
