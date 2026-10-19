@@ -29,7 +29,13 @@ export function AccountCreatePreview() {
     }
     setLoading(true);
     try {
-      const result = await signUpAccount({ fullName, phone: phone.trim() ? `+234${phone.trim()}` : undefined, email: email.trim(), password });
+      const cleanPhone = phone.trim().replace(/^0/, '');
+      const result = await signUpAccount({
+        fullName,
+        phone: cleanPhone ? `+234${cleanPhone}` : undefined,
+        email: email.trim(),
+        password,
+      });
       if (result.authenticated) {
         setLocation('/account');
       } else if (result.requiresEmailVerification) {
@@ -60,50 +66,26 @@ export function AccountCreatePreview() {
   };
 
   return (
-    <AccountPreviewShell
-      eyebrow="Join MimiiHub"
-      title="Create your account"
-      description="Create your account with your email and password."
-    >
-      <div
-        role="note"
-        data-testid="status-signup-security"
-        className="mb-6 flex gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4 text-sm leading-5 text-foreground"
-      >
+    <AccountPreviewShell eyebrow="Join MimiiHub" title="Create your account" description="Save your cart and view your orders across sessions.">
+      <div role="note" className="mb-6 flex gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4 text-sm leading-5 text-foreground">
         <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
-        <p>Your account is stored in Supabase Auth. New accounts start with the <strong className="font-semibold">customer</strong> role.</p>
+        <p>Your account uses your email and password. Phone number is optional, and you can shop without creating an account.</p>
       </div>
-
       {error && <p role="alert" className="mb-5 rounded-lg bg-destructive/10 px-4 py-3 text-sm leading-5 text-destructive">{error}</p>}
-      {notice && (
-        <p
-          role="status"
-          data-testid="status-signup"
-          className="mb-5 rounded-lg bg-secondary px-4 py-3 text-sm leading-5 text-foreground"
-        >
-          {notice}
-        </p>
-      )}
-
+      {notice && <p role="status" data-testid="status-signup" className="mb-5 rounded-lg bg-secondary px-4 py-3 text-sm leading-5 text-foreground">{notice}</p>}
       {verificationEmail && (
         <Button type="button" variant="outline" className="mb-5 w-full rounded-full" onClick={handleResend} disabled={loading}>
           Resend verification email
         </Button>
       )}
-
       <form onSubmit={handleSubmit} className="space-y-4" autoComplete="on">
         <div className="space-y-2">
-            <Label htmlFor="signup-otp">SMS verification code</Label>
-            <Input id="signup-otp" name="otp" inputMode="numeric" autoComplete="one-time-code" placeholder="Enter the code sent to your phone" value={otp} onChange={(event) => setOtp(event.target.value)} required disabled={loading} data-testid="input-phone-otp" className="h-11 rounded-lg bg-background" />
-          </div>
-          <Button type="submit" disabled={loading} className="h-12 w-full rounded-full text-sm font-semibold">
-            {loading ? 'Verifying...' : 'Verify phone number'}
-          </Button>
-        </form>
-      ) : <form onSubmit={handleSubmit} className="space-y-4" autoComplete="on">
-        <div className="space-y-2">
           <Label htmlFor="preview-name">Full name</Label>
-          <Input id="preview-name" name="name" type="text" autoComplete="name" placeholder="e.g. Ada Okafor" value={fullName} onChange={(event) => setFullName(event.target.value)} required disabled={loading} data-testid="input-name" className="h-11 rounded-lg bg-background" />
+          <Input id="preview-name" name="name" autoComplete="name" placeholder="e.g. Ada Okafor" value={fullName} onChange={(event) => setFullName(event.target.value)} required disabled={loading} data-testid="input-name" className="h-11 rounded-lg bg-background" />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="preview-email">Email address</Label>
+          <Input id="preview-email" name="email" type="email" autoComplete="email" placeholder="you@example.com" value={email} onChange={(event) => setEmail(event.target.value)} required disabled={loading} data-testid="input-email" className="h-11 rounded-lg bg-background" />
         </div>
         <div className="space-y-2">
           <Label htmlFor="preview-phone">Phone number <span className="font-normal text-muted-foreground">(optional)</span></Label>
@@ -111,10 +93,7 @@ export function AccountCreatePreview() {
             <span className="flex h-11 items-center rounded-lg border border-input bg-muted px-3 text-sm text-muted-foreground">+234</span>
             <Input id="preview-phone" name="phone" type="tel" autoComplete="tel-national" inputMode="numeric" placeholder="8012345678" value={phone} onChange={(event) => setPhone(event.target.value.replace(/\D/g, '').replace(/^0/, '').slice(0, 10))} disabled={loading} data-testid="input-phone" className="h-11 rounded-lg bg-background" />
           </div>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="preview-email">Email address</Label>
-          <Input id="preview-email" name="email" type="email" autoComplete="email" placeholder="you@example.com" value={email} onChange={(event) => setEmail(event.target.value)} required disabled={loading} data-testid="input-email" className="h-11 rounded-lg bg-background" />
+          <p className="text-xs text-muted-foreground">You can add your phone number later. Do not type +234 here.</p>
         </div>
         <div className="space-y-2">
           <Label htmlFor="preview-password">Password</Label>
@@ -128,20 +107,15 @@ export function AccountCreatePreview() {
           {loading ? 'Creating account...' : 'Create account'}
         </Button>
       </form>
-
       <p className="mt-5 text-center text-sm text-muted-foreground">
-        Already have an account?{' '}
-        <Link href="/account/login" className="font-semibold text-primary underline-offset-4 hover:underline" data-testid="link-preview-login">
-          Sign in
-        </Link>
+        Already have an account? <Link href="/account/login" className="font-semibold text-primary underline-offset-4 hover:underline" data-testid="link-preview-login">Sign in</Link>
       </p>
       <p className="mt-5 flex items-center justify-center gap-2 text-center text-xs leading-5 text-muted-foreground">
         <LockKeyhole className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
         Supabase manages your password and email verification. MimiiHub does not store your password.
       </p>
-      <Link href="/account" className="mt-6 flex min-h-10 items-center justify-center gap-2 text-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm" data-testid="link-return-account">
-        <Check className="h-4 w-4" aria-hidden="true" />
-        Return to account
+      <Link href="/account" className="mt-6 flex min-h-10 items-center justify-center gap-2 text-sm font-medium text-primary underline-offset-4 hover:underline rounded-sm" data-testid="link-return-account">
+        <Check className="h-4 w-4" aria-hidden="true" /> Return to account
       </Link>
     </AccountPreviewShell>
   );

@@ -1,6 +1,5 @@
 export interface MimiUser {
   id: number;
-  username: string;
   email: string;
   fullName: string | null;
   role: 'customer' | 'admin' | string;

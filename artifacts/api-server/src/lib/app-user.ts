@@ -4,14 +4,13 @@ import { db, usersTable, type User as AppUser } from "@workspace/db";
 
 export type PublicAppUser = Pick<
   AppUser,
-  "id" | "username" | "email" | "phone" | "fullName" | "role" | "createdAt"
+  "id" | "email" | "phone" | "fullName" | "role" | "createdAt"
 >;
 
 export function serializeAppUser(user: AppUser, authUser?: AuthUser): PublicAppUser {
   const metadataName = authUser?.user_metadata?.full_name;
   return {
     id: user.id,
-    username: user.username,
     email: user.email ?? "",
     phone: user.phone ?? authUser?.phone ?? null,
     role: user.role,

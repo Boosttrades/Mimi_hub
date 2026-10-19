@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import { randomBytes } from "node:crypto";
 import { and, eq, gte, sql } from "drizzle-orm";
 import { db, ordersTable, productsTable } from "@workspace/db";
 import { requireAdmin, resolveOptionalAppUser } from "../lib/request-auth";
@@ -131,9 +132,8 @@ async function adjustInventory(
 }
 
 async function generateOrderRef(): Promise<string> {
-  const orders = await db.select().from(ordersTable).orderBy(ordersTable.id);
-  const nextNum = orders.length + 1;
-  return `MH-${String(nextNum).padStart(6, "0")}`;
+  // Random references are difficult to guess and remain unique across concurrent checkouts.
+  return `MH-${randomBytes(5).toString("hex").toUpperCase()}`;
 }
 
 // GET /orders

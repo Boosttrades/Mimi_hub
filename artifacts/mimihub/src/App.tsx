@@ -141,9 +141,9 @@ function AccountDataSync() {
     accountData: MimiAccountData,
     clearGuestData: boolean,
   ) => {
-    cart.switchToAccount(currentUser.username, false, accountData.cart);
-    wishlist.switchToAccount(currentUser.username, false, accountData.wishlist);
-    writeStored(getAccountStorageKey('checkout', currentUser.username), accountData.checkout);
+    cart.switchToAccount(String(currentUser.id), false, accountData.cart);
+    wishlist.switchToAccount(String(currentUser.id), false, accountData.wishlist);
+    writeStored(getAccountStorageKey('checkout', String(currentUser.id)), accountData.checkout);
     if (clearGuestData) {
       removeStored('mimihub_checkout');
       removeStored('mimihub_cart');
@@ -172,7 +172,7 @@ function AccountDataSync() {
       const guestWishlist = readStored<number[]>('mimihub_wishlist', []);
       const guestCheckout = readStored<Record<string, string>>('mimihub_checkout', {});
       const accountCheckout = readStored<Record<string, string>>(
-        getAccountStorageKey('checkout', currentUser.username),
+        getAccountStorageKey('checkout', String(currentUser.id)),
         {},
       );
 
@@ -252,7 +252,7 @@ function AccountDataSync() {
           cart: cart.items,
           wishlist: wishlist.items,
           checkout: readStored<Record<string, string>>(
-            getAccountStorageKey('checkout', user.username),
+            getAccountStorageKey('checkout', String(user.id)),
             {},
           ),
         },
@@ -273,7 +273,7 @@ function AccountDataSync() {
           cart: cart.items,
           wishlist: wishlist.items,
           checkout: readStored<Record<string, string>>(
-            getAccountStorageKey('checkout', user.username),
+            getAccountStorageKey('checkout', String(user.id)),
             {},
           ),
         },

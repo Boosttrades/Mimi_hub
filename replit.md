@@ -4,14 +4,14 @@ A premium Nigerian lifestyle e-commerce website selling personal care products a
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/mimihub run dev` — run the frontend (preview at `/`)
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 8080, proxied at `/api`)
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required secrets: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `SUPABASE_DATABASE_URL` — Supabase project URL, server-only service-role key, and Postgres connection string
+- `pnpm --filter @workspace/mimihub run dev` â run the frontend (preview at `/`)
+- `pnpm --filter @workspace/api-server run dev` â run the API server (port 8080, proxied at `/api`)
+- `pnpm run typecheck` â full typecheck across all packages
+- `pnpm --filter @workspace/api-spec run codegen` â regenerate API hooks and Zod schemas from the OpenAPI spec
+- `pnpm --filter @workspace/db run push` â push DB schema changes (dev only)
+- Required secrets: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `SUPABASE_DATABASE_URL` â Supabase project URL, server-only service-role key, and Postgres connection string
 - `SUPABASE_ANON_KEY` is optional; the browser uses the API server, so Supabase credentials are not exposed in the frontend bundle
-- Optional env: `VITE_FLUTTERWAVE_PUBLIC_KEY` — Flutterwave public key for payments
+- Optional env: `VITE_FLUTTERWAVE_PUBLIC_KEY` â Flutterwave public key for payments
 
 ## Stack
 
@@ -24,21 +24,21 @@ A premium Nigerian lifestyle e-commerce website selling personal care products a
 
 ## Where things live
 
-- `artifacts/mimihub/src/pages/` — all customer-facing pages
-- `artifacts/mimihub/src/pages/admin/` — admin dashboard pages
-- `artifacts/mimihub/src/contexts/` — CartContext, WishlistContext (localStorage-backed)
-- `artifacts/mimihub/src/components/layout/` — Header, BottomNav
-- `artifacts/api-server/src/routes/` — categories, products, orders, settings
-- `lib/db/src/schema/` — Drizzle table definitions
-- `lib/db/src/schema/user-data.ts` — optional account cart, wishlist, and checkout data
-- `lib/api-spec/openapi.yaml` — single source of truth for API contracts
+- `artifacts/mimihub/src/pages/` â all customer-facing pages
+- `artifacts/mimihub/src/pages/admin/` â admin dashboard pages
+- `artifacts/mimihub/src/contexts/` â CartContext, WishlistContext (localStorage-backed)
+- `artifacts/mimihub/src/components/layout/` â Header, BottomNav
+- `artifacts/api-server/src/routes/` â categories, products, orders, settings
+- `lib/db/src/schema/` â Drizzle table definitions
+- `lib/db/src/schema/user-data.ts` â optional account cart, wishlist, and checkout data
+- `lib/api-spec/openapi.yaml` â single source of truth for API contracts
 
 ## Architecture decisions
 
-- Cart and Wishlist are guest-first and localStorage-backed — no account is required to browse or order
-- When a user creates an optional username account, guest cart, wishlist, and checkout progress merge into Supabase and continue syncing
+- Cart and Wishlist are guest-first and localStorage-backed â no account is required to browse or order
+- When a customer signs in or creates an email account, guest cart, wishlist, and checkout progress can merge into Supabase and continue syncing
 - Checkout progress is saved to localStorage so users can resume
-- Orders use IDs like MH-000001, generated server-side
+- Orders use unguessable MH-XXXXXXXXXX references generated server-side; guests can check out and track an order without an account
 - Settings (store, homepage, payment) stored as JSON blobs in a single `settings` table
 - Featured products are capped at 8 (enforced in admin UI)
 - Orval generates `zod.int()` for integer types but the workspace uses Zod v3; after each codegen run, patch the generated file: `sed -i 's/zod\.int()/zod.number()/g' lib/api-zod/src/generated/api.ts`
@@ -57,15 +57,15 @@ Admins can manage products, categories, orders, homepage content, payment settin
 
 - Cream and gold luxury theme (#FAF6F0 background, #C9A84C gold)
 - No newsletter/subscribe sections
-- Prices in Nigerian Naira (₦)
+- Prices in Nigerian Naira (â¦)
 - Mobile-first with bottom navigation
 - No emojis in the UI
 
 ## Gotchas
 
 - After any OpenAPI spec change, run codegen AND then patch: `sed -i 's/zod\.int()/zod.number()/g' lib/api-zod/src/generated/api.ts && pnpm run typecheck:libs`
-- The `cn` utility must be in `src/lib/utils.ts` and exported — the design subagent historically overwrites this file without the proper export
-- Admin route is at `/admin` — no authentication currently (add admin authentication as a future enhancement)
+- The `cn` utility must be in `src/lib/utils.ts` and exported â the design subagent historically overwrites this file without the proper export
+- Admin route is at `/admin` â no authentication currently (add admin authentication as a future enhancement)
 
 ## Pointers
 

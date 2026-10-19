@@ -7,7 +7,7 @@ interface WishlistContextType {
   removeFromWishlist: (productId: number) => void;
   toggleWishlist: (productId: number) => void;
   isInWishlist: (productId: number) => boolean;
-  switchToAccount: (username: string, mergeGuest: boolean, accountItems?: number[]) => void;
+  switchToAccount: (accountId: string, mergeGuest: boolean, accountItems?: number[]) => void;
   switchToGuest: () => void;
 }
 
@@ -42,8 +42,8 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
 
   const isInWishlist = (productId: number) => items.includes(productId);
 
-  const switchToAccount = (username: string, mergeGuest: boolean, accountItems?: number[]) => {
-    const accountKey = getAccountStorageKey('wishlist', username);
+  const switchToAccount = (accountId: string, mergeGuest: boolean, accountItems?: number[]) => {
+    const accountKey = getAccountStorageKey('wishlist', accountId);
     const storedAccountItems = accountItems ?? readStored<number[]>(accountKey, []);
     const nextItems = mergeGuest
       ? [...storedAccountItems, ...items.filter((id) => !storedAccountItems.includes(id))]
@@ -52,7 +52,7 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
     writeStored(accountKey, nextItems);
     if (mergeGuest) removeStored('mimihub_wishlist');
     setItems(nextItems);
-    setStorageScope(username);
+    setStorageScope(accountId);
   };
 
   const switchToGuest = () => {

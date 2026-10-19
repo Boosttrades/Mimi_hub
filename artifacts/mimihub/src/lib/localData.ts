@@ -4,8 +4,8 @@ export type LocalOrder = Order;
 
 const GUEST_ORDERS_KEY = 'mimihub_guest_orders';
 
-function accountKey(type: string, username: string) {
-  const normalized = encodeURIComponent(username.trim().toLowerCase());
+function accountKey(type: string, accountId: string) {
+  const normalized = encodeURIComponent(accountId.trim().toLowerCase());
   return `mimihub_account_${type}_${normalized}`;
 }
 
@@ -26,8 +26,8 @@ export function removeStored(key: string) {
   localStorage.removeItem(key);
 }
 
-export function getAccountStorageKey(type: 'cart' | 'wishlist' | 'orders' | 'checkout', username: string) {
-  return accountKey(type, username);
+export function getAccountStorageKey(type: 'cart' | 'wishlist' | 'orders' | 'checkout', accountId: string) {
+  return accountKey(type, accountId);
 }
 
 export function getGuestDataSummary() {
@@ -52,9 +52,9 @@ export function saveGuestOrder(order: LocalOrder) {
   writeStored(GUEST_ORDERS_KEY, [...getStoredOrders('guest'), order]);
 }
 
-export function switchOrdersToAccount(username: string, mergeGuest: boolean) {
+export function switchOrdersToAccount(accountId: string, mergeGuest: boolean) {
   const guestOrders = getStoredOrders('guest');
-  const accountKeyForOrders = getAccountStorageKey('orders', username);
+  const accountKeyForOrders = getAccountStorageKey('orders', accountId);
   const accountOrders = readStored<LocalOrder[]>(accountKeyForOrders, []);
   const nextOrders = mergeGuest ? [...accountOrders, ...guestOrders] : accountOrders;
 

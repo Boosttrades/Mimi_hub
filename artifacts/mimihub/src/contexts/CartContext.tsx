@@ -17,7 +17,7 @@ interface CartContextType {
   removeFromCart: (productId: number) => void;
   updateQuantity: (productId: number, quantity: number) => void;
   clearCart: () => void;
-  switchToAccount: (username: string, mergeGuest: boolean, accountItems?: CartItem[]) => void;
+  switchToAccount: (accountId: string, mergeGuest: boolean, accountItems?: CartItem[]) => void;
   switchToGuest: () => void;
   totalItems: number;
   subtotal: number;
@@ -85,15 +85,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const clearCart = () => setItems([]);
 
-  const switchToAccount = (username: string, mergeGuest: boolean, accountItems?: CartItem[]) => {
-    const accountKey = getAccountStorageKey('cart', username);
+  const switchToAccount = (accountId: string, mergeGuest: boolean, accountItems?: CartItem[]) => {
+    const accountKey = getAccountStorageKey('cart', accountId);
     const storedAccountItems = accountItems ?? readStored<CartItem[]>(accountKey, []);
     const nextItems = mergeGuest ? mergeCartItems(storedAccountItems, items) : storedAccountItems;
 
     writeStored(accountKey, nextItems);
     if (mergeGuest) removeStored('mimihub_cart');
     setItems(nextItems);
-    setStorageScope(username);
+    setStorageScope(accountId);
   };
 
   const switchToGuest = () => {
