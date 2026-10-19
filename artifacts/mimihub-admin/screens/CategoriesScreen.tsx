@@ -159,7 +159,11 @@ export default function CategoriesScreen() {
       await invalidateCategories();
       cancelCategoryForm();
     } catch (error) {
-      setCategoryFormError(getErrorMessage(error));
+      const message = getErrorMessage(error);
+      setCategoryFormError(message);
+      // Keep the form open and show a visible error even when the message is
+      // below the keyboard or the admin is using the app on a small screen.
+      Alert.alert('Could not save category', message);
     }
   }
 
@@ -273,7 +277,7 @@ export default function CategoriesScreen() {
   }
 
   if (categoriesQuery.isLoading) {
-    return <Page title="Categories" showBack><LoadingState label="Loading categories…" /></Page>;
+    return <Page title="Categories" showBack><LoadingState label="Loading categoriesâ¦" /></Page>;
   }
 
   if (categoriesQuery.isError || !categoriesQuery.data) {
@@ -385,7 +389,8 @@ export default function CategoriesScreen() {
             icon="check"
             loading={savingCategory}
             disabled={savingCategory}
-            onPress={() => void saveCategory()}
+            onPress={saveCategory}
+            testID="category-save"
           />
           <ActionButton label="Cancel" variant="secondary" onPress={cancelCategoryForm} disabled={savingCategory} />
         </Card>
@@ -422,7 +427,7 @@ export default function CategoriesScreen() {
                   testID={`category-visibility-${category.id}`}
                 />
                 <View style={[styles.subcategoryHeading, { borderTopColor: colors.border }]}>
-                  <Text style={[styles.subcategoryTitle, { color: colors.foreground }]}>Subcategories · {subcategories.length}</Text>
+                  <Text style={[styles.subcategoryTitle, { color: colors.foreground }]}>Subcategories Â· {subcategories.length}</Text>
                   <IconAction
                     icon="plus"
                     label={`Add subcategory to ${category.name}`}
