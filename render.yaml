@@ -4,7 +4,7 @@ services:
     runtime: node
     plan: free
     region: frankfurt
-    branch: deploy/render-blueprint
+    branch: main
     buildCommand: corepack enable && corepack prepare pnpm@10.8.1 --activate && pnpm install --frozen-lockfile && PORT=10000 BASE_PATH=/ pnpm --filter @workspace/mimihub build && pnpm --filter @workspace/api-server build
     startCommand: pnpm --filter @workspace/api-server start
     envVars:

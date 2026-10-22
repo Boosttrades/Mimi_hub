@@ -1,6 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
-import type { ReactNode } from 'react';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
@@ -13,7 +12,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import NotFound from '@/pages/not-found';
-import { Route, Switch, Router as WouterRouter, Link } from 'wouter';
+import { Route, Switch, Router as WouterRouter } from 'wouter';
 
 import { CartProvider } from '@/contexts/CartContext';
 import { WishlistProvider } from '@/contexts/WishlistContext';
@@ -40,14 +39,6 @@ import { Account, AccountOrders, AccountWishlist } from '@/pages/Account';
 import { AccountCreatePreview } from '@/pages/AccountCreatePreview';
 import { AccountLoginPreview } from '@/pages/AccountLoginPreview';
 import { Search } from '@/pages/Search';
-import { AdminCategories } from '@/pages/admin/Categories';
-import { Dashboard } from '@/pages/admin/Dashboard';
-import { AdminOrders } from '@/pages/admin/OrdersAdmin';
-import { AdminProducts } from '@/pages/admin/Products';
-import { AdminProductForm } from '@/pages/admin/ProductForm';
-import { AdminCustomers } from '@/pages/admin/Customers';
-import { AdminSettings } from '@/pages/admin/Settings';
-import { AdminHomepage } from '@/pages/admin/Homepage';
 import { AccountVerify } from '@/pages/AccountVerify';
 
 const queryClient = new QueryClient();
@@ -71,55 +62,10 @@ function Router() {
       <Route path="/account/orders" component={AccountOrders} />
       <Route path="/account/wishlist" component={AccountWishlist} />
       <Route path="/search" component={Search} />
-      <Route path="/admin" component={() => <AdminRoute><Dashboard /></AdminRoute>} />
-      <Route path="/admin/orders" component={() => <AdminRoute><AdminOrders /></AdminRoute>} />
-      <Route path="/admin/products" component={() => <AdminRoute><AdminProducts /></AdminRoute>} />
-      <Route path="/admin/products/new" component={() => <AdminRoute><AdminProductForm /></AdminRoute>} />
-      <Route path="/admin/products/:id/edit" component={() => <AdminRoute><AdminProductForm /></AdminRoute>} />
-      <Route path="/admin/customers" component={() => <AdminRoute><AdminCustomers /></AdminRoute>} />
-      <Route path="/admin/categories" component={() => <AdminRoute><AdminCategories /></AdminRoute>} />
-      <Route path="/admin/settings" component={() => <AdminRoute><AdminSettings /></AdminRoute>} />
-      <Route path="/admin/homepage" component={() => <AdminRoute><AdminHomepage /></AdminRoute>} />
 
       <Route component={NotFound} />
     </Switch>
   );
-}
-
-function AdminRoute({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<MimiUser | null>(null);
-  const [checked, setChecked] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    getCurrentUser().then((currentUser) => {
-      if (cancelled) return;
-      setUser(currentUser);
-      setChecked(true);
-    });
-    return () => { cancelled = true; };
-  }, []);
-
-  if (!checked) return <div className="grid min-h-[55vh] place-items-center text-sm text-muted-foreground">Checking store access...</div>;
-  if (!user) {
-    return (
-      <div className="mx-auto grid min-h-[55vh] max-w-md content-center gap-3 px-5 text-center">
-        <h1 className="font-serif text-3xl">Sign in to manage the store</h1>
-        <p className="text-sm text-muted-foreground">Use the administrator account connected to Supabase.</p>
-        <Link href="/account/login" className="mx-auto mt-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground">Sign in</Link>
-      </div>
-    );
-  }
-  if (user.role !== 'admin') {
-    return (
-      <div className="mx-auto grid min-h-[55vh] max-w-md content-center gap-3 px-5 text-center">
-        <h1 className="font-serif text-3xl">Administrator access required</h1>
-        <p className="text-sm text-muted-foreground">Your account is a customer account. A store owner can change its role to admin in the Supabase public.users table.</p>
-        <Link href="/" className="mx-auto mt-2 rounded-full border px-6 py-3 text-sm font-semibold">Return to the store</Link>
-      </div>
-    );
-  }
-  return <>{children}</>;
 }
 
 function AccountDataSync() {

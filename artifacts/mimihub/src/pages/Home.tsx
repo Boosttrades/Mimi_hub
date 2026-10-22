@@ -132,7 +132,7 @@ export function Home() {
           <EmptyState
             icon={<Award className="h-10 w-10" />}
             title="Categories coming soon"
-            description="Categories will appear here once they are added in the admin panel."
+            description="Categories will appear here once they are available."
           />
         )}
       </section>
