@@ -20,8 +20,8 @@ export function Home() {
   const [currentSlide, setCurrentSlide] = useState(0);
 
   const { data: categories = [], isLoading: loadingCategories } = useListCategories();
-  const { data: featuredProducts = [] } = useListProducts({ featured: true, visible: true });
-  const { data: favoriteProducts = [] } = useListProducts({ bestSeller: true, visible: true });
+  const { data: featuredProducts = [], isLoading: loadingFeaturedProducts } = useListProducts({ featured: true, visible: true });
+  const { data: favoriteProducts = [], isLoading: loadingFavoriteProducts } = useListProducts({ bestSeller: true, visible: true });
 
   const collections = categories.map((category) => ({
     id: category.slug,
@@ -47,6 +47,17 @@ export function Home() {
     <Layout>
       <section className="px-4 pb-8 pt-7 md:px-8 md:pb-12 md:pt-10">
         <div className="relative min-h-[430px] md:min-h-[500px]">
+          {collections.length === 0 && loadingCategories && (
+            <div className="absolute inset-0 overflow-hidden rounded-2xl bg-secondary/70 p-7 md:p-12">
+              <div className="flex h-full flex-col justify-center gap-4">
+                <div className="h-3 w-28 animate-pulse rounded bg-primary/20" />
+                <div className="h-10 w-3/4 max-w-md animate-pulse rounded bg-foreground/10 md:h-14" />
+                <div className="h-4 w-full max-w-sm animate-pulse rounded bg-foreground/10" />
+                <div className="h-10 w-32 animate-pulse rounded bg-primary/20" />
+                <p className="pt-2 text-xs text-muted-foreground">Preparing your collections…</p>
+              </div>
+            </div>
+          )}
           {collections.length > 0 && (
             <>
               <div className="absolute right-4 top-4 z-20 flex gap-1.5" aria-label="Collection slides">
@@ -147,7 +158,17 @@ export function Home() {
             View all
           </Link>
         </div>
-        {featuredProducts.length > 0 ? (
+        {loadingFeaturedProducts ? (
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6" aria-label="Loading featured products">
+            {Array.from({ length: 4 }, (_, index) => (
+              <div key={index} className="animate-pulse space-y-3">
+                <div className="aspect-[3/4] rounded-xl bg-secondary" />
+                <div className="h-3 w-3/4 rounded bg-secondary" />
+                <div className="h-3 w-1/2 rounded bg-secondary" />
+              </div>
+            ))}
+          </div>
+        ) : featuredProducts.length > 0 ? (
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
             {featuredProducts.map((product) => (
               <ProductCard key={product.id} product={product} />
@@ -172,7 +193,17 @@ export function Home() {
             View all
           </Link>
         </div>
-        {favoriteProducts.length > 0 ? (
+        {loadingFavoriteProducts ? (
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6" aria-label="Loading favorite products">
+            {Array.from({ length: 4 }, (_, index) => (
+              <div key={index} className="animate-pulse space-y-3">
+                <div className="aspect-[3/4] rounded-xl bg-secondary" />
+                <div className="h-3 w-3/4 rounded bg-secondary" />
+                <div className="h-3 w-1/2 rounded bg-secondary" />
+              </div>
+            ))}
+          </div>
+        ) : favoriteProducts.length > 0 ? (
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
             {favoriteProducts.map((product) => (
               <ProductCard key={product.id} product={product} />
