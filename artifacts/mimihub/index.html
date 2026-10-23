@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <meta name="theme-color" content="#faf6f0" />
     <title>MimiiHub</title>
     <meta name="description" content="MimiiHub — premium Nigerian lifestyle essentials." />
     <meta name="robots" content="index, follow" />
@@ -16,9 +17,42 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+      html, body { margin: 0; min-height: 100%; background: #faf6f0; }
+      #boot-loader { min-height: 100dvh; display: grid; place-items: center; padding: 24px; box-sizing: border-box; color: #30291f; font-family: Inter, system-ui, sans-serif; text-align: center; }
+      .boot-card { width: min(100%, 320px); }
+      .boot-brand { margin: 0; font-family: Georgia, serif; font-size: 36px; letter-spacing: .02em; font-weight: 600; }
+      .boot-brand span { color: #b88619; }
+      .boot-track { height: 4px; overflow: hidden; border-radius: 99px; background: #eadfc8; margin: 24px auto 16px; max-width: 220px; }
+      .boot-progress { height: 100%; width: 40%; border-radius: inherit; background: #bd8d25; animation: boot-slide 1.15s ease-in-out infinite alternate; }
+      .boot-message { margin: 0; color: #766b5d; font-size: 13px; line-height: 1.6; }
+      .boot-help { display: none; margin-top: 16px; color: #766b5d; font-size: 12px; }
+      .boot-retry { color: #8b6518; font-weight: 600; }
+      @keyframes boot-slide { from { transform: translateX(0); } to { transform: translateX(150%); } }
+      @media (prefers-reduced-motion: reduce) { .boot-progress { animation: none; width: 100%; } }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="boot-loader" role="status" aria-live="polite">
+        <div class="boot-card">
+          <p class="boot-brand">Mimii<span>Hub</span></p>
+          <div class="boot-track" aria-hidden="true"><div class="boot-progress"></div></div>
+          <p class="boot-message" id="boot-message">Preparing your shopping experience…</p>
+          <p class="boot-help" id="boot-help">Taking longer than expected. Check your connection, then <a class="boot-retry" href="/">try again</a>.</p>
+        </div>
+      </div>
+    </div>
+    <script>
+      window.setTimeout(function () {
+        var help = document.getElementById('boot-help');
+        var message = document.getElementById('boot-message');
+        if (help && message) {
+          message.textContent = 'The storefront is still starting.';
+          help.style.display = 'block';
+        }
+      }, 12000);
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
