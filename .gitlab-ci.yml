@@ -1,0 +1,23 @@
+stages:
+  - build
+
+build_mimihub_admin_apk:
+  stage: build
+  image: node:22-bookworm
+  variables:
+    CI: "1"
+    PNPM_HOME: "$CI_PROJECT_DIR/.pnpm-store"
+  cache:
+    key: pnpm-store
+    paths:
+      - .pnpm-store/
+  before_script:
+    - corepack enable
+    - corepack prepare pnpm@10.8.1 --activate
+    - pnpm config set store-dir .pnpm-store
+    - pnpm install --frozen-lockfile
+  script:
+    - cd artifacts/mimihub-admin
+    - npx --yes eas-cli@latest build --platform android --profile preview --non-interactive
+  rules:
+    - when: manual
