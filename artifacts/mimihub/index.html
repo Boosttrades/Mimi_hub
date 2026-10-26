@@ -17,9 +17,21 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem('mimihub_theme');
+          var dark = saved === 'dark' || (saved !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          document.documentElement.classList.toggle('dark', dark);
+          document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+        } catch (_) {}
+      })();
+    </script>
     <style>
       html, body { margin: 0; min-height: 100%; background: #faf6f0; }
+      html.dark, html.dark body { background: #1e1c19; }
       #boot-loader { min-height: 100dvh; display: grid; place-items: center; padding: 24px; box-sizing: border-box; color: #30291f; font-family: Inter, system-ui, sans-serif; text-align: center; }
+      html.dark #boot-loader { background: #1e1c19; color: #e3dcca; }
       .boot-card { width: min(100%, 320px); }
       .boot-brand { margin: 0; font-family: Georgia, serif; font-size: 36px; letter-spacing: .02em; font-weight: 600; }
       .boot-brand span { color: #b88619; }

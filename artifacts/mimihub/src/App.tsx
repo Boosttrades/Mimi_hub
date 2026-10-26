@@ -43,6 +43,32 @@ import { AccountVerify } from '@/pages/AccountVerify';
 
 const queryClient = new QueryClient();
 
+function GlobalThemeSync() {
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-color-scheme: dark)');
+
+    const applyTheme = () => {
+      const saved = localStorage.getItem('mimihub_theme');
+      const isDark = saved === 'dark' || (saved !== 'light' && media.matches);
+      document.documentElement.classList.toggle('dark', isDark);
+      document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
+    };
+
+    applyTheme();
+    media.addEventListener('change', applyTheme);
+    window.addEventListener('storage', applyTheme);
+    window.addEventListener('mimihub:theme-changed', applyTheme);
+
+    return () => {
+      media.removeEventListener('change', applyTheme);
+      window.removeEventListener('storage', applyTheme);
+      window.removeEventListener('mimihub:theme-changed', applyTheme);
+    };
+  }, []);
+
+  return null;
+}
+
 function Router() {
   return (
     <Switch>
@@ -263,6 +289,7 @@ function AccountDataSync() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <GlobalThemeSync />
       <CartProvider>
         <WishlistProvider>
           <TooltipProvider>
