@@ -54,6 +54,8 @@ function showRuntimeError(title: string, detail: string) {
 }
 
 window.addEventListener('error', (event) => {
+  // Ignore failed image/font/resource loads; report JavaScript errors only.
+  if (!event.error && !event.message) return;
   const detail = event.error instanceof Error ? (event.error.stack || event.error.message) : event.message;
   showRuntimeError('MimiiHub browser error', detail || 'Unknown browser error');
 });
