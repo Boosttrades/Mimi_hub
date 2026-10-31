@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "sh -c 'if [ -n \"$REPLIT_EXPO_SESSION_SECRET\" ]; then pnpm exec create-launch login --session \"$REPLIT_EXPO_SESSION_SECRET\" || true; fi' && EXPO_PACKAGER_PROXY_URL=https://$REPLIT_EXPO_DEV_DOMAIN EXPO_PUBLIC_DOMAIN=$REPLIT_DEV_DOMAIN EXPO_PUBLIC_REPL_ID=$REPL_ID EXPO_PUBLIC_SUPABASE_URL=\"$SUPABASE_URL\" EXPO_PUBLIC_SUPABASE_ANON_KEY=\"$VITE_SUPABASE_ANON_KEY\" REACT_NATIVE_PACKAGER_HOSTNAME=$REPLIT_DEV_DOMAIN pnpm exec expo start --localhost --port $PORT",
     "build": "node scripts/build.js",
+    "build:web": "expo export --platform web --output-dir dist",
     "serve": "node server/serve.js",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
@@ -14,7 +15,7 @@
     "@expo-google-fonts/inter": "^0.4.0",
     "@expo/vector-icons": "^15.0.2",
     "@react-native-async-storage/async-storage": "2.2.0",
-    "@stardazed/streams-text-encoding": "^1.0.2",
+    "@stardazed/streams-text-encoding": "^1.0.0",
     "@tanstack/react-query": "catalog:",
     "@types/react": "~19.2.2",
     "@types/react-dom": "~19.2.2",
