@@ -142,7 +142,7 @@ export function Home() {
         {loadingCategories ? (
           <LoadingSpinner size="lg" />
         ) : categories.length > 0 ? (
-          <div className="grid gap-5 md:grid-cols-2">
+          <div className="grid grid-cols-2 gap-3 md:gap-5">
             {categories.map((category) => (
               <CategoryCard key={category.id} category={category} />
             ))}
