@@ -5,6 +5,7 @@ import { useListProducts, useListCategories } from '@workspace/api-client-react'
 import { Layout } from '@/components/layout/Layout';
 import { CategoryCard } from '@/components/product/CategoryCard';
 import { ProductCard } from '@/components/product/ProductCard';
+import { categoryImages } from '@/data/categoryImages';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
@@ -23,15 +24,22 @@ export function Home() {
   const { data: featuredProducts = [], isLoading: loadingFeaturedProducts } = useListProducts({ featured: true, visible: true });
   const { data: favoriteProducts = [], isLoading: loadingFavoriteProducts } = useListProducts({ bestSeller: true, visible: true });
 
-  const collections = categories.map((category) => ({
-    id: category.slug,
-    title: category.name,
-    description: category.description ?? '',
-    image:
-      category.image ||
-      `https://placehold.co/1200x600/D4B483/FAF6F0?text=${encodeURIComponent(category.name)}`,
-    href: `/category/${category.slug}`,
-  }));
+  const collections = categories.map((category) => {
+    const savedImage = category.image && !category.image.includes('placehold.co')
+      ? category.image
+      : null;
+
+    return {
+      id: category.slug,
+      title: category.name,
+      description: category.description ?? '',
+      image:
+        savedImage ||
+        categoryImages[category.slug] ||
+        `https://placehold.co/1200x600/D4B483/FAF6F0?text=${encodeURIComponent(category.name)}`,
+      href: `/category/${category.slug}`,
+    };
+  });
 
   useEffect(() => {
     if (collections.length === 0) return;
@@ -183,7 +191,7 @@ export function Home() {
         )}
       </section>
 
-      <section className="px-4 py-10 md:px-8 md:py-14">
+      <section className="bg-secondary/25 px-4 py-10 md:px-8 md:py-14">
         <div className="mb-7 flex items-end justify-between">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-primary">Chosen for you</p>
