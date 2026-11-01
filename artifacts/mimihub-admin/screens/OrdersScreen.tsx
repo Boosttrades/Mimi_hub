@@ -9,12 +9,13 @@ import {
 } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ActionButton, Card, ChoiceChip, EmptyState, ErrorState, Page, StatusBadge } from '@/components/AdminUI';
 import { useColors } from '@/hooks/useColors';
 import { formatDate, formatNaira, getErrorMessage } from '@/lib/format';
 
-const filters: Array<'All' | OrderStatus> = ['All', 'Confirming', 'Preparing', 'Shipping', 'Delivered', 'Cancelled'];
+const filters: Array<'All' | 'Awaiting' | OrderStatus> = ['All', 'Awaiting', 'Confirming', 'Preparing', 'Shipping', 'Delivered', 'Cancelled'];
 const nextStatus: Partial<Record<OrderStatus, OrderStatus>> = {
   Confirming: 'Preparing',
   Preparing: 'Shipping',
@@ -23,9 +24,13 @@ const nextStatus: Partial<Record<OrderStatus, OrderStatus>> = {
 
 export default function OrdersScreen() {
   const colors = useColors();
+  const routeParams = useLocalSearchParams<{ filter?: string }>();
   const queryClient = useQueryClient();
-  const [filter, setFilter] = useState<'All' | OrderStatus>('All');
-  const orders = useListOrders(filter === 'All' ? undefined : { status: filter });
+  const [filter, setFilter] = useState<'All' | 'Awaiting' | OrderStatus>(() => routeParams.filter === 'awaiting' ? 'Awaiting' : 'All');
+  const orders = useListOrders(filter === 'All' || filter === 'Awaiting' ? undefined : { status: filter });
+  const visibleOrders = (orders.data ?? []).filter((order) =>
+    filter !== 'Awaiting' || !['Delivered', 'Cancelled'].includes(order.orderStatus)
+  );
   const updateOrder = useUpdateOrderStatus();
 
   const applyStatus = (id: number, status: OrderStatus) => {
@@ -74,9 +79,9 @@ export default function OrdersScreen() {
         <ErrorState message={getErrorMessage(orders.error)} onRetry={() => void orders.refetch()} />
       ) : orders.isLoading ? (
         <View style={styles.loading}><Feather name="loader" size={22} color={colors.adminTeal} /></View>
-      ) : orders.data?.length ? (
+      ) : visibleOrders.length ? (
         <View style={styles.list}>
-          {orders.data.map((order) => {
+          {visibleOrders.map((order) => {
             const advanceTo = nextStatus[order.orderStatus];
             return (
               <Card key={order.id} style={styles.orderCard}>

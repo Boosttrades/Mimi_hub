@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { File } from 'expo-file-system';
+import { File as ExpoFile } from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'expo-image';
 import { Alert, Linking, Modal, Platform, StyleSheet, Switch, Text, View } from 'react-native';
@@ -139,9 +139,20 @@ export default function CategoriesScreen() {
     try {
       let image = categoryDraft.image.trim();
       if (pendingCategoryImage) {
-        const file = new File(pendingCategoryImage.uri);
+        let uploadFile: unknown;
+        if (Platform.OS === 'web') {
+          const response = await fetch(pendingCategoryImage.uri);
+          if (!response.ok) throw new Error('Could not read the selected category image.');
+          const blob = await response.blob();
+          const extension = blob.type === 'image/png' ? 'png' : 'jpg';
+          uploadFile = new globalThis.File([blob], `category-image.${extension}`, {
+            type: blob.type || 'image/jpeg',
+          });
+        } else {
+          uploadFile = new ExpoFile(pendingCategoryImage.uri);
+        }
         const uploaded = await uploadImage.mutateAsync({
-          data: { file: file as unknown as string },
+          data: { file: uploadFile as string },
         });
         image = uploaded.url;
       }

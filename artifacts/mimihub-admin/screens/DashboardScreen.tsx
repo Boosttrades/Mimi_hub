@@ -40,10 +40,10 @@ export default function DashboardScreen() {
       refreshing={refreshing}
     >
       <View style={styles.metrics}>
-        <Metric label="This month" value={formatNaira(summary.data.thisMonthRevenue)} icon="trending-up" />
-        <Metric label="Orders" value={String(summary.data.totalOrders)} icon="shopping-bag" />
-        <Metric label="Awaiting action" value={String(summary.data.pendingOrders)} icon="clock" />
-        <Metric label="Low stock" value={String(summary.data.lowStockProducts)} icon="alert-triangle" />
+        <Metric label="This month" value={formatNaira(summary.data.thisMonthRevenue)} icon="trending-up" onPress={() => router.push('/(tabs)/orders')} />
+        <Metric label="Orders" value={String(summary.data.totalOrders)} icon="shopping-bag" onPress={() => router.push('/(tabs)/orders')} />
+        <Metric label="Awaiting action" value={String(summary.data.pendingOrders)} icon="clock" onPress={() => router.push({ pathname: '/(tabs)/orders', params: { filter: 'awaiting' } })} />
+        <Metric label="Low stock" value={String(summary.data.lowStockProducts)} icon="alert-triangle" onPress={() => router.push({ pathname: '/(tabs)/products', params: { filter: 'low-stock' } })} />
       </View>
 
       <View style={styles.section}>
@@ -95,16 +95,18 @@ export default function DashboardScreen() {
   );
 }
 
-function Metric({ label, value, icon }: { label: string; value: string; icon: keyof typeof Feather.glyphMap }) {
+function Metric({ label, value, icon, onPress }: { label: string; value: string; icon: keyof typeof Feather.glyphMap; onPress: () => void }) {
   const colors = useColors();
   return (
-    <Card style={styles.metricCard}>
+    <Pressable accessibilityRole="button" accessibilityLabel={`${label}: ${value}. Open details`} onPress={onPress} style={styles.metricPressable}>
+      <Card style={styles.metricCard}>
       <View style={styles.metricHeader}>
         <Feather name={icon} size={16} color={colors.adminTeal} />
       </View>
       <Text numberOfLines={1} style={[styles.metricValue, { color: colors.foreground }]}>{value}</Text>
       <Text style={[styles.metricLabel, { color: colors.mutedForeground }]}>{label}</Text>
-    </Card>
+      </Card>
+    </Pressable>
   );
 }
 
@@ -132,7 +134,8 @@ function CountRow({
 const styles = StyleSheet.create({
   loading: { paddingVertical: 80, alignItems: 'center' },
   metrics: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  metricCard: { width: '48%', flexGrow: 1, padding: 14, gap: 4 },
+  metricPressable: { width: '48%', flexGrow: 1 },
+  metricCard: { padding: 14, gap: 4 },
   metricHeader: { height: 19, justifyContent: 'center' },
   metricValue: { fontFamily: 'Manrope_700Bold', fontSize: 20, letterSpacing: -0.5 },
   metricLabel: { fontFamily: 'Manrope_500Medium', fontSize: 10 },

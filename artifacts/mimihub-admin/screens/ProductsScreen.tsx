@@ -1,12 +1,13 @@
 import { Feather } from '@expo/vector-icons';
 import {
   getListProductsQueryKey,
+  useGetAdminSummary,
   useDeleteProduct,
   useListProducts,
 } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ActionButton, Card, EmptyState, ErrorState, Page, StatusBadge, TextField } from '@/components/AdminUI';
@@ -16,9 +17,20 @@ import { formatNaira, getErrorMessage } from '@/lib/format';
 export default function ProductsScreen() {
   const colors = useColors();
   const router = useRouter();
+  const params = useLocalSearchParams<{ filter?: string }>();
+  const lowStockOnly = params.filter === 'low-stock';
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const products = useListProducts(search.trim() ? { search: search.trim() } : undefined);
+  const summary = useGetAdminSummary();
+  const lowStockThreshold = summary.data?.lowStockThreshold ?? 5;
+  const visibleProducts = (products.data ?? []).filter((product) =>
+    !lowStockOnly || (
+      product.inStock &&
+      (product.stockQty ?? 0) > 0 &&
+      (product.stockQty ?? 0) < lowStockThreshold
+    )
+  );
   const removeProduct = useDeleteProduct();
 
   const confirmDelete = (id: number, name: string) => {
@@ -41,11 +53,14 @@ export default function ProductsScreen() {
 
   return (
     <Page
-      title="Products"
-      subtitle="Update the catalog that appears on your MimiiHub website."
+      title={lowStockOnly ? "Low-stock products" : "Products"}
+      subtitle={lowStockOnly ? `These products have fewer than ${lowStockThreshold} units remaining.` : "Update the catalog that appears on your MimiiHub website."}
       onRefresh={() => void products.refetch()}
       refreshing={products.isRefetching}
     >
+      {lowStockOnly ? (
+        <ActionButton label="Show all products" icon="package" variant="secondary" onPress={() => router.replace('/(tabs)/products')} />
+      ) : null}
       <ActionButton
         label="Add a product"
         icon="plus"
@@ -65,10 +80,10 @@ export default function ProductsScreen() {
         <ErrorState message={getErrorMessage(products.error)} onRetry={() => void products.refetch()} />
       ) : products.isLoading ? (
         <View style={styles.loading}><Feather name="loader" size={22} color={colors.adminTeal} /></View>
-      ) : products.data?.length ? (
+      ) : visibleProducts.length ? (
         <View style={styles.list}>
-          <Text style={[styles.listCount, { color: colors.mutedForeground }]}>{products.data.length} products</Text>
-          {products.data.map((product) => {
+          <Text style={[styles.listCount, { color: colors.mutedForeground }]}>{visibleProducts.length} {lowStockOnly ? 'products need restocking' : 'products'}</Text>
+          {visibleProducts.map((product) => {
             const image = product.coverImage ?? product.images?.[0] ?? null;
             return (
               <Card key={product.id} style={styles.productCard}>
@@ -115,8 +130,8 @@ export default function ProductsScreen() {
         <Card>
           <EmptyState
             icon="package"
-            title={search ? 'No matching products' : 'Your catalog is empty'}
-            detail={search ? 'Try another name or description.' : 'Add the first product to start building your catalog.'}
+            title={lowStockOnly ? 'No low-stock products' : search ? 'No matching products' : 'Your catalog is empty'}
+            detail={lowStockOnly ? 'No products are currently below the low-stock threshold.' : search ? 'Try another name or description.' : 'Add the first product to start building your catalog.'}
           />
         </Card>
       )}
