@@ -24,7 +24,7 @@ export function Categories() {
           <div className="w-16 h-0.5 bg-primary mx-auto" />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+        <div className="grid grid-cols-2 gap-3 md:gap-6">
           {isLoading ? (
             <div className="col-span-full"><LoadingSpinner size="lg" /></div>
           ) : isError ? (
