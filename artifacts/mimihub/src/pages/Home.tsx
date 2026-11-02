@@ -134,16 +134,18 @@ export function Home() {
             <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-primary">Explore</p>
             <h2 className="mt-1 font-serif text-2xl text-foreground md:text-3xl">Shop by Category</h2>
           </div>
-          <Link href="/categories" className="text-xs font-semibold uppercase tracking-wider text-primary">
-            View all
-          </Link>
+          {categories.length > 4 && (
+            <Link href="/categories" className="text-xs font-semibold uppercase tracking-wider text-primary">
+              More...
+            </Link>
+          )}
         </div>
 
         {loadingCategories ? (
           <LoadingSpinner size="lg" />
         ) : categories.length > 0 ? (
           <div className="grid grid-cols-2 gap-3 md:gap-5">
-            {categories.map((category) => (
+            {categories.slice(0, 4).map((category) => (
               <CategoryCard key={category.id} category={category} />
             ))}
           </div>
